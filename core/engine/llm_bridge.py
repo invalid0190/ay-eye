@@ -1,4 +1,4 @@
-﻿import requests
+import requests
 import json
 import time
 import threading
@@ -8,10 +8,10 @@ from core.utils.logger import logger
 from core.utils.json_parser import json_parser
 
 class LLMBridge:
-    def __init__(self, model="llama3", url="http://localhost:11434/api/generate"):
+    def __init__(self, model="llama3:latest", url="http://localhost:11434/api/generate"):
         self.model = model
         self.url = url
-        self.timeout = 5.0
+        self.timeout = 30.0
         self.queue = Queue(maxsize=1) # Prevent concurrent calls
         self._lock = threading.Lock()
 

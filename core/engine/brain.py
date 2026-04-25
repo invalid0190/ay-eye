@@ -1,4 +1,4 @@
-﻿from core.engine.event_bus import bus
+from core.engine.event_bus import bus
 from core.engine.llm_bridge import llm_bridge
 from core.engine.context_builder import context_distiller, prompt_builder
 from core.engine.decision_engine import decision_engine
@@ -34,6 +34,7 @@ class Brain:
             prompt += f"\n\nPAST RELEVANT MEMORIES:\n{memories}"
             
         # 4. LLM Call
+        bus.publish("BRAIN_THINKING", {"prompt_length": len(prompt)})
         response = llm_bridge.generate(prompt)
         
         if not response:

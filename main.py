@@ -66,7 +66,9 @@ class Orchestrator:
             
             # Heartbeat every 5s
             if time.time() - self.last_heartbeat > 5:
-                logger.log_event("HEARTBEAT", {"active_window": win_info["window"]})
+                data = {"active_window": win_info["window"]}
+                logger.log_event("HEARTBEAT", data)
+                bus.publish("HEARTBEAT", data)
                 self.last_heartbeat = time.time()
 
             # Performance Guardrail: Max 2Hz loop

@@ -1,6 +1,7 @@
 import time
 import threading
 from core.engine.event_bus import bus
+from core.config import sys_config
 from core.engine.resolver import resolver
 from core.engine.executor import executor
 from core.state.trust import trust_manager
@@ -18,6 +19,10 @@ class ActionOrchestrator:
 
         def _run():
             try:
+                if sys_config.is_observation_only:
+                    logger.log_event("OBSERVATION_MODE_BLOCK", data)
+                    return
+
                 actions = data.get("actions", [])
                 for action in actions:
                     a_type = action.get("type")

@@ -20,6 +20,7 @@ class HotkeyManager:
                 logger.log_event("DEBUG_HOTKEY_DOWN", {"key": e.name})
                 if audio_state.start_listening():
                     bus.publish("HOTKEY_PRESSED")
+                    bus.publish("VOICE_RECORDING_START", {})
                     logger.log_event("VOICE_RECORDING_START")
                 else:
                     logger.logger.warning("Could not start listening (busy?)")

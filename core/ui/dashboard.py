@@ -1,11 +1,12 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QRect
 from core.ui.theme import theme
 from core.ui.models import ui_state_manager
 from core.ui.components import StatusBar, ActionPanel
 from core.engine.event_bus import bus
 from core.utils.health import health_checker
+from core.config import sys_config
 
 class AyEyeDashboard(QWidget):
     def __init__(self, overlay=None):
@@ -17,11 +18,25 @@ class AyEyeDashboard(QWidget):
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(10, 10, 10, 10)
         
+        # 1. Status Area
         self.status_bar = StatusBar()
-        self.action_panel = ActionPanel()
-        
         self.layout.addWidget(self.status_bar)
+        
+        # 2. Action Area (Suggestions)
+        self.action_panel = ActionPanel()
         self.layout.addWidget(self.action_panel)
+        
+        # 3. Dev Area (Debug Console)
+        self.dev_panel = QWidget()
+        self.dev_layout = QVBoxLayout(self.dev_panel)
+        self.dev_text = QTextEdit()
+        self.dev_text.setReadOnly(True)
+        self.dev_text.setFixedHeight(120)
+        self.dev_text.setStyleSheet(f"background: black; color: {theme.ACCENT_COLOR.name()}; font-family: Consolas; font-size: 8pt; border: none;")
+        self.dev_layout.addWidget(QLabel("DEBUG CONSOLE"))
+        self.dev_layout.addWidget(self.dev_text)
+        self.dev_panel.setVisible(False)
+        self.layout.addWidget(self.dev_panel)
         
         self.setStyleSheet(f"""
             QWidget {{
@@ -29,18 +44,21 @@ class AyEyeDashboard(QWidget):
                 border: 1px solid {theme.GRAY_COLOR.name()}; 
                 border-radius: 8px;
             }}
-            QLabel {{ border: none; background: transparent; }}
+            QLabel {{ border: none; background: transparent; color: {theme.TEXT_COLOR.name()}; font-size: 8pt; }}
         """)
         
-        self.setFixedWidth(250)
+        self.setFixedWidth(280)
         self.adjust_position()
         self.show()
         
-        # Subscribe to events for UI updates
+        # Subscribers
         bus.subscribe("BRAIN_RESPONDED", self.on_suggestion)
-        bus.subscribe("ACTION_COMPLETED", self.on_action_end)
-        bus.subscribe("ACTION_ABORTED", self.on_action_end)
+        bus.subscribe("BRAIN_THINKING", lambda d: self.log_debug("BRAIN: Thinking..."))
+        bus.subscribe("BRAIN_THINKING", lambda d: ui_state_manager.update(status="thinking"))
         bus.subscribe("HIGHLIGHT_REQUESTED", self.on_highlight_request)
+        bus.subscribe("HEARTBEAT", self.log_debug)
+        bus.subscribe("VOICE_TRANSCRIBED", lambda d: self.log_debug(f"VOICE: {d.get('text')}"))
+        bus.subscribe("VOICE_RECORDING_START", lambda d: self.log_debug("VOICE: Recording..."))
         
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.sync_state)
@@ -54,38 +72,41 @@ class AyEyeDashboard(QWidget):
         state = ui_state_manager.state
         health = health_checker.run_all()
         health_status = "✓" if health["ok"] else "⚠"
+        mode_label = "OBS" if sys_config.is_observation_only else "ACT"
         
-        self.status_bar.label.setText(f"ay-eye: {state.status} [{health_status}]")
+        self.status_bar.label.setText(f"ay-eye: {state.status} [{health_status}] | {mode_label}")
         self.status_bar.label.setToolTip(health["details"])
         
         color = theme.ACCENT_COLOR if state.status != "idle" else theme.GRAY_COLOR
         self.status_bar.icon.setStyleSheet(f"color: {color.name()};")
+        
+        # Auto-show dev panel in debug mode
+        if sys_config.get("debug_mode") and not self.dev_panel.isVisible():
+            self.dev_panel.setVisible(True)
+            self.adjust_height()
+
+    def log_debug(self, data):
+        msg = f"> {data}\n"
+        self.dev_text.append(msg)
+        self.dev_text.verticalScrollBar().setValue(self.dev_text.verticalScrollBar().maximum())
 
     def on_suggestion(self, data):
         ui_state_manager.update(status="thinking", confidence=data.get("confidence", 0))
         self.action_panel.show_suggestion(data.get("message", ""), data.get("confidence", 0))
-        self.animate_expand()
-
-    def on_action_end(self, data=None):
-        ui_state_manager.update(status="idle")
-        QTimer.singleShot(3000, lambda: self.action_panel.setVisible(False))
+        self.log_debug(f"BRAIN: {data.get('intent')} | Conf: {data.get('confidence')}")
+        self.adjust_height()
 
     def on_highlight_request(self, coords):
         if self.overlay:
-            # coords are {x, y, w, h} - resolver returns center for x,y
-            # overlay.highlight expects top-left for rect
             x = coords["x"] - coords["w"] // 2
             y = coords["y"] - coords["h"] // 2
             self.overlay.highlight(x, y, coords["w"], coords["h"])
 
-    def animate_expand(self):
-        self.anim = QPropertyAnimation(self, b"geometry")
-        self.anim.setDuration(200)
-        self.anim.setStartValue(self.geometry())
-        new_height = 150 # Estimated expanded height
-        self.anim.setEndValue(QRect(self.x(), self.y(), self.width(), new_height))
-        self.anim.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self.anim.start()
+    def adjust_height(self):
+        h = 100
+        if self.action_panel.isVisible(): h += 80
+        if self.dev_panel.isVisible(): h += 150
+        self.setFixedHeight(h)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
