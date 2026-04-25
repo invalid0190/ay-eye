@@ -70,3 +70,28 @@
   3. Not within speech cooldown window.
 - **Event:** Subscribes to `BRAIN_RESPONDED` and processes the "message" field for speech.
 - **Safety:** Immediate release of audio resources after each interaction.
+
+---
+
+## Phase 4: Automation & Control — Decisions
+
+**Date:** 2026-04-25
+
+### Action Execution
+- **Core Engine:** `pyautogui` for low-level mouse and keyboard control.
+- **Phased Autonomy:** 
+  - **Level 1:** Always confirm (initial 5-10 uses).
+  - **Level 2:** Adaptive trust (auto-execute safe/known tasks).
+  - **Level 3:** Full automation (future).
+- **Sequential Steps:** Actions are executed one-by-one with 100-300ms delays and post-action UI verification.
+
+### Safety & Visuals
+- **Kill Switch:** `Ctrl + Shift + X` for a hard stop (immediate termination of action thread).
+- **Visual Feedback:** PyQt6 transparent overlay draws a bounding box over the target for 150-250ms before clicking.
+- **Targeting:** Priority order: 1. UIAutomation element matching → 2. OCR text-based bounding boxes → 3. Disambiguation request (if >1 match).
+- **Whitelisting:** `OPEN_APP` actions only permitted for a predefined list of "Safe Apps."
+
+### Trust & Logic
+- **Trust Model:** Trust scores are tracked per action type (`click`, `type`, `open_app`). Fails or user cancellations reset trust.
+- **Validation:** Minimum confidence of 0.8 required for any automated action.
+- **Ambiguity:** Zero-guessing policy. If multiple targets exist in the active window, stop and ask the user via voice.

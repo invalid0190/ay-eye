@@ -49,6 +49,10 @@ class Brain:
             memory_manager.store(state.app, str(distilled), response)
             short_term_memory.add({"context": distilled, "response": response})
             bus.publish("BRAIN_RESPONDED", response)
+            
+            if response.get("intent") == "act":
+                bus.publish("ACTION_REQUESTED", response)
+                
             logger.log_event("BRAIN_DECISION", response)
         else:
             bus.publish("SAFE_NO_ACTION")
