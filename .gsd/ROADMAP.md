@@ -37,3 +37,4 @@
 **Objective**: Create the PyQt6 interface, overlay system, and optimize performance.
 **Requirements**: REQ-GUI-01, REQ-GUI-02
 
+
