@@ -28,18 +28,19 @@ class DecisionEngine:
             logger.logger.info(f"Decision: Confidence {confidence} below threshold {threshold}")
             return False
             
-        # Cooldown check
-        cooldown = sys_config.get("cooldown_seconds")
-        if time.time() - self.last_call_time < cooldown:
-            logger.logger.info("Decision: Cooldown active")
-            return False
+        # Cooldown check (skip for voice commands - always process immediately)
+        if not is_voice:
+            cooldown = sys_config.get("cooldown_seconds")
+            if time.time() - self.last_call_time < cooldown:
+                logger.logger.info("Decision: Cooldown active")
+                return False
             
         self.last_call_time = time.time()
         return True
 
     def get_response_mode(self, confidence: float) -> str:
-        threshold = sys_config.get("confidence_threshold")
-        if confidence < threshold:
+        # Low threshold to ensure voice responses get through
+        if confidence < 0.3:
             return "IGNORE"
         return "UI_VOICE"
 

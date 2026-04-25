@@ -5,7 +5,7 @@
 > [!WARNING]
 > **Development Status**: This project is currently in the **Early Development Phase**. It is intended for experimental use and is **not yet production-ready**. Expect frequent breaking changes and bugs.
 
-**Ay-Eye** is an autonomous, multimodal AI agent designed to act as a seamless extension of your digital workspace. By combining real-time computer vision, voice recognition, and local large language models, Ay-Eye "sees" what you see and "hears" what you say, providing intelligent assistance without ever leaving your local machine.
+**Ay-Eye** is an autonomous, multimodal AI agent designed to act as a seamless extension of your digital workspace. By combining real-time computer vision, voice recognition, and cloud-powered large language models, Ay-Eye "sees" what you see and "hears" what you say, providing intelligent assistance without ever leaving your desktop.
 
 Inspired by next-generation agentic frameworks like OpenDevin and OpenClaude, Ay-Eye prioritizes **privacy, speed, and deep system integration**.
 
@@ -14,16 +14,19 @@ Inspired by next-generation agentic frameworks like OpenDevin and OpenClaude, Ay
 ## 🚀 Core Features
 
 - **Multimodal Perception**: Real-time screen capture and OCR analysis using a distributed Node.js/Python bridge.
-- **Voice-Driven Command & Control**: Hands-free interaction via high-performance local STT (Faster-Whisper).
-- **Privacy-First Intelligence**: Fully local LLM orchestration powered by Ollama (Llama 3/3.2).
-- **Dynamic Visual Overlay**: A glassmorphism-inspired UI that provides real-time "AI Cursor" tracking and status feedback.
+- **Voice-Driven Command & Control**: Hands-free interaction via high-performance local STT (Faster-Whisper). Hold `Alt + Z` to speak.
+- **Cloud-Powered Intelligence**: Fast LLM orchestration powered by Ollama Cloud API (Gemma 3, DeepSeek, Qwen, and more).
+- **Natural Voice Output**: Cloud-based Text-to-Speech via Murf AI with configurable voice profiles.
+- **Dynamic Visual Overlay**: A glassmorphism-inspired UI with real-time "AI Cursor" tracking and draggable status bar.
+- **Human-Like Automation**: Smooth cursor movements with micro-jitter and easing curves for natural-feeling UI automation.
+- **Action Confirmation**: Multi-modal confirmation system (UI button, voice, hotkey) before executing automated actions.
 - **Event-Driven Architecture**: A robust internal event bus for seamless coordination between vision, voice, and decision engines.
 
 ---
 
 ## 🛠️ Architecture & Workflow
 
-Ay-Eye is built on a hybrid stack designed for maximum reliability and local performance. Unlike traditional agents that rely on cloud APIs, Ay-Eye orchestrates multiple local engines in parallel:
+Ay-Eye is built on a hybrid stack designed for maximum reliability and performance. It orchestrates multiple engines in parallel:
 
 ### The Intelligence Loop
 1.  **Perception (Vision/Voice)**: 
@@ -31,15 +34,22 @@ Ay-Eye is built on a hybrid stack designed for maximum reliability and local per
     - **Voice**: Listens for the `Alt + Z` hotkey to capture high-fidelity audio, which is then transcribed using `faster-whisper`.
 2.  **State Management**: 
     - All perceived data is piped into a central **System State** manager that maintains a real-time "Snapshot" of your current workspace.
-3.  **The Brain (Ollama)**: 
-    - When a trigger (Idle, Voice, or Error) occurs, the **Context Distiller** prepares a minimized prompt for Ollama (`llama3`).
-    - The LLM processes the current state and returns a structured JSON response.
+3.  **The Brain (Ollama Cloud)**: 
+    - When a trigger (Voice Command, Error, or Idle) occurs, the **Context Distiller** prepares a minimized prompt.
+    - The LLM processes the current state + user voice input and returns a structured JSON response.
 4.  **Action Orchestration**: 
-    - Based on the Brain's decision, the system either speaks to the user (TTS), highlights elements on the screen, or prepares an automated UI action.
+    - Based on the Brain's decision, the system can:
+      - **Speak** to the user via Murf AI TTS
+      - **Move the cursor** with human-like smooth easing
+      - **Type text** on the keyboard
+      - **Highlight elements** on the screen
+    - Actions require user confirmation via `Alt + Enter` or the UI button.
 
 ### Tech Stack
 - **Languages**: Python 3.13 (Core), JavaScript/Node.js (OCR Engine).
-- **Inference**: Ollama (LLM), Faster-Whisper (STT).
+- **LLM Inference**: Ollama Cloud API (Gemma 3, DeepSeek, GPT-OSS, etc.).
+- **Speech-to-Text**: Faster-Whisper (local, CPU-based).
+- **Text-to-Speech**: Murf AI (cloud, natural voices).
 - **UI Framework**: PyQt6 with custom glassmorphism styling.
 - **Inter-process Communication**: Internal Event Bus (Pub/Sub pattern).
 
@@ -72,7 +82,8 @@ We welcome contributions! Whether you're fixing a bug, adding a feature, or impr
 ### Prerequisites
 - **Python 3.10+**
 - **Node.js 18+** (for OCR engine)
-- **Ollama** (running locally with `llama3` pulled)
+- **Ollama Cloud API Key** (from [ollama.com/settings/keys](https://ollama.com/settings/keys))
+- **Murf AI API Key** (from [murf.ai](https://murf.ai))
 
 ### Setup
 1. **Clone the repository:**
@@ -95,6 +106,13 @@ We welcome contributions! Whether you're fixing a bug, adding a feature, or impr
    cd ../../../
    ```
 
+4. **Configure API Keys:**
+   Create a `.env` file in the project root:
+   ```env
+   MURF_API_KEY=your_murf_api_key_here
+   OLLAMA_API_KEY=your_ollama_api_key_here
+   ```
+
 ---
 
 ## 🚦 Usage
@@ -109,10 +127,16 @@ We welcome contributions! Whether you're fixing a bug, adding a feature, or impr
    - **Alt + Enter**: Confirm a suggested action.
    - **Ctrl + Shift + X**: Emergency stop.
 
+3. **Voice Commands:**
+   - "Open Notepad" — Launches whitelisted applications.
+   - "Click on the submit button" — Moves cursor and clicks.
+   - "Type hello world" — Types text using the keyboard.
+   - "What am I looking at?" — Describes your current screen.
+
 ---
 
 ## 🛡️ Privacy Commitment
-Ay-Eye is designed to be **Zero-Data-Exfiltration**. All screen captures, audio segments, and LLM inferences are processed entirely on your local hardware. No data ever leaves your system unless you explicitly configure an external provider.
+Ay-Eye processes all screen captures and audio locally on your machine. Voice transcription is done via Faster-Whisper (offline). Only the distilled text context is sent to Ollama Cloud for LLM inference, and voice output is generated via Murf AI. No raw screenshots or audio recordings ever leave your system.
 
 ---
 

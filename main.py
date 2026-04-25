@@ -37,6 +37,13 @@ class Orchestrator:
         # Launch engine loop in background
         self.thread = threading.Thread(target=self.loop, daemon=True)
         self.thread.start()
+        
+        # Startup Greeting (with small delay for TTS readiness)
+        def _greet():
+            time.sleep(2)
+            bus.publish("AI_GREETING", {"text": "System online. I am Ay-Eye, standing by for your commands."})
+        threading.Thread(target=_greet, daemon=True).start()
+        
         logger.log_event("SYSTEM_STARTED")
 
     def stop(self):
@@ -55,7 +62,12 @@ class Orchestrator:
                 continue
                 
             # 2. Capture
-            img = capture_module.capture_region(win_info["rect"])
+            rect = win_info.get("rect")
+            if not rect or rect[2] <= 0 or rect[3] <= 0:
+                time.sleep(1)
+                continue
+                
+            img = capture_module.capture_region(rect)
             
             # 3. Change Detection (Emits SCREEN_UPDATED if changed)
             if img:
@@ -83,13 +95,14 @@ class Orchestrator:
         ui_elements = ui_scanner.scan_active_window()
         text = ocr_engine.process(image)
         
-        state_manager.update(
-            ui_elements=ui_elements,
-            ocr_text=text if text else state_manager.get_state().ocr_text
-        )
-        
         if text:
+            state_manager.update(
+                ui_elements=ui_elements,
+                ocr_text=text
+            )
             trigger_engine.check_error(text)
+        else:
+            state_manager.update(ui_elements=ui_elements)
 
 if __name__ == "__main__":
     # 1. Initialize QApplication on the MAIN thread

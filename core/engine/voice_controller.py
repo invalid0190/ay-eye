@@ -1,4 +1,4 @@
-﻿from core.engine.event_bus import bus
+from core.engine.event_bus import bus
 from core.engine.tts import tts_engine
 from core.utils.logger import logger
 import hashlib
@@ -10,6 +10,7 @@ class VoiceController:
         self.last_speech_time = 0
         
         bus.subscribe("BRAIN_RESPONDED", self.handle_response)
+        bus.subscribe("AI_GREETING", lambda d: tts_engine.speak(d.get("text")))
         bus.subscribe("KEY_PRESSED", self.interrupt)
         bus.subscribe("MOUSE_CLICKED", self.interrupt)
 
@@ -18,7 +19,7 @@ class VoiceController:
         confidence = data.get("confidence", 0)
         mode = data.get("mode", "IGNORE")
 
-        if not message or mode != "UI_VOICE" or confidence < 0.7:
+        if not message or confidence < 0.3:
             return
 
         # Prevent repetition

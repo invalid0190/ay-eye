@@ -1,4 +1,4 @@
-﻿import pyaudio
+import pyaudio
 import threading
 import time
 from core.engine.event_bus import bus
@@ -45,7 +45,7 @@ class AudioCapture:
                 if audio_processor.is_silent(data):
                     if silence_start is None:
                         silence_start = time.time()
-                    elif time.time() - silence_start > 0.6:
+                    elif time.time() - silence_start > 1.5:
                         break
                 else:
                     silence_start = None

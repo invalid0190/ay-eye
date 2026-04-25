@@ -2,6 +2,7 @@ import sys
 from PyQt6.QtWidgets import QApplication, QWidget
 from PyQt6.QtCore import Qt, QTimer, QRect, QPoint
 from PyQt6.QtGui import QPainter, QColor, QPen, QCursor
+from core.ui.theme import theme
 
 class VisualOverlay(QWidget):
     def __init__(self):
@@ -36,17 +37,17 @@ class VisualOverlay(QWidget):
         
         # 1. Draw Target Highlight
         if self.target_rect:
-            pen = QPen(QColor(0, 180, 255, 200), 3) # ay-eye cyan
+            pen = QPen(theme.ACCENT_COLOR, 3) 
             painter.setPen(pen)
             painter.drawRect(self.target_rect)
             
         # 2. Draw AI Cursor (Subtle Ring)
-        pen = QPen(QColor(0, 180, 255, 100), 1)
+        pen = QPen(theme.ACCENT_LOW, 1)
         painter.setPen(pen)
         painter.drawEllipse(self.cursor_pos, 8, 8)
         
         # Small dot in center
-        painter.setBrush(QColor(0, 180, 255, 150))
+        painter.setBrush(theme.ACCENT_COLOR)
         painter.setPen(Qt.PenStyle.NoPen)
         painter.drawEllipse(self.cursor_pos, 2, 2)
 

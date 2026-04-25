@@ -14,7 +14,11 @@ class Brain:
 
     def on_voice_input(self, text):
         logger.log_event("BRAIN_VOICE_INPUT", {"text": text})
-        self.on_ai_triggered({"type": "VOICE_COMMAND", "confidence": 1.0, "text": text})
+        self.on_ai_triggered({
+            "type": "VOICE_COMMAND",
+            "confidence": 1.0,
+            "text": text
+        })
 
     def on_ai_triggered(self, trigger_data):
         state = state_manager.get_state()
@@ -30,16 +34,28 @@ class Brain:
         
         # 3. Prompting
         prompt = prompt_builder.build(distilled, trigger_data["type"])
+        
+        # KEY FIX: Include the user's voice command in the prompt
+        voice_text = trigger_data.get("text")
+        if voice_text:
+            prompt += f"\n\nUSER VOICE COMMAND: \"{voice_text}\"\nRespond to this command directly."
+        
         if memories:
             prompt += f"\n\nPAST RELEVANT MEMORIES:\n{memories}"
             
         # 4. LLM Call
         bus.publish("BRAIN_THINKING", {"prompt_length": len(prompt)})
-        response = llm_bridge.generate(prompt)
+        
+        try:
+            response = llm_bridge.generate(prompt)
+        except Exception as e:
+            logger.logger.error(f"Brain: LLM exception: {e}")
+            bus.publish("BRAIN_ERROR", {"reason": str(e)})
+            return
         
         if not response:
             logger.logger.error("Brain: LLM failed to provide response")
-            bus.publish("SAFE_NO_ACTION")
+            bus.publish("BRAIN_ERROR", {"reason": "No response from LLM"})
             return
 
         # 5. Response Mode & Storage

@@ -1,4 +1,4 @@
-﻿import pyautogui
+import pyautogui
 import time
 import random
 import threading
@@ -37,9 +37,15 @@ class ActionExecutor:
         try:
             if a_type == "click":
                 x, y = action.get("x"), action.get("y")
-                # Smooth movement
-                pyautogui.moveTo(x, y, duration=random.uniform(0.1, 0.2))
-                time.sleep(0.1) # Micro-delay before click
+                # Add tiny random jitter to target
+                jx = x + random.randint(-2, 2)
+                jy = y + random.randint(-2, 2)
+                
+                # Human-like smooth movement
+                duration = random.uniform(0.2, 0.4)
+                pyautogui.moveTo(jx, jy, duration=duration, tween=pyautogui.easeOutQuad)
+                
+                time.sleep(random.uniform(0.05, 0.15)) # Micro-hesitation
                 pyautogui.click()
             elif a_type == "type":
                 text = action.get("text")

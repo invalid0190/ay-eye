@@ -6,17 +6,19 @@ from datetime import datetime
 class StructuredLogger:
     def __init__(self, name="ay-eye"):
         self.logger = logging.getLogger(name)
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
         
-        # Console handler
+        # Console handler (only show warnings and errors)
         ch = logging.StreamHandler()
+        ch.setLevel(logging.WARNING)
         formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
         ch.setFormatter(formatter)
         self.logger.addHandler(ch)
         
-        # File handler for analytics
+        # File handler for analytics (everything)
         self.log_file = "ay-eye-analytics.jsonl"
         fh = logging.FileHandler(self.log_file)
+        fh.setLevel(logging.INFO)
         self.logger.addHandler(fh)
 
     def _write_json(self, entry):

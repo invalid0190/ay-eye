@@ -1,8 +1,8 @@
-﻿import numpy as np
+import numpy as np
 
 class AudioProcessor:
     @staticmethod
-    def is_silent(data, threshold=0.01):
+    def is_silent(data, threshold=0.005):
         # Convert to float array and check RMS
         audio_data = np.frombuffer(data, dtype=np.int16).astype(np.float32) / 32768.0
         rms = np.sqrt(np.mean(audio_data**2))

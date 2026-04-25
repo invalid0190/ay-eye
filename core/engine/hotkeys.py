@@ -36,6 +36,7 @@ class HotkeyManager:
                 logger.log_event("DEBUG_HOTKEY_UP", {"key": e.name})
                 audio_state.stop_listening()
                 bus.publish("HOTKEY_RELEASED")
+                bus.publish("VOICE_RECORDING_STOP", {})
                 logger.log_event("VOICE_RECORDING_STOP")
 
 hotkey_manager = HotkeyManager()
