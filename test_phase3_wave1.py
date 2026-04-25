@@ -13,5 +13,5 @@ print(f"Speaking state after interrupt: {audio_state.is_speaking}")
 
 # Test Gating
 print("\nTesting Voice Gating...")
-voice_controller.handle_response({"message": "Hello Jarvis", "confidence": 0.9, "mode": "UI_VOICE"})
+voice_controller.handle_response({"message": "Hello ay-eye", "confidence": 0.9, "mode": "UI_VOICE"})
 time.sleep(1)

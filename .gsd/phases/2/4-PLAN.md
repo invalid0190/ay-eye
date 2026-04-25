@@ -1,4 +1,4 @@
----
+﻿---
 phase: 2
 plan: 4
 wave: 3
@@ -34,7 +34,7 @@ Implement the "Brain" decision logic and integrate it into the main event-driven
   <files>main.py, core/engine/brain.py</files>
   <action>
     - Create a `Brain` module that subscribes to "AI_TRIGGERED".
-    - Flow: Trigger → Decision Engine → Context Builder → Memory Fetch → LLM Bridge → JSON Parser → Event: "BRAIN_RESPONDED".
+    - Flow: Trigger â†’ Decision Engine â†’ Context Builder â†’ Memory Fetch â†’ LLM Bridge â†’ JSON Parser â†’ Event: "BRAIN_RESPONDED".
     - Update `main.py` to handle the new "BRAIN_RESPONDED" event.
   </action>
   <verify>python main.py (simulated trigger should log Brain response)</verify>

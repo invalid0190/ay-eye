@@ -1,4 +1,4 @@
-# PROJECT_RULES.md — GSD Canonical Rules
+﻿# PROJECT_RULES.md â€” GSD Canonical Rules
 
 > **Single Source of Truth** for the Get Shit Done methodology.
 > 
@@ -8,7 +8,7 @@
 
 ## Core Protocol
 
-**SPEC → PLAN → EXECUTE → VERIFY → COMMIT**
+**SPEC â†’ PLAN â†’ EXECUTE â†’ VERIFY â†’ COMMIT**
 
 1. **SPEC**: Define requirements in `.gsd/SPEC.md` until status is `FINALIZED`
 2. **PLAN**: Decompose into phases in `.gsd/ROADMAP.md`, then detailed plans
@@ -42,9 +42,9 @@ Every change requires verification evidence:
 
 **Before reading any file completely:**
 
-1. **Search first** — Use grep, ripgrep, or IDE search to find relevant snippets
-2. **Evaluate snippets** — Determine if full file read is justified
-3. **Targeted reads** — Only read specific line ranges when needed
+1. **Search first** â€” Use grep, ripgrep, or IDE search to find relevant snippets
+2. **Evaluate snippets** â€” Determine if full file read is justified
+3. **Targeted reads** â€” Only read specific line ranges when needed
 
 **Benefits:**
 - Reduces context pollution
@@ -120,9 +120,9 @@ At the end of each wave or significant work block, create a state snapshot:
 **Adapter Pattern:**
 ```
 adapters/
-├── CLAUDE.md    # Optional Claude enhancements
-├── GEMINI.md    # Optional Gemini enhancements
-└── GPT_OSS.md   # Optional GPT/OSS enhancements
+â”œâ”€â”€ CLAUDE.md    # Optional Claude enhancements
+â”œâ”€â”€ GEMINI.md    # Optional Gemini enhancements
+â””â”€â”€ GPT_OSS.md   # Optional GPT/OSS enhancements
 ```
 
 Each adapter must begin with:
@@ -157,22 +157,22 @@ type(scope): description
 ## Repository Structure
 
 ```
-PROJECT_RULES.md          # ← This file (canonical rules)
+PROJECT_RULES.md          # â† This file (canonical rules)
 GSD-STYLE.md              # Style and conventions
 
 .agent/
-└── workflows/            # Slash commands (/plan, /execute, etc.)
+â””â”€â”€ workflows/            # Slash commands (/plan, /execute, etc.)
 
 .agents/
-└── skills/               # Agent specializations (Agent Skills standard)
+â””â”€â”€ skills/               # Agent specializations (Agent Skills standard)
 
 .gemini/                  # Gemini-specific configuration
 .gsd/                     # Project state and artifacts
-├── SPEC.md               # Requirements (must be FINALIZED)
-├── ROADMAP.md            # Phases and progress
-├── STATE.md              # Session memory
-├── templates/            # Document templates
-└── examples/             # Usage examples
+â”œâ”€â”€ SPEC.md               # Requirements (must be FINALIZED)
+â”œâ”€â”€ ROADMAP.md            # Phases and progress
+â”œâ”€â”€ STATE.md              # Session memory
+â”œâ”€â”€ templates/            # Document templates
+â””â”€â”€ examples/             # Usage examples
 
 adapters/                 # Optional model-specific enhancements
 docs/                     # Operational documentation
@@ -187,15 +187,15 @@ scripts/                  # Utility scripts
 
 | Usage | Quality |
 |-------|---------|
-| 0-30% | **PEAK** — Comprehensive, thorough work |
-| 30-50% | **GOOD** — Solid, confident output |
-| 50-70% | **DEGRADING** — Efficiency mode |
-| 70%+ | **POOR** — Rushed, incomplete |
+| 0-30% | **PEAK** â€” Comprehensive, thorough work |
+| 30-50% | **GOOD** â€” Solid, confident output |
+| 50-70% | **DEGRADING** â€” Efficiency mode |
+| 70%+ | **POOR** â€” Rushed, incomplete |
 
 **Context Hygiene Rules:**
 - Keep plans under 50% context usage
 - Fresh context for each plan execution
-- After 3 debugging failures → state dump → fresh session
+- After 3 debugging failures â†’ state dump â†’ fresh session
 - STATE.md = memory across sessions
 
 ---
@@ -246,15 +246,15 @@ After understanding a file:
 ## Quick Reference
 
 ```
-Before coding    → SPEC.md must be FINALIZED
-Before file read → Search first, then targeted read
-After each task  → Commit + update STATE.md
-After each wave  → State snapshot
-After 3 failures → State dump + fresh session
-Before "Done"    → Empirical proof captured
+Before coding    â†’ SPEC.md must be FINALIZED
+Before file read â†’ Search first, then targeted read
+After each task  â†’ Commit + update STATE.md
+After each wave  â†’ State snapshot
+After 3 failures â†’ State dump + fresh session
+Before "Done"    â†’ Empirical proof captured
 ```
 
 ---
 
-*GSD Methodology — Model-Agnostic Edition*
+*GSD Methodology â€” Model-Agnostic Edition*
 *Reference implementation for multi-LLM environments*

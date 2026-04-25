@@ -1,6 +1,6 @@
----
+﻿---
 name: empirical-validation
-description: Requires proof before marking work complete — no "trust me, it works"
+description: Requires proof before marking work complete â€” no "trust me, it works"
 ---
 
 # Empirical Validation
@@ -83,9 +83,9 @@ Never use these as justification for completion:
 ## Integration
 
 This skill integrates with:
-- `/verify` — Primary workflow using this skill
-- `/execute` — Must validate before marking tasks complete
-- Rule 4 in `GEMINI.md` — Empirical Validation enforcement
+- `/verify` â€” Primary workflow using this skill
+- `/execute` â€” Must validate before marking tasks complete
+- Rule 4 in `GEMINI.md` â€” Empirical Validation enforcement
 
 ## Failure Handling
 

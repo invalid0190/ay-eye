@@ -1,4 +1,4 @@
-# State Snapshot Template
+﻿# State Snapshot Template
 
 Template for wave summaries and session state captures.
 
@@ -29,7 +29,7 @@ status: {complete | partial | blocked}
 
 ## Objective
 
-{What this wave aimed to accomplish — 1-2 sentences}
+{What this wave aimed to accomplish â€” 1-2 sentences}
 
 ## Changes Realized
 
@@ -49,9 +49,9 @@ status: {complete | partial | blocked}
 
 | Check | Command | Result |
 |-------|---------|--------|
-| {Test 1} | `{command}` | ✅ Passed |
-| {Test 2} | `{command}` | ✅ Passed |
-| {Test 3} | `{command}` | ❌ Failed: {reason} |
+| {Test 1} | `{command}` | âœ… Passed |
+| {Test 2} | `{command}` | âœ… Passed |
+| {Test 3} | `{command}` | âŒ Failed: {reason} |
 
 ## Commits in This Wave
 
@@ -64,8 +64,8 @@ status: {complete | partial | blocked}
 
 {None if clear}
 
-- ⚠️ {Risk or debt item 1}
-- ⚠️ {Risk or debt item 2}
+- âš ï¸ {Risk or debt item 1}
+- âš ï¸ {Risk or debt item 2}
 
 ## TODO for Next Wave
 
@@ -75,7 +75,7 @@ status: {complete | partial | blocked}
 
 ## Context for Fresh Session
 
-{Any information the next session needs — decisions made, blockers encountered, hypotheses to test}
+{Any information the next session needs â€” decisions made, blockers encountered, hypotheses to test}
 
 ## Token Usage (Optional)
 
@@ -102,9 +102,9 @@ For quick state dumps during debugging:
 **Problem:** {what you're debugging}
 
 **Tried:**
-1. {approach 1} → {result}
-2. {approach 2} → {result}
-3. {approach 3} → {result}
+1. {approach 1} â†’ {result}
+2. {approach 2} â†’ {result}
+3. {approach 3} â†’ {result}
 
 **Current Hypothesis:** {theory}
 

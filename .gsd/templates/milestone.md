@@ -1,6 +1,6 @@
-# Milestone Template
+﻿# Milestone Template
 
-Template for `.gsd/milestones/{name}/MILESTONE.md` — milestone definition and tracking.
+Template for `.gsd/milestones/{name}/MILESTONE.md` â€” milestone definition and tracking.
 
 ---
 
@@ -19,7 +19,7 @@ target_date: [optional target]
 
 ## Vision
 
-{What this milestone achieves — one paragraph}
+{What this milestone achieves â€” one paragraph}
 
 ## Must-Haves
 
@@ -40,9 +40,9 @@ If time permits:
 
 | Phase | Name | Status | Objective |
 |-------|------|--------|-----------|
-| 1 | {name} | ⬜ Not Started | {objective} |
-| 2 | {name} | ⬜ Not Started | {objective} |
-| 3 | {name} | ⬜ Not Started | {objective} |
+| 1 | {name} | â¬œ Not Started | {objective} |
+| 2 | {name} | â¬œ Not Started | {objective} |
+| 3 | {name} | â¬œ Not Started | {objective} |
 
 ## Success Criteria
 
@@ -69,7 +69,7 @@ Key technical decisions for this milestone:
 
 | Date | Event | Notes |
 |------|-------|-------|
-| {date} | Milestone started | — |
+| {date} | Milestone started | â€” |
 ```
 
 ---

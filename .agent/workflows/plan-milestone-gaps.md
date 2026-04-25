@@ -1,4 +1,4 @@
----
+﻿---
 description: Create plans to address gaps found in milestone audit
 ---
 
@@ -23,9 +23,9 @@ Read from:
 
 | Category | Priority | Action |
 |----------|----------|--------|
-| Must-have failures | 🔴 High | Create fix phase |
-| Technical debt | 🟡 Medium | Add to roadmap |
-| Nice-to-have misses | 🟢 Low | Add to backlog |
+| Must-have failures | ðŸ”´ High | Create fix phase |
+| Technical debt | ðŸŸ¡ Medium | Add to roadmap |
+| Nice-to-have misses | ðŸŸ¢ Low | Add to backlog |
 
 ---
 
@@ -35,7 +35,7 @@ Add new phase to ROADMAP.md:
 
 ```markdown
 ### Phase {N}: Gap Closure
-**Status**: ⬜ Not Started
+**Status**: â¬œ Not Started
 **Objective**: Address gaps from milestone audit
 
 **Gaps to Close:**
@@ -97,20 +97,20 @@ git commit -m "docs: create gap closure plans"
 ## 7. Offer Execution
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► GAP CLOSURE PLANS CREATED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º GAP CLOSURE PLANS CREATED âœ“
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 Gaps identified: {N}
 Plans created: {M}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-▶ NEXT
+â–¶ NEXT
 
-/execute {N} --gaps-only — Execute gap closure plans
+/execute {N} --gaps-only â€” Execute gap closure plans
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 </process>

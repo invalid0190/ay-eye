@@ -1,6 +1,6 @@
-# State Template
+﻿# State Template
 
-Template for `.gsd/STATE.md` — project memory across sessions.
+Template for `.gsd/STATE.md` â€” project memory across sessions.
 
 ---
 

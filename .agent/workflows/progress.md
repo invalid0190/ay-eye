@@ -1,11 +1,11 @@
----
+﻿---
 description: Show current position in roadmap and next steps
 ---
 
 # /progress Workflow
 
 <objective>
-Quick status check — where are we and what's next?
+Quick status check â€” where are we and what's next?
 </objective>
 
 <process>
@@ -13,8 +13,8 @@ Quick status check — where are we and what's next?
 ## 1. Load Current State
 
 Read:
-- `.gsd/STATE.md` — Current position
-- `.gsd/ROADMAP.md` — Phase statuses
+- `.gsd/STATE.md` â€” Current position
+- `.gsd/ROADMAP.md` â€” Phase statuses
 
 ---
 
@@ -22,54 +22,54 @@ Read:
 
 Count phases:
 - Total phases
-- Completed phases (✅)
-- In progress (🔄)
-- Blocked (⏸️)
-- Not started (⬜)
+- Completed phases (âœ…)
+- In progress (ðŸ”„)
+- Blocked (â¸ï¸)
+- Not started (â¬œ)
 
 ---
 
 ## 3. Display Status
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► PROGRESS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º PROGRESS
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 Project: {project name from SPEC.md}
 Milestone: {milestone from ROADMAP.md}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 PHASES
 
-✅ Phase 1: {Name}
-✅ Phase 2: {Name}
-🔄 Phase 3: {Name} ← CURRENT
-⬜ Phase 4: {Name}
-⬜ Phase 5: {Name}
+âœ… Phase 1: {Name}
+âœ… Phase 2: {Name}
+ðŸ”„ Phase 3: {Name} â† CURRENT
+â¬œ Phase 4: {Name}
+â¬œ Phase 5: {Name}
 
 Progress: {completed}/{total} ({percentage}%)
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 CURRENT TASK
 
 {Current task from STATE.md, or "None"}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 BLOCKERS
 
 {Blockers from STATE.md, or "None"}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-▶ NEXT UP
+â–¶ NEXT UP
 
 {Recommended next action based on state}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 ---
@@ -83,7 +83,7 @@ Based on status, recommend:
 | Phase in progress | `/execute {N}` to continue |
 | Phase done, not verified | `/verify {N}` |
 | Verification failed | `/execute {N} --gaps-only` |
-| All phases complete | Celebrate! 🎉 |
+| All phases complete | Celebrate! ðŸŽ‰ |
 | No phases started | `/plan 1` to begin |
 | SPEC not finalized | Complete SPEC.md first |
 

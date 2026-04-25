@@ -1,4 +1,4 @@
-# User Setup Template
+﻿# User Setup Template
 
 Template for user setup instructions when external services are needed.
 
@@ -113,4 +113,4 @@ Type "done" or "setup complete" to continue with execution.
 - Configuration file edits (AI can do)
 - API calls (AI can do)
 
-**Keep minimal** — every manual step slows down execution.
+**Keep minimal** â€” every manual step slows down execution.

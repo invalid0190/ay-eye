@@ -1,4 +1,4 @@
-# TODO.md — Pending Items
+﻿# TODO.md â€” Pending Items
 
 > Quick capture of ideas, tasks, and issues.
 >
@@ -7,17 +7,17 @@
 ## Format
 
 ```markdown
-- [ ] Description `priority` — YYYY-MM-DD
-- [x] Completed item `priority` — YYYY-MM-DD ✓ YYYY-MM-DD
+- [ ] Description `priority` â€” YYYY-MM-DD
+- [x] Completed item `priority` â€” YYYY-MM-DD âœ“ YYYY-MM-DD
 ```
 
 ## Priority Levels
 
 | Level | Use For |
 |-------|---------|
-| `high` 🔴 | Blocking issues, urgent fixes |
-| `medium` 🟡 | Normal priority (default) |
-| `low` 🟢 | Nice-to-have, future ideas |
+| `high` ðŸ”´ | Blocking issues, urgent fixes |
+| `medium` ðŸŸ¡ | Normal priority (default) |
+| `low` ðŸŸ¢ | Nice-to-have, future ideas |
 
 ---
 
@@ -25,7 +25,7 @@
 
 <!-- Active todos below -->
 
-- [ ] {Example todo item} `medium` — YYYY-MM-DD
+- [ ] {Example todo item} `medium` â€” YYYY-MM-DD
 
 ---
 

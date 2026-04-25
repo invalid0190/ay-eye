@@ -1,6 +1,6 @@
-# Roadmap Template
+﻿# Roadmap Template
 
-Template for `.gsd/ROADMAP.md` — phase structure and progress tracking.
+Template for `.gsd/ROADMAP.md` â€” phase structure and progress tracking.
 
 ---
 
@@ -29,7 +29,7 @@ updated: [ISO timestamp]
 ## Phases
 
 ### Phase 1: {Foundation}
-**Status:** ⬜ Not Started | 🔄 In Progress | ✅ Complete
+**Status:** â¬œ Not Started | ðŸ”„ In Progress | âœ… Complete
 **Objective:** {What this phase delivers}
 **Requirements:** REQ-01, REQ-02
 
@@ -40,7 +40,7 @@ updated: [ISO timestamp]
 ---
 
 ### Phase 2: {Core Feature}
-**Status:** ⬜ Not Started
+**Status:** â¬œ Not Started
 **Objective:** {What this phase delivers}
 **Depends on:** Phase 1
 
@@ -51,14 +51,14 @@ updated: [ISO timestamp]
 ---
 
 ### Phase 3: {Integration}
-**Status:** ⬜ Not Started
+**Status:** â¬œ Not Started
 **Objective:** {What this phase delivers}
 **Depends on:** Phase 2
 
 ---
 
 ### Phase 4: {Polish/Launch}
-**Status:** ⬜ Not Started
+**Status:** â¬œ Not Started
 **Objective:** {Final touches and deployment}
 **Depends on:** Phase 3
 
@@ -68,10 +68,10 @@ updated: [ISO timestamp]
 
 | Phase | Status | Plans | Complete |
 |-------|--------|-------|----------|
-| 1 | ⬜ | 0/2 | — |
-| 2 | ⬜ | 0/2 | — |
-| 3 | ⬜ | 0/1 | — |
-| 4 | ⬜ | 0/1 | — |
+| 1 | â¬œ | 0/2 | â€” |
+| 2 | â¬œ | 0/2 | â€” |
+| 3 | â¬œ | 0/1 | â€” |
+| 4 | â¬œ | 0/1 | â€” |
 
 ---
 
@@ -79,21 +79,21 @@ updated: [ISO timestamp]
 
 | Phase | Started | Completed | Duration |
 |-------|---------|-----------|----------|
-| 1 | — | — | — |
-| 2 | — | — | — |
-| 3 | — | — | — |
-| 4 | — | — | — |
+| 1 | â€” | â€” | â€” |
+| 2 | â€” | â€” | â€” |
+| 3 | â€” | â€” | â€” |
+| 4 | â€” | â€” | â€” |
 ```
 
 ---
 
 ## Status Icons
 
-- ⬜ Not Started
-- 🔄 In Progress
-- ✅ Complete
-- ⏸️ Paused
-- ❌ Blocked
+- â¬œ Not Started
+- ðŸ”„ In Progress
+- âœ… Complete
+- â¸ï¸ Paused
+- âŒ Blocked
 
 ## Guidelines
 

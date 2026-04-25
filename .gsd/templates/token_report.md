@@ -1,4 +1,4 @@
-# Token Report Template
+﻿# Token Report Template
 
 Template for documenting token usage per wave or session.
 

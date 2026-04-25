@@ -1,6 +1,6 @@
-# Cross-Platform Commands Reference
+﻿# Cross-Platform Commands Reference
 
-> PowerShell ↔ Bash equivalents for GSD workflows
+> PowerShell â†” Bash equivalents for GSD workflows
 
 ## Common Operations
 
@@ -28,7 +28,7 @@ git status --short
 
 ## Workflow-Specific Examples
 
-### /map — Analyze Codebase
+### /map â€” Analyze Codebase
 
 **PowerShell:**
 ```powershell
@@ -43,7 +43,7 @@ find . -type d ! -path "*/node_modules/*" ! -path "*/.git/*"
 
 ---
 
-### /plan — Check SPEC Status
+### /plan â€” Check SPEC Status
 
 **PowerShell:**
 ```powershell
@@ -58,7 +58,7 @@ if grep -q "FINALIZED" .gsd/SPEC.md; then echo "Ready"; fi
 
 ---
 
-### /execute — Discover Plans
+### /execute â€” Discover Plans
 
 **PowerShell:**
 ```powershell
@@ -72,7 +72,7 @@ ls .gsd/phases/1/*-PLAN.md 2>/dev/null
 
 ---
 
-### /verify — Search TODOs
+### /verify â€” Search TODOs
 
 **PowerShell:**
 ```powershell

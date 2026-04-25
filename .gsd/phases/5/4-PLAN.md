@@ -1,4 +1,4 @@
----
+﻿---
 phase: 5
 plan: 4
 wave: 2
@@ -37,7 +37,7 @@ Finalize the interaction system by linking UI buttons, Voice commands, and Hotke
     - Update `SETUP.md` with GUI requirements (PyQt6).
   </action>
   <verify>Full system run: Hotkey -> Voice -> Brain -> Action Confirmation -> Execution.</verify>
-  <done>ay-eye is a complete, polished, and unified assistant.</done>
+  <done>ay-eye is a complete, polished, and unified ay-eye.</done>
 </task>
 
 ## Success Criteria

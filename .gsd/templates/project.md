@@ -1,6 +1,6 @@
-# Project Template
+﻿# Project Template
 
-Template for `.gsd/SPEC.md` (or PROJECT.md) — project specification.
+Template for `.gsd/SPEC.md` (or PROJECT.md) â€” project specification.
 
 ---
 
@@ -13,7 +13,7 @@ created: [ISO timestamp]
 finalized: [ISO timestamp when status changed]
 ---
 
-# SPEC.md — Project Specification
+# SPEC.md â€” Project Specification
 
 ## Vision
 
@@ -111,8 +111,8 @@ Key decisions made during specification:
 
 ## Status Flow
 
-1. **DRAFT** — Being written, not ready for planning
-2. **FINALIZED** — Approved, planning can begin
+1. **DRAFT** â€” Being written, not ready for planning
+2. **FINALIZED** â€” Approved, planning can begin
 
 **Planning Lock:** Cannot create plans until status is FINALIZED.
 

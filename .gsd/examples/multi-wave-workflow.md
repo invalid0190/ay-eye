@@ -1,4 +1,4 @@
-# Multi-Wave Workflow Example
+﻿# Multi-Wave Workflow Example
 
 This example demonstrates a complete GSD workflow with:
 - Short spec
@@ -140,8 +140,8 @@ Create authentication endpoints.
 ## Verification Results
 | Check | Command | Result |
 |-------|---------|--------|
-| Login works | `curl -X POST .../login` | ✅ 200 + cookie |
-| Logout works | `curl -X POST .../logout` | ✅ 200 + cleared |
+| Login works | `curl -X POST .../login` | âœ… 200 + cookie |
+| Logout works | `curl -X POST .../logout` | âœ… 200 + cleared |
 
 ## Commits in This Wave
 | Hash | Message |
@@ -244,11 +244,11 @@ curl -X POST localhost:3000/api/auth/logout -b cookies.txt
 
 ## Key Takeaways
 
-1. **Waves group dependent work** — Wave 2 waited for Wave 1
-2. **State snapshots preserve context** — Each wave ends with documented state
-3. **Atomic commits per task** — Easy to trace and revert
-4. **Verification built into plan** — No "trust me, it works"
-5. **Effort hints model selection** — `high` effort = use reasoning model
+1. **Waves group dependent work** â€” Wave 2 waited for Wave 1
+2. **State snapshots preserve context** â€” Each wave ends with documented state
+3. **Atomic commits per task** â€” Easy to trace and revert
+4. **Verification built into plan** â€” No "trust me, it works"
+5. **Effort hints model selection** â€” `high` effort = use reasoning model
 
 ---
 

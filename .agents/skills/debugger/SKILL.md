@@ -1,4 +1,4 @@
----
+﻿---
 name: debugger
 description: Systematic debugging with persistent state and fresh context advantages
 ---
@@ -35,22 +35,22 @@ Ask about experience. Investigate the cause yourself.
 When debugging code you wrote, you're fighting your own mental model.
 
 **Why this is harder:**
-- You made the design decisions — they feel obviously correct
+- You made the design decisions â€” they feel obviously correct
 - You remember intent, not what you actually implemented
 - Familiarity breeds blindness to bugs
 
 **The discipline:**
-1. **Treat your code as foreign** — Read it as if someone else wrote it
-2. **Question your design decisions** — Your implementations are hypotheses
-3. **Admit your mental model might be wrong** — Code behavior is truth
-4. **Prioritize code you touched** — If you modified 100 lines and something breaks, those are prime suspects
+1. **Treat your code as foreign** â€” Read it as if someone else wrote it
+2. **Question your design decisions** â€” Your implementations are hypotheses
+3. **Admit your mental model might be wrong** â€” Code behavior is truth
+4. **Prioritize code you touched** â€” If you modified 100 lines and something breaks, those are prime suspects
 
 ---
 
 ## Foundation Principles
 
 - **What do you know for certain?** Observable facts, not assumptions
-- **What are you assuming?** "This library should work this way" — verified?
+- **What are you assuming?** "This library should work this way" â€” verified?
 - **Strip away everything you think you know.** Build understanding from facts.
 
 ---
@@ -61,7 +61,7 @@ When debugging code you wrote, you're fighting your own mental model.
 |------|------|----------|
 | **Confirmation** | Only look for supporting evidence | Actively seek disconfirming evidence |
 | **Anchoring** | First explanation becomes anchor | Generate 3+ hypotheses before investigating |
-| **Availability** | Recent bugs → assume similar cause | Treat each bug as novel |
+| **Availability** | Recent bugs â†’ assume similar cause | Treat each bug as novel |
 | **Sunk Cost** | Spent 2 hours, keep going | Every 30 min: "Would I still take this path?" |
 
 ---
@@ -79,11 +79,11 @@ When debugging code you wrote, you're fighting your own mental model.
 ## When to Restart
 
 Consider starting over when:
-1. **2+ hours with no progress** — Tunnel-visioned
-2. **3+ "fixes" that didn't work** — Mental model is wrong
-3. **You can't explain current behavior** — Don't add changes on top
-4. **You're debugging the debugger** — Something fundamental is wrong
-5. **Fix works but you don't know why** — This is luck, not a fix
+1. **2+ hours with no progress** â€” Tunnel-visioned
+2. **3+ "fixes" that didn't work** â€” Mental model is wrong
+3. **You can't explain current behavior** â€” Don't add changes on top
+4. **You're debugging the debugger** â€” Something fundamental is wrong
+5. **Fix works but you don't know why** â€” This is luck, not a fix
 
 **Restart protocol:**
 1. Close all files and terminals
@@ -111,7 +111,7 @@ A good hypothesis can be proven wrong.
 ### Forming Hypotheses
 
 1. **Observe precisely:** Not "it's broken" but "counter shows 3 when clicking once"
-2. **Ask "What could cause this?"** — List every possible cause
+2. **Ask "What could cause this?"** â€” List every possible cause
 3. **Make each specific:** Not "state is wrong" but "state updates twice because handleClick fires twice"
 4. **Identify evidence:** What would support/refute each hypothesis?
 
@@ -126,7 +126,7 @@ Write or say:
 1. "The system should do X"
 2. "Instead it does Y"
 3. "I think this is because Z"
-4. "The code path is: A → B → C → D"
+4. "The code path is: A â†’ B â†’ C â†’ D"
 5. "I've verified that..." (list what you tested)
 6. "I'm assuming that..." (list assumptions)
 
@@ -146,7 +146,7 @@ Often you'll spot the bug mid-explanation.
 
 1. Define desired output precisely
 2. What function produces this output?
-3. Test that function with expected input — correct output?
+3. Test that function with expected input â€” correct output?
    - YES: Bug is earlier (wrong input)
    - NO: Bug is here
 4. Repeat backwards through call stack

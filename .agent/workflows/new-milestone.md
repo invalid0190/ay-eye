@@ -1,4 +1,4 @@
----
+﻿---
 description: Create a new milestone with phases
 argument-hint: "<milestone-name>"
 ---
@@ -32,10 +32,10 @@ fi
 ## 2. Gather Milestone Information
 
 Ask for:
-- **Name** — Milestone identifier (e.g., "v1.0", "MVP", "Beta")
-- **Goal** — What does this milestone achieve?
-- **Must-haves** — Non-negotiable deliverables
-- **Nice-to-haves** — Optional if time permits
+- **Name** â€” Milestone identifier (e.g., "v1.0", "MVP", "Beta")
+- **Goal** â€” What does this milestone achieve?
+- **Must-haves** â€” Non-negotiable deliverables
+- **Nice-to-haves** â€” Optional if time permits
 
 ---
 
@@ -72,11 +72,11 @@ Ask user to confirm or modify.
 ## Phases
 
 ### Phase 1: {name}
-**Status**: ⬜ Not Started
+**Status**: â¬œ Not Started
 **Objective**: {description}
 
 ### Phase 2: {name}
-**Status**: ⬜ Not Started
+**Status**: â¬œ Not Started
 **Objective**: {description}
 
 ...
@@ -136,20 +136,20 @@ git commit -m "docs: create milestone {name}"
 ## 7. Offer Next Steps
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► MILESTONE CREATED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º MILESTONE CREATED âœ“
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 Milestone: {name}
 Phases: {N}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-▶ NEXT
+â–¶ NEXT
 
-/plan 1 — Create Phase 1 execution plans
+/plan 1 â€” Create Phase 1 execution plans
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 </process>

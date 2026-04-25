@@ -1,4 +1,4 @@
-# REQUIREMENTS.md
+﻿# REQUIREMENTS.md
 
 ## Format
 | ID | Requirement | Source | Status |
@@ -7,7 +7,7 @@
 | REQ-VIS-02 | Extract text via `pytesseract` and UI structure via Windows Accessibility API | SPEC goal 1 | Pending |
 | REQ-AI-01 | Integrate Ollama (Llama 3 8B) for local reasoning | SPEC goal 2 | Pending |
 | REQ-AI-02 | Implement prompt system including screen context and user history | SPEC goal 2 | Pending |
-| REQ-VCE-01 | Local wake-word detection ("Hey Assistant") | SPEC goal 2 | Pending |
+| REQ-VCE-01 | Local wake-word detection ("Hey ay-eye") | SPEC goal 2 | Pending |
 | REQ-VCE-02 | STT using OpenAI Whisper (local base model) | SPEC goal 2 | Pending |
 | REQ-VCE-03 | TTS using pyttsx3 or Coqui for natural voice feedback | SPEC goal 2 | Pending |
 | REQ-AUTO-01 | Execute mouse/keyboard actions via `pyautogui` | SPEC goal 4 | Pending |

@@ -1,4 +1,4 @@
-# Sprint {N} — {Sprint Name}
+﻿# Sprint {N} â€” {Sprint Name}
 
 > **Duration**: YYYY-MM-DD to YYYY-MM-DD
 > **Status**: In Progress | Complete
@@ -21,9 +21,9 @@
 
 | Task | Assignee | Status | Est. Hours |
 |------|----------|--------|------------|
-| {Task 1} | {who} | ⬜ Todo | {hours} |
-| {Task 2} | {who} | 🔄 In Progress | {hours} |
-| {Task 3} | {who} | ✅ Done | {hours} |
+| {Task 1} | {who} | â¬œ Todo | {hours} |
+| {Task 2} | {who} | ðŸ”„ In Progress | {hours} |
+| {Task 3} | {who} | âœ… Done | {hours} |
 
 ## Daily Log
 

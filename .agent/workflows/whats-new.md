@@ -1,4 +1,4 @@
----
+﻿---
 description: Show recent GSD changes and new features
 ---
 
@@ -22,48 +22,48 @@ head -50 CHANGELOG.md
 Display the latest version(s) from CHANGELOG.md:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► WHAT'S NEW
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º WHAT'S NEW
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
-VERSION 1.2.0 — 2026-01-17
-══════════════════════════
+VERSION 1.2.0 â€” 2026-01-17
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-🌍 CROSS-PLATFORM SUPPORT
+ðŸŒ CROSS-PLATFORM SUPPORT
 
-• All 16 workflow files now have Bash equivalents
-• README with dual-syntax Getting Started
-• /web-search workflow for research
+â€¢ All 16 workflow files now have Bash equivalents
+â€¢ README with dual-syntax Getting Started
+â€¢ /web-search workflow for research
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-VERSION 1.1.0 — 2026-01-17
-══════════════════════════
+VERSION 1.1.0 â€” 2026-01-17
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-📚 TEMPLATE PARITY & EXAMPLES
+ðŸ“š TEMPLATE PARITY & EXAMPLES
 
-• 14 new templates (DEBUG.md, UAT.md, etc.)
-• Examples directory with walkthroughs
-• /add-todo and /check-todos workflows
-• Cross-references between workflows
+â€¢ 14 new templates (DEBUG.md, UAT.md, etc.)
+â€¢ Examples directory with walkthroughs
+â€¢ /add-todo and /check-todos workflows
+â€¢ Cross-references between workflows
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-VERSION 1.0.0 — 2026-01-17
-══════════════════════════
+VERSION 1.0.0 â€” 2026-01-17
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-🎉 INITIAL RELEASE
+ðŸŽ‰ INITIAL RELEASE
 
 Full port of GSD methodology to Google Antigravity.
-• 24 workflows, 8 skills, 14 templates
-• 4 core rules: Planning Lock, State Persistence,
+â€¢ 24 workflows, 8 skills, 14 templates
+â€¢ 4 core rules: Planning Lock, State Persistence,
   Context Hygiene, Empirical Validation
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-📚 Full changelog: CHANGELOG.md
+ðŸ“š Full changelog: CHANGELOG.md
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 </process>

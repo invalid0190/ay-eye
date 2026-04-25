@@ -1,4 +1,4 @@
----
+﻿---
 description: List assumptions made during phase planning
 argument-hint: "<phase-number>"
 ---
@@ -45,29 +45,29 @@ Scan plans for:
 ## 4. Display Assumptions
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► PHASE {N} ASSUMPTIONS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º PHASE {N} ASSUMPTIONS
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 TECHNICAL
-🟡 {assumption 1} — Validate before execution
-🟢 {assumption 2} — Low risk
+ðŸŸ¡ {assumption 1} â€” Validate before execution
+ðŸŸ¢ {assumption 2} â€” Low risk
 
 INTEGRATION
-🔴 {assumption 3} — High risk, verify first
+ðŸ”´ {assumption 3} â€” High risk, verify first
 
 SCOPE
-🟡 {assumption 4} — Confirm with user
+ðŸŸ¡ {assumption 4} â€” Confirm with user
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-▶ ACTIONS
+â–¶ ACTIONS
 
-• Validate high-risk assumptions before /execute
-• Add verified assumptions to RESEARCH.md
-• Flag for user review if scope-related
+â€¢ Validate high-risk assumptions before /execute
+â€¢ Add verified assumptions to RESEARCH.md
+â€¢ Flag for user review if scope-related
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 ---

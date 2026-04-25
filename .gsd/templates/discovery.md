@@ -1,6 +1,6 @@
-# Discovery Template
+﻿# Discovery Template
 
-Template for `.gsd/phases/{N}/DISCOVERY.md` — shallow research for library/option decisions.
+Template for `.gsd/phases/{N}/DISCOVERY.md` â€” shallow research for library/option decisions.
 
 **Purpose:** Answer "which library/option should we use" questions during planning.
 
@@ -41,9 +41,9 @@ Output: DISCOVERY.md with recommendation
 <discovery_protocol>
 
 **Source Priority:**
-1. **Official Docs** — Authoritative, current
-2. **Web Search** — For comparisons, trends (verify findings)
-3. **GitHub** — For real usage patterns
+1. **Official Docs** â€” Authoritative, current
+2. **Web Search** â€” For comparisons, trends (verify findings)
+3. **GitHub** â€” For real usage patterns
 
 **Quality Checklist:**
 - [ ] All claims have authoritative sources
@@ -72,7 +72,7 @@ Create `.gsd/phases/{N}/DISCOVERY.md`:
 [2-3 paragraph executive summary]
 
 ## Primary Recommendation
-[What to do and why — specific and actionable]
+[What to do and why â€” specific and actionable]
 
 ## Alternatives Considered
 [What else was evaluated and why not chosen]

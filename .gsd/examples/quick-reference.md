@@ -1,16 +1,16 @@
-# GSD Quick Reference Card
+﻿# GSD Quick Reference Card
 
 ## Workflow Lifecycle
 
 ```
-┌─────────┐    ┌─────────┐    ┌──────────┐    ┌─────────┐
-│  /map   │ →  │  /plan  │ →  │ /execute │ →  │ /verify │
-│         │    │         │    │          │    │         │
-│ Analyze │    │ Create  │    │   Run    │    │  Check  │
-│codebase │    │ phases  │    │  tasks   │    │  work   │
-└─────────┘    └─────────┘    └──────────┘    └─────────┘
-                                   ↑              │
-                                   └──────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚  /map   â”‚ â†’  â”‚  /plan  â”‚ â†’  â”‚ /execute â”‚ â†’  â”‚ /verify â”‚
+â”‚         â”‚    â”‚         â”‚    â”‚          â”‚    â”‚         â”‚
+â”‚ Analyze â”‚    â”‚ Create  â”‚    â”‚   Run    â”‚    â”‚  Check  â”‚
+â”‚codebase â”‚    â”‚ phases  â”‚    â”‚  tasks   â”‚    â”‚  work   â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                   â†‘              â”‚
+                                   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
                                    (if gaps found)
 ```
 
@@ -18,7 +18,7 @@
 
 | Command | Args | Purpose |
 |---------|------|---------|
-| `/map` | - | Analyze codebase → ARCHITECTURE.md |
+| `/map` | - | Analyze codebase â†’ ARCHITECTURE.md |
 | `/plan` | `[phase]` | Create PLAN.md files for phase |
 | `/execute` | `phase [--gaps-only]` | Run plans with wave execution |
 | `/verify` | `phase` | Validate with empirical proof |
@@ -33,10 +33,10 @@
 
 | Rule | Enforcement |
 |------|-------------|
-| 🔒 Planning Lock | No code until SPEC finalized |
-| 💾 State Persistence | Update STATE.md after tasks |
-| 🧹 Context Hygiene | 3 failures → fresh session |
-| ✅ Empirical Validation | Proof required for "done" |
+| ðŸ”’ Planning Lock | No code until SPEC finalized |
+| ðŸ’¾ State Persistence | Update STATE.md after tasks |
+| ðŸ§¹ Context Hygiene | 3 failures â†’ fresh session |
+| âœ… Empirical Validation | Proof required for "done" |
 
 ## Key Files
 
@@ -64,9 +64,9 @@
 
 | Priority | Icon |
 |----------|------|
-| High | 🔴 |
-| Medium | 🟡 |
-| Low | 🟢 |
+| High | ðŸ”´ |
+| Medium | ðŸŸ¡ |
+| Low | ðŸŸ¢ |
 
 ---
 

@@ -1,4 +1,4 @@
-# Token Optimization Guide
+﻿# Token Optimization Guide
 
 > Practical strategies for reducing token consumption while maintaining quality.
 
@@ -20,15 +20,15 @@
 ## The Token Efficiency Stack
 
 ```
-┌─────────────────────────────────────┐
-│ 1. Search-First (context-fetch)    │ ← Find before loading
-├─────────────────────────────────────┤
-│ 2. Budget Tracking (token-budget)  │ ← Know your limits
-├─────────────────────────────────────┤
-│ 3. Compression (context-compressor)│ ← Minimize footprint
-├─────────────────────────────────────┤
-│ 4. Health Monitoring               │ ← Prevent degradation
-└─────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ 1. Search-First (context-fetch)    â”‚ â† Find before loading
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ 2. Budget Tracking (token-budget)  â”‚ â† Know your limits
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ 3. Compression (context-compressor)â”‚ â† Minimize footprint
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ 4. Health Monitoring               â”‚ â† Prevent degradation
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ---
@@ -57,18 +57,18 @@
 
 ## Optimization Patterns
 
-### Pattern 1: Search → Outline → Target
+### Pattern 1: Search â†’ Outline â†’ Target
 
 ```
 Step 1: Search for "handlePayment"
-  → Found in: payment.ts:45, checkout.ts:120
+  â†’ Found in: payment.ts:45, checkout.ts:120
 
 Step 2: Get outline of payment.ts
-  → L45-80: handlePayment function
+  â†’ L45-80: handlePayment function
 
 Step 3: Load only L45-80
-  → 35 lines (~140 tokens) vs 400 lines (~1600 tokens)
-  → Saved: ~90%
+  â†’ 35 lines (~140 tokens) vs 400 lines (~1600 tokens)
+  â†’ Saved: ~90%
 ```
 
 ### Pattern 2: Summarize After Understanding
@@ -91,59 +91,59 @@ Next time: Reference summary, don't reload
 Need: Understand login flow
 
 Level 1: Outline
-  → "login at L45, uses validateCredentials at L67"
-  → Often sufficient
+  â†’ "login at L45, uses validateCredentials at L67"
+  â†’ Often sufficient
 
 Level 2: Key function
-  → Load L45-65 only
-  → Understand core logic
+  â†’ Load L45-65 only
+  â†’ Understand core logic
 
 Level 3: Dependencies
-  → Load validateCredentials (L67-85)
-  → Only if L2 insufficient
+  â†’ Load validateCredentials (L67-85)
+  â†’ Only if L2 insufficient
 
 Level 4: Full file
-  → Last resort, re-compress after
+  â†’ Last resort, re-compress after
 ```
 
 ---
 
 ## Anti-Patterns to Avoid
 
-### ❌ The "Context Dump"
+### âŒ The "Context Dump"
 
 ```
 BAD:
 "Let me read all the files in src/ to understand the project"
-→ 50 files × 200 lines × 4 tokens = 40,000 tokens
+â†’ 50 files Ã— 200 lines Ã— 4 tokens = 40,000 tokens
 
 GOOD:
 "Let me search for 'main entry' and 'router'"
-→ 2 targeted searches, ~500 tokens
+â†’ 2 targeted searches, ~500 tokens
 ```
 
-### ❌ The "Just In Case" Load
+### âŒ The "Just In Case" Load
 
 ```
 BAD:
 "Loading utils.ts in case I need it later"
-→ Probably won't need it, wasted tokens
+â†’ Probably won't need it, wasted tokens
 
 GOOD:
 "Noting utils.ts exists, will load if needed"
-→ Zero tokens until actually needed
+â†’ Zero tokens until actually needed
 ```
 
-### ❌ The Re-Read
+### âŒ The Re-Read
 
 ```
 BAD:
 "Reading config.ts again to check the port"
-→ Already read it twice = 1200 tokens
+â†’ Already read it twice = 1200 tokens
 
 GOOD:
 "From my earlier analysis, port is on L15"
-→ Zero additional tokens
+â†’ Zero additional tokens
 ```
 
 ---
@@ -153,25 +153,25 @@ GOOD:
 ### Before Starting Work
 
 ```markdown
-□ Do I know my current budget usage?
-□ Have I tried searching before loading?
-□ Am I loading files I've already understood?
+â–¡ Do I know my current budget usage?
+â–¡ Have I tried searching before loading?
+â–¡ Am I loading files I've already understood?
 ```
 
 ### During Execution
 
 ```markdown
-□ Am I at >50%? Time to compress.
-□ Am I re-reading files? Use summaries.
-□ Can I use outline instead of full file?
+â–¡ Am I at >50%? Time to compress.
+â–¡ Am I re-reading files? Use summaries.
+â–¡ Can I use outline instead of full file?
 ```
 
 ### After Each Wave
 
 ```markdown
-□ Have I compressed context for next wave?
-□ Are summaries documented in STATE.md?
-□ Would a fresh session be more efficient?
+â–¡ Have I compressed context for next wave?
+â–¡ Are summaries documented in STATE.md?
+â–¡ Would a fresh session be more efficient?
 ```
 
 ---
@@ -204,4 +204,4 @@ Track these for improvement:
 *See also:*
 - *[.agents/skills/token-budget/SKILL.md](.agents/skills/token-budget/SKILL.md)*
 - *[.agents/skills/context-compressor/SKILL.md](.agents/skills/context-compressor/SKILL.md)*
-- *[PROJECT_RULES.md](PROJECT_RULES.md) — Token Efficiency Rules*
+- *[PROJECT_RULES.md](PROJECT_RULES.md) â€” Token Efficiency Rules*
