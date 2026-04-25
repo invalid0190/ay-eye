@@ -1,5 +1,10 @@
 # 👁️ Ay-Eye (ay-eye)
 
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/invalid0190/ay-eye)
+
+> [!WARNING]
+> **Development Status**: This project is currently in the **Early Development Phase**. It is intended for experimental use and is **not yet production-ready**. Expect frequent breaking changes and bugs.
+
 **Ay-Eye** is an autonomous, multimodal AI agent designed to act as a seamless extension of your digital workspace. By combining real-time computer vision, voice recognition, and local large language models, Ay-Eye "sees" what you see and "hears" what you say, providing intelligent assistance without ever leaving your local machine.
 
 Inspired by next-generation agentic frameworks like OpenDevin and OpenClaude, Ay-Eye prioritizes **privacy, speed, and deep system integration**.
@@ -37,7 +42,7 @@ Ay-Eye is built on a hybrid stack designed for maximum reliability and local per
 ### Setup
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/ay-eye.git
+   git clone https://github.com/invalid0190/ay-eye.git
    cd ay-eye
    ```
 
