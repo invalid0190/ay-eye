@@ -1,5 +1,7 @@
-﻿import time
+import time
 import threading
+import multiprocessing
+import sys
 from core.vision.window_manager import WindowManager
 from core.vision.capture import capture_module
 from core.vision.change_detector import change_detector
@@ -27,9 +29,20 @@ class Orchestrator:
     def start(self):
         self.running = True
         hotkey_manager.start()
+        
+        # Launch Dashboard in a separate process
+        multiprocessing.Process(target=self._launch_dashboard, daemon=True).start()
+        
         self.thread = threading.Thread(target=self.loop, daemon=True)
         self.thread.start()
         logger.log_event("SYSTEM_STARTED")
+
+    def _launch_dashboard(self):
+        from core.ui.dashboard import AyEyeDashboard
+        from PyQt6.QtWidgets import QApplication
+        app = QApplication(sys.argv)
+        window = AyEyeDashboard()
+        sys.exit(app.exec())
 
     def stop(self):
         self.running = False
