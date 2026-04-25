@@ -21,14 +21,49 @@ Inspired by next-generation agentic frameworks like OpenDevin and OpenClaude, Ay
 
 ---
 
-## 🛠️ Architecture
+## 🛠️ Architecture & Workflow
 
-Ay-Eye is built on a hybrid stack designed for maximum reliability and local performance:
+Ay-Eye is built on a hybrid stack designed for maximum reliability and local performance. Unlike traditional agents that rely on cloud APIs, Ay-Eye orchestrates multiple local engines in parallel:
 
-- **Brain**: Orchestration layer using local LLMs (Ollama).
-- **Vision**: Real-time screen capture with specialized OCR processing (Tesseract.js).
-- **Voice**: Low-latency STT processing using Faster-Whisper.
-- **UI**: High-performance PyQt6 overlay with hardware-accelerated rendering.
+### The Intelligence Loop
+1.  **Perception (Vision/Voice)**: 
+    - **Vision**: Captures the active window every 500ms, performing change detection and background OCR via a specialized Node.js worker using `tesseract.js` (WebAssembly).
+    - **Voice**: Listens for the `Alt + Z` hotkey to capture high-fidelity audio, which is then transcribed using `faster-whisper`.
+2.  **State Management**: 
+    - All perceived data is piped into a central **System State** manager that maintains a real-time "Snapshot" of your current workspace.
+3.  **The Brain (Ollama)**: 
+    - When a trigger (Idle, Voice, or Error) occurs, the **Context Distiller** prepares a minimized prompt for Ollama (`llama3`).
+    - The LLM processes the current state and returns a structured JSON response.
+4.  **Action Orchestration**: 
+    - Based on the Brain's decision, the system either speaks to the user (TTS), highlights elements on the screen, or prepares an automated UI action.
+
+### Tech Stack
+- **Languages**: Python 3.13 (Core), JavaScript/Node.js (OCR Engine).
+- **Inference**: Ollama (LLM), Faster-Whisper (STT).
+- **UI Framework**: PyQt6 with custom glassmorphism styling.
+- **Inter-process Communication**: Internal Event Bus (Pub/Sub pattern).
+
+---
+
+## 🗺️ Roadmap & Upcoming Features
+
+- [ ] **Multimodal Vision-LLM Support**: Integration with `llava` for deeper visual understanding beyond OCR.
+- [ ] **Plugin System**: Allow users to add custom "Skills" (e.g., Browser automation, File system management).
+- [ ] **Improved Latency**: Persistent Node.js worker processes and socket-based communication.
+- [ ] **Context Window Optimization**: RAG (Retrieval-Augmented Generation) for long-term project memory.
+- [ ] **Cross-Platform Support**: Full support for macOS and Linux (Wayland/X11).
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Whether you're fixing a bug, adding a feature, or improving documentation:
+
+1. Fork the Project.
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`).
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`).
+4. Push to the Branch (`git push origin feature/AmazingFeature`).
+5. Open a Pull Request.
 
 ---
 
