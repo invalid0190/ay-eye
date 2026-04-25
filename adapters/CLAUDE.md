@@ -1,4 +1,4 @@
-# Claude Adapter
+﻿# Claude Adapter
 
 > **Everything in this file is optional.**
 > For canonical rules, see [PROJECT_RULES.md](../PROJECT_RULES.md).
@@ -13,11 +13,11 @@ When available, activate extended thinking for:
 
 | Task Type | Recommended |
 |-----------|-------------|
-| Architecture planning | ✅ High effort |
-| Complex debugging | ✅ High effort |
-| Security analysis | ✅ High effort |
-| Simple edits | ❌ Not needed |
-| Quick iterations | ❌ Overhead too high |
+| Architecture planning | âœ… High effort |
+| Complex debugging | âœ… High effort |
+| Security analysis | âœ… High effort |
+| Simple edits | âŒ Not needed |
+| Quick iterations | âŒ Overhead too high |
 
 ### Effort Levels
 
@@ -49,7 +49,7 @@ When artifacts are supported:
 Claude-specific context tips:
 
 1. **System prompt loading**: Core rules in system prompt, task details in user message
-2. **XML structure**: Claude parses XML well — use task XML format from GSD-STYLE.md
+2. **XML structure**: Claude parses XML well â€” use task XML format from GSD-STYLE.md
 3. **Conversation history**: Minimal history preferred; use STATE.md for continuity
 
 ---
@@ -60,17 +60,17 @@ Not required, but if organizing Claude-specific files:
 
 ```
 .claude/
-├── CLAUDE.md      # This adapter (if using)
-└── settings.json  # IDE-specific settings
+â”œâ”€â”€ CLAUDE.md      # This adapter (if using)
+â””â”€â”€ settings.json  # IDE-specific settings
 ```
 
 ---
 
 ## Anti-Patterns
 
-❌ **Using max effort for everything** — Slow and expensive
-❌ **Skipping verification** — Thinking mode doesn't guarantee correctness
-❌ **Depending on artifacts** — Not all Claude interfaces support them
+âŒ **Using max effort for everything** â€” Slow and expensive
+âŒ **Skipping verification** â€” Thinking mode doesn't guarantee correctness
+âŒ **Depending on artifacts** â€” Not all Claude interfaces support them
 
 ---
 

@@ -1,4 +1,4 @@
-# GSD Runbook
+﻿# GSD Runbook
 
 > Operational procedures for debugging, validation, and recovery.
 
@@ -74,7 +74,7 @@ git reset --hard <commit-hash>
 
 After 3 consecutive failed debug attempts:
 
-1. **Stop** — Don't try a 4th approach in same session
+1. **Stop** â€” Don't try a 4th approach in same session
 
 2. **Document** in STATE.md:
    ```markdown
@@ -83,16 +83,16 @@ After 3 consecutive failed debug attempts:
    **Problem:** {description}
    
    **Attempts:**
-   1. {approach 1} → {result}
-   2. {approach 2} → {result}
-   3. {approach 3} → {result}
+   1. {approach 1} â†’ {result}
+   2. {approach 2} â†’ {result}
+   3. {approach 3} â†’ {result}
    
    **Hypothesis:** {current theory}
    
    **Recommended next:** {suggested approach}
    ```
 
-3. **Fresh session** — Start new conversation with documented context
+3. **Fresh session** â€” Start new conversation with documented context
 
 ### Log Inspection
 
@@ -117,7 +117,7 @@ grep -ri "error\|exception\|failed" *.log
 ```powershell
 # Node.js
 npm run build
-if ($LASTEXITCODE -eq 0) { Write-Host "✅ Build passed" }
+if ($LASTEXITCODE -eq 0) { Write-Host "âœ… Build passed" }
 
 # Python
 python -m py_compile src/**/*.py

@@ -1,4 +1,4 @@
-# JOURNAL.md — Session Log
+﻿# JOURNAL.md â€” Session Log
 
 > **Purpose**: Chronicle of work sessions for context continuity.
 
@@ -12,10 +12,10 @@
 {What you set out to accomplish this session.}
 
 ### Accomplished
-- ✅ {Task 1 completed}
-- ✅ {Task 2 completed}
+- âœ… {Task 1 completed}
+- âœ… {Task 2 completed}
   - {Sub-detail if needed}
-- ✅ {Task 3 completed}
+- âœ… {Task 3 completed}
 
 ### Verification
 - [x] {Verification check 1}
@@ -24,7 +24,7 @@
 
 ### Blockers Encountered
 - {Blocker 1 and how it was resolved}
-- {Blocker 2 — still open}
+- {Blocker 2 â€” still open}
 
 ### Handoff Notes
 - {Important context for next session}
@@ -39,7 +39,7 @@
 {Previous session objective.}
 
 ### Accomplished
-- ✅ {Completed items}
+- âœ… {Completed items}
 
 ---
 

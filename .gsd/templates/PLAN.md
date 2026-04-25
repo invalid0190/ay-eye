@@ -1,4 +1,4 @@
-# PLAN.md Template
+﻿# PLAN.md Template
 
 > Copy this template when creating execution plans.
 
@@ -47,7 +47,7 @@ Load these files for context:
   </verify>
   <done>
     {Measurable acceptance criteria}
-    Example: Valid credentials → 200 + Set-Cookie, invalid → 401
+    Example: Valid credentials â†’ 200 + Set-Cookie, invalid â†’ 401
   </done>
 </task>
 
@@ -61,7 +61,7 @@ Load these files for context:
 
 ## Must-Haves
 After all tasks complete, verify:
-- [ ] {Must-have 1 — derived from phase goal}
+- [ ] {Must-have 1 â€” derived from phase goal}
 - [ ] {Must-have 2}
 
 ## Success Criteria

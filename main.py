@@ -1,4 +1,4 @@
-import time
+﻿import time
 import threading
 from core.vision.window_manager import WindowManager
 from core.vision.capture import capture_module

@@ -1,4 +1,4 @@
----
+﻿---
 description: List all pending todo items
 argument-hint: "[--all] [--priority high|medium|low]"
 ---
@@ -11,11 +11,11 @@ Display pending todo items, optionally filtered by priority or status.
 
 <context>
 **Flags:**
-- `--all` — Show completed items too
-- `--priority high|medium|low` — Filter by priority
+- `--all` â€” Show completed items too
+- `--priority high|medium|low` â€” Filter by priority
 
 **Input:**
-- `.gsd/TODO.md` — Todo items
+- `.gsd/TODO.md` â€” Todo items
 </context>
 
 <process>
@@ -46,26 +46,26 @@ Filter by priority if flag provided.
 ## 3. Display
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► TODOS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º TODOS
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 PENDING ({N} items)
-───────────────────
-🔴 {high priority item}
-🟡 {medium priority item}
-🟢 {low priority item}
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ðŸ”´ {high priority item}
+ðŸŸ¡ {medium priority item}
+ðŸŸ¢ {low priority item}
 
 {If --all flag:}
 COMPLETED ({M} items)
-─────────────────────
-✅ {completed item}
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+âœ… {completed item}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/add-todo <item> — add new item
+/add-todo <item> â€” add new item
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 </process>
@@ -73,8 +73,8 @@ COMPLETED ({M} items)
 <priority_indicators>
 | Priority | Indicator |
 |----------|-----------|
-| high | 🔴 |
-| medium | 🟡 |
-| low | 🟢 |
-| done | ✅ |
+| high | ðŸ”´ |
+| medium | ðŸŸ¡ |
+| low | ðŸŸ¢ |
+| done | âœ… |
 </priority_indicators>

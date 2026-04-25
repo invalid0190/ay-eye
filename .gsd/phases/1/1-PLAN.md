@@ -1,4 +1,4 @@
----
+﻿---
 phase: 1
 plan: 1
 wave: 1
@@ -7,7 +7,7 @@ wave: 1
 # Plan 1.1: State Manager & Window Detection
 
 ## Objective
-Establish the foundational data structure for the assistant's state and implement the active window detection logic with monitor awareness.
+Establish the foundational data structure for the ay-eye's state and implement the active window detection logic with monitor awareness.
 
 ## Context
 - .gsd/SPEC.md

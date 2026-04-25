@@ -1,4 +1,4 @@
-# GPT & Open Source Models Adapter
+﻿# GPT & Open Source Models Adapter
 
 > **Everything in this file is optional.**
 > For canonical rules, see [PROJECT_RULES.md](../PROJECT_RULES.md).
@@ -45,9 +45,9 @@ When function calling is available:
 
 GPT models may have smaller context than some alternatives:
 
-1. **Be selective** — Only load necessary files
-2. **Use search-first** — Critical for context efficiency
-3. **Summarize large files** — Extract relevant sections only
+1. **Be selective** â€” Only load necessary files
+2. **Use search-first** â€” Critical for context efficiency
+3. **Summarize large files** â€” Extract relevant sections only
 
 ---
 
@@ -70,9 +70,9 @@ Open source models vary widely. General tips:
 
 For locally-running models:
 
-1. **Resource planning** — Ensure adequate GPU/RAM
-2. **Latency expectations** — Adjust iteration speed assumptions
-3. **Fallback strategy** — Document when to switch to cloud models
+1. **Resource planning** â€” Ensure adequate GPU/RAM
+2. **Latency expectations** â€” Adjust iteration speed assumptions
+3. **Fallback strategy** â€” Document when to switch to cloud models
 
 ---
 
@@ -100,18 +100,18 @@ For locally-running models:
 
 When working with limited context:
 
-1. **Aggressive search-first** — Never load full files blindly
-2. **Incremental loading** — Add context as needed, not upfront
-3. **State snapshots more frequently** — Prevent context overflow
-4. **Split large tasks** — Smaller plans, more waves
+1. **Aggressive search-first** â€” Never load full files blindly
+2. **Incremental loading** â€” Add context as needed, not upfront
+3. **State snapshots more frequently** â€” Prevent context overflow
+4. **Split large tasks** â€” Smaller plans, more waves
 
 ---
 
 ## Anti-Patterns
 
-❌ **Assuming GPT-4 context** — Verify actual model limits
-❌ **Complex nested prompts** — Keep structure flat and clear
-❌ **Ignoring model limits** — Quality crashes hard past context limit
+âŒ **Assuming GPT-4 context** â€” Verify actual model limits
+âŒ **Complex nested prompts** â€” Keep structure flat and clear
+âŒ **Ignoring model limits** â€” Quality crashes hard past context limit
 
 ---
 

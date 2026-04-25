@@ -1,4 +1,4 @@
----
+﻿---
 name: context-fetch
 description: Search-first skill to reduce unnecessary file reads by searching before loading
 ---
@@ -68,9 +68,9 @@ grep -r "login" src/ --include="*.ts"
 
 From search results, identify:
 
-1. **Primary candidates** — Files directly matching your question
-2. **Secondary candidates** — Files that reference primary candidates
-3. **Ignore list** — Files with keyword but unrelated context
+1. **Primary candidates** â€” Files directly matching your question
+2. **Secondary candidates** â€” Files that reference primary candidates
+3. **Ignore list** â€” Files with keyword but unrelated context
 
 ### Step 5: Targeted Reading
 
@@ -102,16 +102,16 @@ When invoking this skill, provide:
 
 After executing this skill, report:
 
-1. **Candidate files** — Ranked by relevance
-2. **Relevant extracts** — Key snippets found
-3. **Next reads** — Specific files/line-ranges to read next
-4. **Skip list** — Files searched but not relevant
+1. **Candidate files** â€” Ranked by relevance
+2. **Relevant extracts** â€” Key snippets found
+3. **Next reads** â€” Specific files/line-ranges to read next
+4. **Skip list** â€” Files searched but not relevant
 
 ---
 
 ## Anti-Patterns
 
-### ❌ Loading Everything First
+### âŒ Loading Everything First
 
 ```
 # BAD: Reading 5 full files to "understand context"
@@ -120,7 +120,7 @@ Read: src/auth/register.ts (400 lines)
 Read: src/auth/types.ts (200 lines)
 ```
 
-### ✅ Search Then Target
+### âœ… Search Then Target
 
 ```
 # GOOD: Search first, read only what's needed
@@ -129,18 +129,18 @@ Found: login.ts:45, register.ts:78
 Read: login.ts lines 40-60
 ```
 
-### ❌ Broad Searches
+### âŒ Broad Searches
 
 ```
 # BAD: Searching for common terms
-Search: "function" → 10,000 results
+Search: "function" â†’ 10,000 results
 ```
 
-### ✅ Specific Searches
+### âœ… Specific Searches
 
 ```
 # GOOD: Searching for specific identifiers
-Search: "validateUserCredentials" → 3 results
+Search: "validateUserCredentials" â†’ 3 results
 ```
 
 ---
@@ -162,21 +162,21 @@ Track your efficiency:
 
 This skill supports GSD's context management:
 
-- **Prevents context pollution** — Less irrelevant code loaded
-- **Supports wave execution** — Each wave starts with minimal context
-- **Enables model switching** — Less context = easier handoff
+- **Prevents context pollution** â€” Less irrelevant code loaded
+- **Supports wave execution** â€” Each wave starts with minimal context
+- **Enables model switching** â€” Less context = easier handoff
 
 ---
 
 ## Quick Reference
 
 ```
-1. Define question     → What am I looking for?
-2. Extract keywords    → What terms to search?
-3. Search codebase     → rg/grep/Select-String
-4. Evaluate results    → Which files matter?
-5. Read targeted       → Specific lines only
-6. Report findings     → Candidates + extracts
+1. Define question     â†’ What am I looking for?
+2. Extract keywords    â†’ What terms to search?
+3. Search codebase     â†’ rg/grep/Select-String
+4. Evaluate results    â†’ Which files matter?
+5. Read targeted       â†’ Specific lines only
+6. Report findings     â†’ Candidates + extracts
 ```
 
 ---

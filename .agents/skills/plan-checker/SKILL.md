@@ -1,4 +1,4 @@
----
+﻿---
 name: plan-checker
 description: Validates plans before execution to catch issues early
 ---
@@ -54,10 +54,10 @@ issue:
 | `tdd` | Required | Behavior + Implementation | Test commands | Expected outcomes |
 
 **Red flags:**
-- Missing `<verify>` — can't confirm completion
-- Missing `<done>` — no acceptance criteria
-- Vague `<action>` — "implement auth" instead of specific steps
-- Empty `<files>` — what gets created?
+- Missing `<verify>` â€” can't confirm completion
+- Missing `<done>` â€” no acceptance criteria
+- Vague `<action>` â€” "implement auth" instead of specific steps
+- Empty `<files>` â€” what gets created?
 
 **Example issue:**
 ```yaml
@@ -83,7 +83,7 @@ issue:
 
 **Red flags:**
 - Plan references non-existent plan
-- Circular dependency (A → B → A)
+- Circular dependency (A â†’ B â†’ A)
 - Future reference (plan 01 referencing plan 03's output)
 - Wave assignment inconsistent with dependencies
 
@@ -116,10 +116,10 @@ issue:
 
 **What to check:**
 ```
-Component → API: Does action mention fetch call?
-API → Database: Does action mention Prisma/query?
-Form → Handler: Does action mention onSubmit implementation?
-State → Render: Does action mention displaying state?
+Component â†’ API: Does action mention fetch call?
+API â†’ Database: Does action mention Prisma/query?
+Form â†’ Handler: Does action mention onSubmit implementation?
+State â†’ Render: Does action mention displaying state?
 ```
 
 **Example issue:**
@@ -217,7 +217,7 @@ Run all 6 dimension checks, collect issues.
 
 ### VERIFICATION PASSED
 ```
-## Plan Check Passed ✓
+## Plan Check Passed âœ“
 
 **Phase:** {N}
 **Plans checked:** {count}
@@ -231,7 +231,7 @@ Warnings (optional):
 
 ### ISSUES FOUND
 ```
-## Plan Check Failed ✗
+## Plan Check Failed âœ—
 
 **Phase:** {N}
 **Plans checked:** {count}

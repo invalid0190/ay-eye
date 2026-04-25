@@ -1,5 +1,5 @@
----
-description: The Architect — Analyze codebase and update ARCHITECTURE.md and STACK.md
+﻿---
+description: The Architect â€” Analyze codebase and update ARCHITECTURE.md and STACK.md
 ---
 
 # /map Workflow
@@ -25,8 +25,8 @@ This workflow should be run BEFORE `/plan` on brownfield projects to give the pl
 **No arguments required.** Operates on current project directory.
 
 **Outputs:**
-- `.gsd/ARCHITECTURE.md` — System design documentation
-- `.gsd/STACK.md` — Technology inventory
+- `.gsd/ARCHITECTURE.md` â€” System design documentation
+- `.gsd/STACK.md` â€” Technology inventory
 </context>
 
 <process>
@@ -53,9 +53,9 @@ indicators=("package.json" "requirements.txt" "Cargo.toml"
 
 Display banner:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► MAPPING CODEBASE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º MAPPING CODEBASE
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 ```
 
 ---
@@ -179,7 +179,7 @@ grep -rE 'stripe|sendgrid|twilio|aws-sdk' .
 ### 4b. Internal Flow
 
 Trace how data moves:
-- Entry point → Business logic → Data layer → Output
+- Entry point â†’ Business logic â†’ Data layer â†’ Output
 - Identify shared state (context, stores, singletons)
 
 ---
@@ -236,13 +236,13 @@ Identify gaps:
 {High-level description of what this system does}
 
 ```
-┌─────────────────────────────────────────┐
-│              [Entry Point]              │
-├─────────────────────────────────────────┤
-│         [Business Logic Layer]          │
-├─────────────────────────────────────────┤
-│            [Data Layer]                 │
-└─────────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚              [Entry Point]              â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚         [Business Logic Layer]          â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚            [Data Layer]                 â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ## Components
@@ -356,25 +356,25 @@ git commit -m "docs: map existing codebase"
 <offer_next>
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► CODEBASE MAPPED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º CODEBASE MAPPED âœ“
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 Components: {N}
 Dependencies: {M} production, {K} dev
 Technical debt: {J} items
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-▶ Next Up
+â–¶ Next Up
 
-/plan — create execution plans with full context
+/plan â€” create execution plans with full context
 
 Files updated:
-• .gsd/ARCHITECTURE.md
-• .gsd/STACK.md
+â€¢ .gsd/ARCHITECTURE.md
+â€¢ .gsd/STACK.md
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 </offer_next>

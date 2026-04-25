@@ -1,4 +1,4 @@
----
+﻿---
 description: Remove a phase from the roadmap (with safety checks)
 argument-hint: "<phase-number>"
 ---
@@ -46,9 +46,9 @@ status=$(grep -A1 "Phase $N:" ".gsd/ROADMAP.md" | grep "Status:" | cut -d: -f2)
 
 | Status | Action |
 |--------|--------|
-| ⬜ Not Started | Safe to remove |
-| 🔄 In Progress | Warn and confirm |
-| ✅ Complete | Error — archive instead |
+| â¬œ Not Started | Safe to remove |
+| ðŸ”„ In Progress | Warn and confirm |
+| âœ… Complete | Error â€” archive instead |
 
 ---
 
@@ -68,7 +68,7 @@ grep "Depends on.*Phase $N" ".gsd/ROADMAP.md"
 
 **If dependencies exist:**
 ```
-⚠️ Phase {M} depends on Phase {N}
+âš ï¸ Phase {M} depends on Phase {N}
 
 Cannot remove. Consider:
 1. Update dependent phases first
@@ -80,7 +80,7 @@ Cannot remove. Consider:
 ## 4. Confirm Removal
 
 ```
-⚠️ CONFIRM REMOVAL
+âš ï¸ CONFIRM REMOVAL
 
 Phase {N}: {name}
 Status: {status}
@@ -122,18 +122,18 @@ git commit -m "docs: remove phase {N} - {name}"
 ## 8. Display Result
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► PHASE REMOVED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º PHASE REMOVED âœ“
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 Removed: Phase {N}: {name}
 Renumbered: {M} phases
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/progress — See updated roadmap
+/progress â€” See updated roadmap
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 </process>

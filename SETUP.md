@@ -1,4 +1,4 @@
-# ay-eye Setup Instructions (Phase 1)
+﻿# ay-eye Setup Instructions (Phase 1)
 
 ## Prerequisites
 
@@ -17,7 +17,7 @@ Run the following command in the project root:
 pip install pydantic pygetwindow pyautogui mss pytesseract opencv-python comtypes imagehash
 ```
 
-## Running the Assistant
+## Running the ay-eye
 To start the core vision loop:
 ```bash
 python main.py

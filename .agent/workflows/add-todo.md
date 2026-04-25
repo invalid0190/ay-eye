@@ -1,4 +1,4 @@
----
+﻿---
 description: Capture a todo item for later
 argument-hint: "<description> [--priority high|medium|low]"
 ---
@@ -13,10 +13,10 @@ Quickly capture an idea, task, or issue without interrupting current work flow.
 **Item:** $ARGUMENTS (the todo description)
 
 **Flags:**
-- `--priority high|medium|low` — Set priority (default: medium)
+- `--priority high|medium|low` â€” Set priority (default: medium)
 
 **Output:**
-- `.gsd/TODO.md` — Accumulated todo items
+- `.gsd/TODO.md` â€” Accumulated todo items
 </context>
 
 <process>
@@ -44,7 +44,7 @@ if (-not (Test-Path ".gsd/TODO.md")) {
 Append to `.gsd/TODO.md`:
 
 ```markdown
-- [ ] {description} `{priority}` — {date}
+- [ ] {description} `{priority}` â€” {date}
 ```
 
 ---
@@ -52,18 +52,18 @@ Append to `.gsd/TODO.md`:
 ## 4. Confirm
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► TODO ADDED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º TODO ADDED âœ“
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 {description}
 Priority: {priority}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-/check-todos — see all pending items
+/check-todos â€” see all pending items
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 </process>

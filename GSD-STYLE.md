@@ -1,4 +1,4 @@
-# GSD-STYLE.md
+﻿# GSD-STYLE.md
 
 > **Comprehensive reference.** Core rules auto-load from `.gemini/GEMINI.md`. This document provides deep explanations and examples for when you need the full picture.
 
@@ -108,17 +108,17 @@ See [docs/model-selection-playbook.md](docs/model-selection-playbook.md) for mod
 ## Language & Tone
 
 ### Imperative Voice
-- ✅ "Create the file"
-- ❌ "You should create the file"
-- ❌ "We will create the file"
+- âœ… "Create the file"
+- âŒ "You should create the file"
+- âŒ "We will create the file"
 
 ### No Filler
-- ✅ "Run `npm test`"
-- ❌ "Now let's go ahead and run `npm test`"
+- âœ… "Run `npm test`"
+- âŒ "Now let's go ahead and run `npm test`"
 
 ### No Sycophancy
-- ✅ "Phase complete."
-- ❌ "Great job! Phase complete!"
+- âœ… "Phase complete."
+- âŒ "Great job! Phase complete!"
 
 ### Brevity with Substance
 Every sentence should convey information. Remove words that don't add meaning.
@@ -131,10 +131,10 @@ Every sentence should convey information. Remove words that don't add meaning.
 
 | Context Usage | Quality |
 |---------------|---------|
-| 0-30% | PEAK — Thorough, comprehensive |
-| 30-50% | GOOD — Confident, solid work |
-| 50-70% | DEGRADING — Efficiency mode begins |
-| 70%+ | POOR — Rushed, minimal |
+| 0-30% | PEAK â€” Thorough, comprehensive |
+| 30-50% | GOOD â€” Confident, solid work |
+| 50-70% | DEGRADING â€” Efficiency mode begins |
+| 70%+ | POOR â€” Rushed, minimal |
 
 **Rule:** Plans should complete within ~50% context.
 
@@ -156,17 +156,17 @@ Everything important goes in STATE.md so the next session can continue.
 
 ### Enterprise Patterns (Banned)
 
-❌ Stakeholder communication
-❌ Team coordination
-❌ Sprint ceremonies
-❌ Multiple approval levels
-❌ Separate environments requiring explicit promotion
+âŒ Stakeholder communication
+âŒ Team coordination
+âŒ Sprint ceremonies
+âŒ Multiple approval levels
+âŒ Separate environments requiring explicit promotion
 
 ### Temporal Language (Banned in Implementation Docs)
 
-❌ "First, we'll..."
-❌ "Next, we should..."
-❌ "Finally, we'll..."
+âŒ "First, we'll..."
+âŒ "Next, we should..."
+âŒ "Finally, we'll..."
 
 ### Generic XML (Banned)
 
@@ -231,28 +231,28 @@ type(scope): description
 ### Banners
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► STATUS MESSAGE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º STATUS MESSAGE
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 ```
 
 ### "Next Up" Format
 
 ```
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-▶ NEXT
+â–¶ NEXT
 
-/command — description
+/command â€” description
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 ### Decision Gates
 
 When user input needed:
 ```
-⚠️ DECISION REQUIRED
+âš ï¸ DECISION REQUIRED
 
 Option A: {description}
 Option B: {description}
@@ -264,9 +264,9 @@ Which do you prefer?
 
 ## Summary: Core Meta-Patterns
 
-1. **Plans are prompts** — PLAN.md is read and executed directly
-2. **Fresh context for execution** — Each plan runs in clean context
-3. **STATE.md is memory** — Everything important persists there
-4. **Verify before done** — No "trust me, it works"
-5. **Aggressive atomicity** — Small tasks, atomic commits
-6. **No enterprise theater** — Solo dev + AI workflow only
+1. **Plans are prompts** â€” PLAN.md is read and executed directly
+2. **Fresh context for execution** â€” Each plan runs in clean context
+3. **STATE.md is memory** â€” Everything important persists there
+4. **Verify before done** â€” No "trust me, it works"
+5. **Aggressive atomicity** â€” Small tasks, atomic commits
+6. **No enterprise theater** â€” Solo dev + AI workflow only

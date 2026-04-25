@@ -1,4 +1,4 @@
----
+﻿---
 description: Restore context from previous session
 ---
 
@@ -19,37 +19,37 @@ Read `.gsd/STATE.md` completely.
 ## 2. Display Context
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► RESUMING SESSION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º RESUMING SESSION
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 LAST POSITION
-─────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Phase: {phase from STATE.md}
 Task: {task from STATE.md}
 Status: {status when paused}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 CONTEXT FROM LAST SESSION
-─────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 {Context dump content from STATE.md}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 BLOCKERS
-────────
+â”€â”€â”€â”€â”€â”€â”€â”€
 {Blockers from STATE.md, or "None"}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 NEXT STEPS (from last session)
-──────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 1. {First priority}
 2. {Second priority}
 3. {Third priority}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 ---
@@ -72,7 +72,7 @@ git status --porcelain
 
 **If changes found:**
 ```
-⚠️ UNCOMMITTED CHANGES DETECTED
+âš ï¸ UNCOMMITTED CHANGES DETECTED
 
 {list of modified files}
 
@@ -94,27 +94,27 @@ Mark session as active in `.gsd/STATE.md`:
 ## 6. Suggest Action
 
 ```
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-▶ READY TO CONTINUE
+â–¶ READY TO CONTINUE
 
 Suggested action based on state:
 
 {One of:}
-• /execute {N} — Continue phase execution
-• /verify {N} — Verify completed phase
-• /plan {N} — Create plans for phase
-• /progress — See full roadmap status
+â€¢ /execute {N} â€” Continue phase execution
+â€¢ /verify {N} â€” Verify completed phase
+â€¢ /plan {N} â€” Create plans for phase
+â€¢ /progress â€” See full roadmap status
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-💡 Fresh session = fresh perspective
+ðŸ’¡ Fresh session = fresh perspective
 
 You have all the context you need.
 The previous struggles are documented.
 Time to solve this with fresh eyes.
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 </process>
@@ -122,10 +122,10 @@ Time to solve this with fresh eyes.
 <fresh_context_advantage>
 A resumed session has advantages:
 
-1. **No accumulated confusion** — You see the problem clearly
-2. **Documented failures** — You know what NOT to try
-3. **Hypothesis preserved** — Pick up where logic left off
-4. **Full context budget** — 200k tokens of fresh capacity
+1. **No accumulated confusion** â€” You see the problem clearly
+2. **Documented failures** â€” You know what NOT to try
+3. **Hypothesis preserved** â€” Pick up where logic left off
+4. **Full context budget** â€” 200k tokens of fresh capacity
 
 Often the first thing a fresh context sees is the obvious solution that a tired context missed.
 </fresh_context_advantage>

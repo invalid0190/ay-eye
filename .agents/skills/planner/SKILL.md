@@ -1,4 +1,4 @@
----
+﻿---
 name: planner
 description: Creates executable phase plans with task breakdown, dependency analysis, and goal-backward verification
 ---
@@ -72,25 +72,25 @@ If it sounds like corporate PM theater, delete it.
 
 Discovery is MANDATORY unless you can prove current context exists.
 
-### Level 0 — Skip
+### Level 0 â€” Skip
 *Pure internal work, existing patterns only*
 - ALL work follows established codebase patterns (grep confirms)
 - No new external dependencies
 - Pure internal refactoring or feature extension
 - Examples: Add delete button, add field to model, create CRUD endpoint
 
-### Level 1 — Quick Verification (2-5 min)
+### Level 1 â€” Quick Verification (2-5 min)
 - Single known library, confirming syntax/version
 - Low-risk decision (easily changed later)
 - Action: Quick docs check, no RESEARCH.md needed
 
-### Level 2 — Standard Research (15-30 min)
+### Level 2 â€” Standard Research (15-30 min)
 - Choosing between 2-3 options
 - New external integration (API, service)
 - Medium-risk decision
 - Action: Route to `/research-phase`, produces RESEARCH.md
 
-### Level 3 — Deep Dive (1+ hour)
+### Level 3 â€” Deep Dive (1+ hour)
 - Architectural decision with long-term impact
 - Novel problem without clear patterns
 - High-risk, hard to change later
@@ -110,23 +110,23 @@ Every task has four required fields:
 
 ### `<files>`
 Exact file paths created or modified.
-- ✅ Good: `src/app/api/auth/login/route.ts`, `prisma/schema.prisma`
-- ❌ Bad: "the auth files", "relevant components"
+- âœ… Good: `src/app/api/auth/login/route.ts`, `prisma/schema.prisma`
+- âŒ Bad: "the auth files", "relevant components"
 
 ### `<action>`
 Specific implementation instructions, including what to avoid and WHY.
-- ✅ Good: "Create POST endpoint accepting {email, password}, validates using bcrypt against User table, returns JWT in httpOnly cookie with 15-min expiry. Use jose library (not jsonwebtoken - CommonJS issues with Edge runtime)."
-- ❌ Bad: "Add authentication", "Make login work"
+- âœ… Good: "Create POST endpoint accepting {email, password}, validates using bcrypt against User table, returns JWT in httpOnly cookie with 15-min expiry. Use jose library (not jsonwebtoken - CommonJS issues with Edge runtime)."
+- âŒ Bad: "Add authentication", "Make login work"
 
 ### `<verify>`
 How to prove the task is complete.
-- ✅ Good: `npm test` passes, `curl -X POST /api/auth/login` returns 200 with Set-Cookie header
-- ❌ Bad: "It works", "Looks good"
+- âœ… Good: `npm test` passes, `curl -X POST /api/auth/login` returns 200 with Set-Cookie header
+- âŒ Bad: "It works", "Looks good"
 
 ### `<done>`
-Acceptance criteria — measurable state of completion.
-- ✅ Good: "Valid credentials return 200 + JWT cookie, invalid credentials return 401"
-- ❌ Bad: "Authentication is complete"
+Acceptance criteria â€” measurable state of completion.
+- âœ… Good: "Valid credentials return 200 + JWT cookie, invalid credentials return 401"
+- âŒ Bad: "Authentication is complete"
 
 ---
 
@@ -186,11 +186,11 @@ Split into multiple plans when:
 **Prefer vertical slices:** Each plan delivers a complete feature path.
 
 ```
-✅ Vertical (preferred):
+âœ… Vertical (preferred):
 Plan 1: User registration (API + DB + validation)
 Plan 2: User login (API + session + cookie)
 
-❌ Horizontal (avoid):
+âŒ Horizontal (avoid):
 Plan 1: All database models
 Plan 2: All API endpoints
 ```
@@ -428,7 +428,7 @@ OPTIONS: [choices if applicable]
 
 ## Anti-Patterns to Avoid
 
-### ❌ Vague Tasks
+### âŒ Vague Tasks
 ```xml
 <task type="auto">
   <name>Add authentication</name>
@@ -437,7 +437,7 @@ OPTIONS: [choices if applicable]
 </task>
 ```
 
-### ✅ Specific Tasks
+### âœ… Specific Tasks
 ```xml
 <task type="auto">
   <name>Create login endpoint with JWT</name>
@@ -449,11 +449,11 @@ OPTIONS: [choices if applicable]
     On mismatch: return 401.
   </action>
   <verify>curl -X POST localhost:3000/api/auth/login returns 200 + Set-Cookie</verify>
-  <done>Valid creds → 200 + cookie. Invalid → 401.</done>
+  <done>Valid creds â†’ 200 + cookie. Invalid â†’ 401.</done>
 </task>
 ```
 
-### ❌ Reflexive Chaining
+### âŒ Reflexive Chaining
 ```yaml
 # Bad: Every plan refs previous
 context:
@@ -461,7 +461,7 @@ context:
   - .gsd/phases/1/02-SUMMARY.md  # Plan 3 refs 2
 ```
 
-### ✅ Minimal Context
+### âœ… Minimal Context
 ```yaml
 # Good: Only ref when truly needed
 context:

@@ -1,9 +1,9 @@
-# SPEC.md — Project Specification
+﻿# SPEC.md â€” Project Specification
 
 > **Status**: `FINALIZED`
 
 ## Vision
-Build "ay-eye", a proactive, Jarvis-like intelligent copilot that runs locally on Windows. Unlike standard chatbots, ay-eye perceives the user's screen in real-time, understands cross-application context, communicates via natural voice, and automates workflows to assist the user as a sidekick rather than a simple interface.
+Build "ay-eye", a proactive, ay-eye-like intelligent copilot that runs locally on Windows. Unlike standard chatbots, ay-eye perceives the user's screen in real-time, understands cross-application context, communicates via natural voice, and automates workflows to assist the user as a sidekick rather than a simple interface.
 
 ## Goals
 1. **Real-Time Perception**: Capture and interpret screen content (OCR + UI Automation) every 1-2 seconds with minimal latency.
@@ -28,7 +28,7 @@ Build "ay-eye", a proactive, Jarvis-like intelligent copilot that runs locally o
 - **Privacy**: No screen data or personal interactions should leave the machine (except optional API fallback for complex reasoning).
 
 ## Success Criteria
-- [ ] Jarvis successfully detects a terminal error and explains the fix via voice.
-- [ ] Jarvis can automate a multi-step "New Project Setup" workflow (creating folders, running git init, opening IDE).
-- [ ] System remains stable under 12GB total RAM usage during active assistant loop.
-- [ ] Wake word ("Hey Assistant") works reliably with 90%+ accuracy in a quiet room.
+- [ ] ay-eye successfully detects a terminal error and explains the fix via voice.
+- [ ] ay-eye can automate a multi-step "New Project Setup" workflow (creating folders, running git init, opening IDE).
+- [ ] System remains stable under 12GB total RAM usage during active ay-eye loop.
+- [ ] Wake word ("Hey ay-eye") works reliably with 90%+ accuracy in a quiet room.

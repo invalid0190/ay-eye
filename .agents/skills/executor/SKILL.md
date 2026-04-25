@@ -1,4 +1,4 @@
----
+﻿---
 name: executor
 description: Executes GSD plans with atomic commits, deviation handling, checkpoint protocols, and state management
 ---
@@ -32,7 +32,7 @@ Get-Content ".gsd/STATE.md" -ErrorAction SilentlyContinue
 
 **If file missing but .gsd/ exists:** Reconstruct from existing artifacts.
 
-**If .gsd/ doesn't exist:** Error — project not initialized.
+**If .gsd/ doesn't exist:** Error â€” project not initialized.
 
 ### Step 2: Load Plan
 
@@ -71,8 +71,8 @@ For each task:
 
 2. **If `type="auto"`:**
    - Work toward task completion
-   - If CLI/API returns authentication error → Handle as authentication gate
-   - When you discover additional work not in plan → Apply deviation rules
+   - If CLI/API returns authentication error â†’ Handle as authentication gate
+   - When you discover additional work not in plan â†’ Apply deviation rules
    - Run the verification
    - Confirm done criteria met
    - **Commit the task** (see Task Commit Protocol)
@@ -81,7 +81,7 @@ For each task:
 3. **If `type="checkpoint:*"`:**
    - STOP immediately
    - Return structured checkpoint message
-   - You will NOT continue — a fresh agent will be spawned
+   - You will NOT continue â€” a fresh agent will be spawned
 
 4. Run overall verification checks
 5. Document all deviations in Summary
@@ -192,15 +192,15 @@ Apply these rules automatically. Track all deviations for Summary documentation.
 
 ### Rule Priority
 
-1. **If Rule 4 applies** → STOP and return checkpoint
-2. **If Rules 1-3 apply** → Fix automatically, track for Summary
-3. **If unsure which rule** → Apply Rule 4 (return checkpoint)
+1. **If Rule 4 applies** â†’ STOP and return checkpoint
+2. **If Rules 1-3 apply** â†’ Fix automatically, track for Summary
+3. **If unsure which rule** â†’ Apply Rule 4 (return checkpoint)
 
 **Edge case guidance:**
-- "This validation is missing" → Rule 2 (security)
-- "This crashes on null" → Rule 1 (bug)
-- "Need to add table" → Rule 4 (architectural)
-- "Need to add column" → Rule 1 or 2 (depends on context)
+- "This validation is missing" â†’ Rule 2 (security)
+- "This crashes on null" â†’ Rule 1 (bug)
+- "Need to add table" â†’ Rule 4 (architectural)
+- "Need to add column" â†’ Rule 1 or 2 (depends on context)
 
 ---
 
@@ -216,7 +216,7 @@ This is NOT a failure. Authentication gates are expected and normal.
 - Command fails with: "Please run {tool} login" or "Set {ENV_VAR}"
 
 **Authentication gate protocol:**
-1. Recognize it's an auth gate — not a bug
+1. Recognize it's an auth gate â€” not a bug
 2. STOP current task execution
 3. Return checkpoint with type `human-action`
 4. Provide exact authentication steps
@@ -351,7 +351,7 @@ If spawned as a continuation agent (prompt has completed tasks):
    ```
    Check that commit hashes from completed tasks appear
 
-2. **DO NOT redo completed tasks** — They're already committed
+2. **DO NOT redo completed tasks** â€” They're already committed
 
 3. **Start from resume point** specified in prompt
 
@@ -424,11 +424,11 @@ duration_minutes: {N}
 ## Tasks Completed
 | Task | Description | Commit | Status |
 |------|-------------|--------|--------|
-| 1 | {name} | {hash} | ✅ |
-| 2 | {name} | {hash} | ✅ |
+| 1 | {name} | {hash} | âœ… |
+| 2 | {name} | {hash} | âœ… |
 
 ## Deviations Applied
-{If none: "None — executed as planned."}
+{If none: "None â€” executed as planned."}
 
 - [Rule 1 - Bug] Fixed null check in auth handler
 - [Rule 2 - Missing Critical] Added input validation
@@ -438,28 +438,28 @@ duration_minutes: {N}
 - {file2} - {what changed}
 
 ## Verification
-- {verification 1}: ✅ Passed
-- {verification 2}: ✅ Passed
+- {verification 1}: âœ… Passed
+- {verification 2}: âœ… Passed
 ```
 
 ---
 
 ## Anti-Patterns
 
-### ❌ Continuing past checkpoint
+### âŒ Continuing past checkpoint
 Checkpoints mean STOP. Never continue after checkpoint.
 
-### ❌ Redoing committed work
+### âŒ Redoing committed work
 If continuation agent, verify commits exist, don't redo.
 
-### ❌ Loading everything
+### âŒ Loading everything
 Don't load all SUMMARYs, all plans. Need-to-know only.
 
-### ❌ Ignoring deviations
+### âŒ Ignoring deviations
 Always track and report deviations in Summary.
 
-### ✅ Atomic commits
+### âœ… Atomic commits
 One task = one commit. Always.
 
-### ✅ Verification before done
+### âœ… Verification before done
 Run verify step. Confirm done criteria. Then commit.

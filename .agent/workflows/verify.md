@@ -1,5 +1,5 @@
----
-description: The Auditor — Validate work against spec with empirical evidence
+﻿---
+description: The Auditor â€” Validate work against spec with empirical evidence
 argument-hint: "<phase-number>"
 ---
 
@@ -25,12 +25,12 @@ The verifier checks the CODEBASE, not SUMMARY claims.
 </objective>
 
 <context>
-**Phase:** $ARGUMENTS (required — phase number to verify)
+**Phase:** $ARGUMENTS (required â€” phase number to verify)
 
 **Required files:**
-- `.gsd/SPEC.md` — Original requirements
-- `.gsd/ROADMAP.md` — Phase definition with must-haves
-- `.gsd/phases/{phase}/*-SUMMARY.md` — What was implemented
+- `.gsd/SPEC.md` â€” Original requirements
+- `.gsd/ROADMAP.md` â€” Phase definition with must-haves
+- `.gsd/phases/{phase}/*-SUMMARY.md` â€” What was implemented
 </context>
 
 <process>
@@ -46,13 +46,13 @@ Read:
 
 ## 2. Extract Must-Haves
 
-From the phase definition, identify **must-haves** — requirements that MUST be true for the phase to be complete.
+From the phase definition, identify **must-haves** â€” requirements that MUST be true for the phase to be complete.
 
 ```markdown
 ### Must-Haves for Phase {N}
-1. {Requirement 1} — How to verify
-2. {Requirement 2} — How to verify
-3. {Requirement 3} — How to verify
+1. {Requirement 1} â€” How to verify
+2. {Requirement 2} â€” How to verify
+3. {Requirement 3} â€” How to verify
 ```
 
 ---
@@ -109,14 +109,14 @@ verdict: PASS | FAIL | PARTIAL
 
 ## Must-Haves
 
-### ✅ {Must-have 1}
+### âœ… {Must-have 1}
 **Status:** PASS
 **Evidence:** 
 ```
 {command output or description}
 ```
 
-### ❌ {Must-have 2}
+### âŒ {Must-have 2}
 **Status:** FAIL
 **Reason:** {why it failed}
 **Expected:** {what should happen}
@@ -139,26 +139,26 @@ Update `.gsd/STATE.md`:
 ```markdown
 ## Current Position
 - **Phase**: {N} (verified)
-- **Status**: ✅ Complete and verified
+- **Status**: âœ… Complete and verified
 ```
 
 Output:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► PHASE {N} VERIFIED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º PHASE {N} VERIFIED âœ“
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 {X}/{X} must-haves verified
 
 All requirements satisfied.
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-▶ Next Up
+â–¶ Next Up
 
-/execute {N+1} — proceed to next phase
+/execute {N+1} â€” proceed to next phase
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 ### If FAIL (some must-haves failed):
@@ -193,22 +193,22 @@ gap_closure: true
 
 Output:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► PHASE {N} GAPS FOUND ⚠
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º PHASE {N} GAPS FOUND âš 
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 {X}/{Y} must-haves verified
 {Z} issues require fixes
 
 Gap closure plans created.
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-▶ Next Up
+â–¶ Next Up
 
-/execute {N} --gaps-only — run fix plans
+/execute {N} --gaps-only â€” run fix plans
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 ---

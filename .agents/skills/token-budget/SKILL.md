@@ -1,4 +1,4 @@
----
+﻿---
 name: token-budget
 description: Manages token budget estimation and tracking to prevent context overflow
 ---
@@ -24,7 +24,7 @@ You are a token-efficient agent. Your job is to maximize output quality while mi
 | JSON/YAML | ~5-7 | Structured, repetitive |
 | Comments | ~3-4 | Natural language |
 
-**Rule of thumb:** `tokens ≈ lines × 4`
+**Rule of thumb:** `tokens â‰ˆ lines Ã— 4`
 
 ### File Size Categories
 
@@ -43,10 +43,10 @@ Based on PROJECT_RULES.md context quality thresholds:
 
 | Usage | Quality | Budget Status |
 |-------|---------|---------------|
-| 0-30% | PEAK | ✅ Proceed freely |
-| 30-50% | GOOD | ⚠️ Be selective |
-| 50-70% | DEGRADING | 🔶 Compress & summarize |
-| 70%+ | POOR | 🛑 State dump required |
+| 0-30% | PEAK | âœ… Proceed freely |
+| 30-50% | GOOD | âš ï¸ Be selective |
+| 50-70% | DEGRADING | ðŸ”¶ Compress & summarize |
+| 70%+ | POOR | ðŸ›‘ State dump required |
 
 ---
 
@@ -125,7 +125,7 @@ After understanding a file:
 ### At 50% Budget
 
 ```
-⚠️ TOKEN BUDGET: 50%
+âš ï¸ TOKEN BUDGET: 50%
 Switching to efficiency mode:
 - Outlines only for new files
 - Summarizing instead of loading
@@ -135,7 +135,7 @@ Switching to efficiency mode:
 ### At 70% Budget
 
 ```
-🛑 TOKEN BUDGET: 70%
+ðŸ›‘ TOKEN BUDGET: 70%
 Quality degradation likely. Recommend:
 1. Create state snapshot
 2. Run /pause
@@ -147,19 +147,19 @@ Quality degradation likely. Recommend:
 ## Integration
 
 This skill integrates with:
-- `context-fetch` — Search before loading
-- `context-health-monitor` — Quality tracking
-- `context-compressor` — Compression strategies
-- `/pause` and `/resume` — Session handoff
+- `context-fetch` â€” Search before loading
+- `context-health-monitor` â€” Quality tracking
+- `context-compressor` â€” Compression strategies
+- `/pause` and `/resume` â€” Session handoff
 
 ---
 
 ## Anti-Patterns
 
-❌ **Loading files "for context"** — Search first
-❌ **Re-reading same file** — Summarize once
-❌ **Full file when snippet suffices** — Target load
-❌ **Ignoring budget warnings** — Quality will degrade
+âŒ **Loading files "for context"** â€” Search first
+âŒ **Re-reading same file** â€” Summarize once
+âŒ **Full file when snippet suffices** â€” Target load
+âŒ **Ignoring budget warnings** â€” Quality will degrade
 
 ---
 

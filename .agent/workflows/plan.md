@@ -1,5 +1,5 @@
----
-description: The Strategist — Decompose requirements into executable phases in ROADMAP.md
+﻿---
+description: The Strategist â€” Decompose requirements into executable phases in ROADMAP.md
 argument-hint: "[phase] [--research] [--skip-research] [--gaps]"
 ---
 
@@ -19,22 +19,22 @@ You are a GSD planner orchestrator. You create executable phase plans with task 
 <objective>
 Create executable phase prompts (PLAN.md files) for a roadmap phase with integrated research and verification.
 
-**Default flow:** Research (if needed) → Plan → Verify → Done
+**Default flow:** Research (if needed) â†’ Plan â†’ Verify â†’ Done
 
 **Why subagents:** Research and planning burn context fast. Verification uses fresh context. User sees the flow between agents in main context.
 </objective>
 
 <context>
-**Phase number:** $ARGUMENTS (optional — auto-detects next unplanned phase if not provided)
+**Phase number:** $ARGUMENTS (optional â€” auto-detects next unplanned phase if not provided)
 
 **Flags:**
-- `--research` — Force re-research even if RESEARCH.md exists
-- `--skip-research` — Skip research entirely, go straight to planning
-- `--gaps` — Gap closure mode (reads VERIFICATION.md, skips research)
+- `--research` â€” Force re-research even if RESEARCH.md exists
+- `--skip-research` â€” Skip research entirely, go straight to planning
+- `--gaps` â€” Gap closure mode (reads VERIFICATION.md, skips research)
 
 **Required files:**
-- `.gsd/SPEC.md` — Must be FINALIZED (Planning Lock)
-- `.gsd/ROADMAP.md` — Must have phases defined
+- `.gsd/SPEC.md` â€” Must be FINALIZED (Planning Lock)
+- `.gsd/ROADMAP.md` â€” Must have phases defined
 </context>
 
 <philosophy>
@@ -75,28 +75,28 @@ Each plan: **2-3 tasks max**. No exceptions.
 
 Discovery is MANDATORY unless you can prove current context exists.
 
-**Level 0 — Skip** (pure internal work)
+**Level 0 â€” Skip** (pure internal work)
 - ALL work follows established codebase patterns
 - No new external dependencies
 - Pure internal refactoring or feature extension
 
-**Level 1 — Quick Verification** (2-5 min)
+**Level 1 â€” Quick Verification** (2-5 min)
 - Single known library, confirming syntax/version
 - Low-risk decision (easily changed later)
 - Action: Quick web search, no RESEARCH.md needed
 
-**Level 1.5 — Discovery** (5-15 min)
+**Level 1.5 â€” Discovery** (5-15 min)
 - Quick library/option comparison (A vs B)
 - Low-to-medium risk, focused question
 - Action: Create DISCOVERY.md using `.gsd/templates/discovery.md` template
 
-**Level 2 — Standard Research** (15-30 min)
+**Level 2 â€” Standard Research** (15-30 min)
 - Choosing between 2-3 options
 - New external integration (API, service)
 - Medium-risk decision
 - Action: Create RESEARCH.md with findings
 
-**Level 3 — Deep Dive** (1+ hour)
+**Level 3 â€” Deep Dive** (1+ hour)
 - Architectural decision with long-term impact
 - Novel problem without clear patterns
 - High-risk, hard to change later
@@ -127,7 +127,7 @@ if ! grep -q "FINALIZED" ".gsd/SPEC.md"; then
 fi
 ```
 
-**If not finalized:** Error — user must complete SPEC.md first.
+**If not finalized:** Error â€” user must complete SPEC.md first.
 
 ---
 
@@ -203,9 +203,9 @@ test -f "$PHASE_DIR/RESEARCH.md"
 
 Display banner:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► RESEARCHING PHASE {N}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º RESEARCHING PHASE {N}
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 ```
 
 Perform research based on discovery level (see `<discovery_levels>`).
@@ -218,18 +218,18 @@ Create `$PHASE_DIR/RESEARCH.md` with findings.
 
 Display banner:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► PLANNING PHASE {N}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º PLANNING PHASE {N}
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 ```
 
 ### 6a. Gather Context
 Load:
-- `.gsd/SPEC.md` — Requirements
-- `.gsd/REQUIREMENTS.md` — Formal requirements tracking (if exists)
-- `.gsd/ROADMAP.md` — Phase description
-- `$PHASE_DIR/RESEARCH.md` — If exists
-- `.gsd/ARCHITECTURE.md` — If exists
+- `.gsd/SPEC.md` â€” Requirements
+- `.gsd/REQUIREMENTS.md` â€” Formal requirements tracking (if exists)
+- `.gsd/ROADMAP.md` â€” Phase description
+- `$PHASE_DIR/RESEARCH.md` â€” If exists
+- `.gsd/ARCHITECTURE.md` â€” If exists
 
 ### 6b. Decompose into Tasks
 For the phase goal:
@@ -344,24 +344,24 @@ git commit -m "docs(phase-$PHASE): create execution plans"
 <offer_next>
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► PHASE {N} PLANNED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º PHASE {N} PLANNED âœ“
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 {X} plans created across {Y} waves
 
 Plans:
-• {N}.1: {Name} (wave 1)
-• {N}.2: {Name} (wave 1)
-• {N}.3: {Name} (wave 2)
+â€¢ {N}.1: {Name} (wave 1)
+â€¢ {N}.2: {Name} (wave 1)
+â€¢ {N}.3: {Name} (wave 2)
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-▶ Next Up
+â–¶ Next Up
 
-/execute {N} — run all plans
+/execute {N} â€” run all plans
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 </offer_next>

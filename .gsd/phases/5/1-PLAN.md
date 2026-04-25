@@ -1,4 +1,4 @@
----
+﻿---
 phase: 5
 plan: 1
 wave: 1
@@ -7,7 +7,7 @@ wave: 1
 # Plan 5.1: Global Identity Migration ("ay-eye")
 
 ## Objective
-Systematically rename all assistant references and refactor the persona to match the "ay-eye" technical copilot profile.
+Systematically rename all ay-eye references and refactor the persona to match the "ay-eye" technical copilot profile.
 
 ## Context
 - .gsd/DECISIONS.md
@@ -20,11 +20,11 @@ Systematically rename all assistant references and refactor the persona to match
 <task type="auto">
   <name>Codebase Identity Sweep</name>
   <action>
-    - Global find and replace: "Jarvis" -> "ay-eye".
-    - Global find and replace: "Assistant" (where it refers to the AI) -> "ay-eye".
+    - Global find and replace: "ay-eye" -> "ay-eye".
+    - Global find and replace: "ay-eye" (where it refers to the AI) -> "ay-eye".
     - Update all log prefixes and internal comments.
   </action>
-  <verify>grep -r "Jarvis" . (should return zero results outside of .gsd documentation)</verify>
+  <verify>grep -r "ay-eye" . (should return zero results outside of .gsd documentation)</verify>
   <done>System-wide rename to 'ay-eye' is complete.</done>
 </task>
 
@@ -41,5 +41,5 @@ Systematically rename all assistant references and refactor the persona to match
 </task>
 
 ## Success Criteria
-- [ ] No "Jarvis" references remain in the active codebase.
+- [ ] No "ay-eye" references remain in the active codebase.
 - [ ] LLM output and Voice output use the new minimal tone.

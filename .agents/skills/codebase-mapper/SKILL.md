@@ -1,4 +1,4 @@
----
+﻿---
 name: codebase-mapper
 description: Analyzes existing codebases to understand structure, patterns, and technical debt
 ---

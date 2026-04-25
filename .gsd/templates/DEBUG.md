@@ -1,6 +1,6 @@
-# Debug Template
+﻿# Debug Template
 
-Template for `.gsd/debug/[slug].md` — active debug session tracking.
+Template for `.gsd/debug/[slug].md` â€” active debug session tracking.
 
 ---
 
@@ -105,7 +105,7 @@ files_changed: []
 - APPEND to Eliminated when hypothesis disproved
 
 **On resolution:**
-- status → "resolved"
+- status â†’ "resolved"
 - Move file to .gsd/debug/resolved/
 
 ---
@@ -114,10 +114,10 @@ files_changed: []
 
 When AI reads this file after session reset:
 
-1. Parse frontmatter → know status
-2. Read Current Focus → know exactly what was happening
-3. Read Eliminated → know what NOT to retry
-4. Read Evidence → know what's been learned
+1. Parse frontmatter â†’ know status
+2. Read Current Focus â†’ know exactly what was happening
+3. Read Eliminated â†’ know what NOT to retry
+4. Read Evidence â†’ know what's been learned
 5. Continue from next_action
 
 The file IS the debugging brain.

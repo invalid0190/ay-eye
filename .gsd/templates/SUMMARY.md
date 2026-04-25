@@ -1,6 +1,6 @@
-# Summary Template
+﻿# Summary Template
 
-Template for `.gsd/phases/{N}/{plan}-SUMMARY.md` — execution summary after plan completion.
+Template for `.gsd/phases/{N}/{plan}-SUMMARY.md` â€” execution summary after plan completion.
 
 ---
 
@@ -29,9 +29,9 @@ status: complete | partial | failed
 
 | Task | Description | Commit | Status |
 |------|-------------|--------|--------|
-| 1 | {task name} | {hash} | ✅ Complete |
-| 2 | {task name} | {hash} | ✅ Complete |
-| 3 | {task name} | — | ❌ Blocked |
+| 1 | {task name} | {hash} | âœ… Complete |
+| 2 | {task name} | {hash} | âœ… Complete |
+| 3 | {task name} | â€” | âŒ Blocked |
 
 ---
 
@@ -47,15 +47,15 @@ status: complete | partial | failed
 
 ## Deviations Applied
 
-{If none: "None — executed as planned."}
+{If none: "None â€” executed as planned."}
 
-### Rule 1 — Bug Fixes
+### Rule 1 â€” Bug Fixes
 - {description of bug fixed}
 
-### Rule 2 — Missing Critical
+### Rule 2 â€” Missing Critical
 - {description of functionality added}
 
-### Rule 3 — Blocking Issues
+### Rule 3 â€” Blocking Issues
 - {description of blocker fixed}
 
 ---
@@ -64,8 +64,8 @@ status: complete | partial | failed
 
 | Check | Status | Evidence |
 |-------|--------|----------|
-| {verification 1} | ✅ Pass | {command/output} |
-| {verification 2} | ✅ Pass | {command/output} |
+| {verification 1} | âœ… Pass | {command/output} |
+| {verification 2} | âœ… Pass | {command/output} |
 
 ---
 

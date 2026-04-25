@@ -1,6 +1,6 @@
-# DECISIONS.md
+﻿# DECISIONS.md
 
-## Phase 1: Foundation & Vision — Decisions
+## Phase 1: Foundation & Vision â€” Decisions
 
 **Date:** 2026-04-25
 
@@ -24,7 +24,7 @@
 
 ---
 
-## Phase 2: The Brain & Memory — Decisions
+## Phase 2: The Brain & Memory â€” Decisions
 
 **Date:** 2026-04-25
 
@@ -34,7 +34,7 @@
 - **Prompt Structure:** 3-layer (System, Context, Task) to keep instructions clear and modular.
 
 ### Memory & Context
-- **Memory Retrieval:** Hybrid system: 1. Filter by Context (App/Window) → 2. Rank by Semantic Similarity (Goal/Frustration patterns).
+- **Memory Retrieval:** Hybrid system: 1. Filter by Context (App/Window) â†’ 2. Rank by Semantic Similarity (Goal/Frustration patterns).
 - **Storage:** Disk-persistent ChromaDB with minimal RAM footprint. Retrieval limited to top 3-5 results and strict token caps.
 - **Context Distillation:** Rule-based filtering (Prioritize: Errors, Buttons, Inputs, Titles) with smart truncation. No heavy summarizer module.
 
@@ -48,7 +48,7 @@
 
 ---
 
-## Phase 3: Voice & Communication — Decisions
+## Phase 3: Voice & Communication â€” Decisions
 
 **Date:** 2026-04-25
 
@@ -73,7 +73,7 @@
 
 ---
 
-## Phase 4: Automation & Control — Decisions
+## Phase 4: Automation & Control â€” Decisions
 
 **Date:** 2026-04-25
 
@@ -88,10 +88,32 @@
 ### Safety & Visuals
 - **Kill Switch:** `Ctrl + Shift + X` for a hard stop (immediate termination of action thread).
 - **Visual Feedback:** PyQt6 transparent overlay draws a bounding box over the target for 150-250ms before clicking.
-- **Targeting:** Priority order: 1. UIAutomation element matching → 2. OCR text-based bounding boxes → 3. Disambiguation request (if >1 match).
+- **Targeting:** Priority order: 1. UIAutomation element matching â†’ 2. OCR text-based bounding boxes â†’ 3. Disambiguation request (if >1 match).
 - **Whitelisting:** `OPEN_APP` actions only permitted for a predefined list of "Safe Apps."
 
 ### Trust & Logic
 - **Trust Model:** Trust scores are tracked per action type (`click`, `type`, `open_app`). Fails or user cancellations reset trust.
 - **Validation:** Minimum confidence of 0.8 required for any automated action.
 - **Ambiguity:** Zero-guessing policy. If multiple targets exist in the active window, stop and ask the user via voice.
+
+---
+
+## Phase 5: GUI & Identity â€” Decisions
+
+**Date:** 2026-04-25
+
+### Identity & Persona (Global Override)
+- **System Name:** **ay-eye** (Strictly enforced across logs, voice, and UI).
+- **Tone:** Confident, Minimal, Technical. (No theatricality).
+- **Communication Style:** Direct, noun-verb phrasing (e.g., "Action ready," "Discord detected").
+
+### UI Design (PyQt6)
+- **Aesthetic:** Hybrid Terminal Dark (near black) + Glassmorphism (blur, translucency, thin borders).
+- **Accents:** Subtle cyan and soft blue.
+- **Behavior:** Persistent minimal **Status Bar** (corner) that expands into an **Action Panel** when thinking or requiring confirmation.
+- **Components:** Status Indicator, Confidence Progress Bar, Action Preview, and a recent 3-5 event log.
+
+### Interaction & Feedback
+- **Confirmation:** Multi-modal (UI Button, Voice: "Confirm/Go", Hotkey: `Alt + Enter`).
+- **Safety Timeout:** 3-second window for confirmation; default to **Cancel** if no response.
+- **Animation:** Smooth, subtle transitions (150-250ms). No flashy effects.

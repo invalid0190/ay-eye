@@ -1,6 +1,6 @@
-# Context Template
+﻿# Context Template
 
-Template for `.gsd/phases/{N}/CONTEXT.md` — user's vision for a phase.
+Template for `.gsd/phases/{N}/CONTEXT.md` â€” user's vision for a phase.
 
 ---
 
@@ -17,7 +17,7 @@ created: [ISO timestamp]
 
 ## Vision
 
-{How the user imagines this phase working — in their words}
+{How the user imagines this phase working â€” in their words}
 
 ## What's Essential
 
@@ -88,4 +88,4 @@ Created by `/discuss-phase` to capture user's vision before planning.
 
 - Capture user's words, not AI interpretation
 - Focus on WHAT, not HOW
-- Keep it short — vision, not specification
+- Keep it short â€” vision, not specification

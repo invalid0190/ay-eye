@@ -1,4 +1,4 @@
-# DECISIONS.md — Architecture Decision Records
+﻿# DECISIONS.md â€” Architecture Decision Records
 
 > **Purpose**: Log significant technical decisions and their rationale.
 

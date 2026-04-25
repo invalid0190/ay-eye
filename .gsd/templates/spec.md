@@ -1,16 +1,16 @@
-# SPEC.md — Project Specification
+﻿# SPEC.md â€” Project Specification
 
 > **Status**: `DRAFT` | `FINALIZED`
 >
-> ⚠️ **Planning Lock**: No code may be written until this spec is marked `FINALIZED`.
+> âš ï¸ **Planning Lock**: No code may be written until this spec is marked `FINALIZED`.
 
 ## Vision
 {One paragraph describing what this project is and why it exists.}
 
 ## Goals
-1. **{Goal 1}** — {Brief description}
-2. **{Goal 2}** — {Brief description}
-3. **{Goal 3}** — {Brief description}
+1. **{Goal 1}** â€” {Brief description}
+2. **{Goal 2}** â€” {Brief description}
+3. **{Goal 3}** â€” {Brief description}
 
 ## Non-Goals (Out of Scope)
 - {What this project explicitly will NOT do}

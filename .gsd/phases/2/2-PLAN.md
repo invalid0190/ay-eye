@@ -1,4 +1,4 @@
----
+﻿---
 phase: 2
 plan: 2
 wave: 1
@@ -32,7 +32,7 @@ Convert raw Phase 1 screen state into a distilled, token-efficient prompt for th
   <files>core/templates/prompts.py</files>
   <action>
     - Implement 3-layer template system:
-      1. System: Assistant identity and JSON rules.
+      1. System: ay-eye identity and JSON rules.
       2. Context: Distilled screen state + Memory (Phase 2.3).
       3. Task: The specific trigger condition.
     - Ensure prompts explicitly demand the JSON output schema.

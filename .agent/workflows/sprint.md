@@ -1,4 +1,4 @@
----
+﻿---
 description: Create and manage a time-boxed sprint for quick focused work
 argument-hint: "[new|status|close] [sprint-name]"
 ---
@@ -27,17 +27,17 @@ Extract from $ARGUMENTS:
 ### Gather Sprint Information
 
 Ask for:
-- **Name** — Sprint identifier (e.g., "bugfix-auth", "spike-caching")
-- **Goal** — One sentence describing the sprint goal
-- **Duration** — Timeframe (e.g., "2 days", "1 week")
-- **Scope** — Tasks included and explicitly excluded
+- **Name** â€” Sprint identifier (e.g., "bugfix-auth", "spike-caching")
+- **Goal** â€” One sentence describing the sprint goal
+- **Duration** â€” Timeframe (e.g., "2 days", "1 week")
+- **Scope** â€” Tasks included and explicitly excluded
 
 ### Create Sprint File
 
 Create `.gsd/SPRINT.md` using the template from `.gsd/templates/sprint.md`:
 
 ```markdown
-# Sprint {N} — {Sprint Name}
+# Sprint {N} â€” {Sprint Name}
 
 > **Duration**: {start-date} to {end-date}
 > **Status**: In Progress
@@ -58,8 +58,8 @@ Create `.gsd/SPRINT.md` using the template from `.gsd/templates/sprint.md`:
 
 | Task | Assignee | Status | Est. Hours |
 |------|----------|--------|------------|
-| {Task 1} | Claude | ⬜ Todo | — |
-| {Task 2} | Claude | ⬜ Todo | — |
+| {Task 1} | Claude | â¬œ Todo | â€” |
+| {Task 2} | Claude | â¬œ Todo | â€” |
 
 ## Daily Log
 
@@ -90,9 +90,9 @@ git commit -m "docs: create sprint {name}"
 Read `.gsd/SPRINT.md` and display:
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► SPRINT STATUS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º SPRINT STATUS
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 Sprint: {name}
 Duration: {start} to {end}
@@ -100,7 +100,7 @@ Tasks: {done}/{total} complete
 
 {task table}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 ---
@@ -156,21 +156,21 @@ git commit -m "docs: close sprint {name}"
 ### Display Result
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► SPRINT CLOSED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º SPRINT CLOSED âœ“
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 Sprint: {name}
 Tasks completed: {N}/{total}
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-▶ NEXT
+â–¶ NEXT
 
-/resume — Return to milestone work
-/sprint new — Start another sprint
+/resume â€” Return to milestone work
+/sprint new â€” Start another sprint
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 </process>

@@ -1,19 +1,19 @@
----
+﻿---
 description: Initialize a new project with deep context gathering
 ---
 
 # /new-project Workflow
 
 <objective>
-Initialize a new project through unified flow: questioning → research (optional) → requirements → roadmap.
+Initialize a new project through unified flow: questioning â†’ research (optional) â†’ requirements â†’ roadmap.
 
 This is the most leveraged moment in any project. Deep questioning here means better plans, better execution, better outcomes. One command takes you from idea to ready-for-planning.
 
 **Creates:**
-- `.gsd/SPEC.md` — project specification
-- `.gsd/ROADMAP.md` — phase structure
-- `.gsd/STATE.md` — project memory
-- `.gsd/ARCHITECTURE.md` — system design (if brownfield)
+- `.gsd/SPEC.md` â€” project specification
+- `.gsd/ROADMAP.md` â€” phase structure
+- `.gsd/STATE.md` â€” project memory
+- `.gsd/ARCHITECTURE.md` â€” system design (if brownfield)
 - All other .gsd/ documentation files
 
 **After this command:** Run `/plan 1` to start execution.
@@ -22,7 +22,7 @@ This is the most leveraged moment in any project. Deep questioning here means be
 <process>
 
 ## Phase 1: Setup
-**MANDATORY FIRST STEP — Execute these checks before ANY user interaction:**
+**MANDATORY FIRST STEP â€” Execute these checks before ANY user interaction:**
 
 1. **Abort if project exists:**
 
@@ -87,13 +87,13 @@ This is the most leveraged moment in any project. Deep questioning here means be
 **If existing code detected and ARCHITECTURE.md doesn't exist:**
 
 ```
-⚠️ EXISTING CODE DETECTED
+âš ï¸ EXISTING CODE DETECTED
 
 Found {N} source files in this directory.
 
 Options:
-A) Map codebase first — Run /map to understand existing architecture (Recommended)
-B) Skip mapping — Proceed with project initialization
+A) Map codebase first â€” Run /map to understand existing architecture (Recommended)
+B) Skip mapping â€” Proceed with project initialization
 
 Which do you prefer?
 ```
@@ -113,9 +113,9 @@ Exit command.
 
 Display banner:
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► QUESTIONING
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º QUESTIONING
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 ```
 
 **Open the conversation:**
@@ -141,12 +141,12 @@ Based on their answer, ask follow-up questions that dig deeper:
 - Reveal motivation: "Why does this matter now?"
 
 **Context checklist (gather mentally, not as interrogation):**
-- [ ] Vision — What does success look like?
-- [ ] Users — Who is this for?
-- [ ] Problem — What pain does it solve?
-- [ ] Scope — What's in, what's out?
-- [ ] Constraints — Technical, timeline, budget?
-- [ ] Prior art — What exists already?
+- [ ] Vision â€” What does success look like?
+- [ ] Users â€” Who is this for?
+- [ ] Problem â€” What pain does it solve?
+- [ ] Scope â€” What's in, what's out?
+- [ ] Constraints â€” Technical, timeline, budget?
+- [ ] Prior art â€” What exists already?
 
 **Decision gate:**
 
@@ -154,11 +154,11 @@ When you could write a clear SPEC.md:
 ```
 Ready to create SPEC.md?
 
-A) Create SPEC.md — Let's move forward
-B) Keep exploring — I want to share more
+A) Create SPEC.md â€” Let's move forward
+B) Keep exploring â€” I want to share more
 ```
 
-If "Keep exploring" — ask what they want to add, or identify gaps and probe naturally.
+If "Keep exploring" â€” ask what they want to add, or identify gaps and probe naturally.
 
 Loop until "Create SPEC.md" selected.
 
@@ -169,12 +169,12 @@ Loop until "Create SPEC.md" selected.
 Create `.gsd/SPEC.md`:
 
 ```markdown
-# SPEC.md — Project Specification
+# SPEC.md â€” Project Specification
 
 > **Status**: `FINALIZED`
 
 ## Vision
-{Distilled from questioning — one paragraph max}
+{Distilled from questioning â€” one paragraph max}
 
 ## Goals
 1. {Primary goal}
@@ -205,13 +205,13 @@ Create `.gsd/SPEC.md`:
 If project involves unfamiliar technology or architectural decisions:
 
 ```
-📚 RESEARCH CHECK
+ðŸ“š RESEARCH CHECK
 
 This project involves {area where research might help}.
 
 Would you like to:
-A) Do research first — Investigate options before committing
-B) Skip research — I know what I want, let's plan
+A) Do research first â€” Investigate options before committing
+B) Skip research â€” I know what I want, let's plan
 
 ```
 
@@ -262,21 +262,21 @@ Create `.gsd/ROADMAP.md`:
 ## Phases
 
 ### Phase 1: {Foundation}
-**Status**: ⬜ Not Started
+**Status**: â¬œ Not Started
 **Objective**: {what this delivers}
 **Requirements**: REQ-01, REQ-02
 
 ### Phase 2: {Core Feature}
-**Status**: ⬜ Not Started
+**Status**: â¬œ Not Started
 **Objective**: {what this delivers}
 **Requirements**: REQ-03
 
 ### Phase 3: {Integration}
-**Status**: ⬜ Not Started
+**Status**: â¬œ Not Started
 **Objective**: {what this delivers}
 
 ### Phase 4: {Polish/Launch}
-**Status**: ⬜ Not Started
+**Status**: â¬œ Not Started
 **Objective**: {final touches}
 ```
 
@@ -290,10 +290,10 @@ Create `.gsd/ROADMAP.md`:
 ## Phase 8: Initialize Remaining Files
 
 Create with templates:
-- `.gsd/STATE.md` — Empty state
-- `.gsd/DECISIONS.md` — Empty ADR log
-- `.gsd/JOURNAL.md` — Empty journal
-- `.gsd/TODO.md` — Empty todo list
+- `.gsd/STATE.md` â€” Empty state
+- `.gsd/DECISIONS.md` â€” Empty ADR log
+- `.gsd/JOURNAL.md` â€” Empty journal
+- `.gsd/TODO.md` â€” Empty todo list
 
 Create directories:
 - `.gsd/phases/`
@@ -317,33 +317,33 @@ git commit -m "chore: initialize GSD project
 ## Phase 10: Done
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► PROJECT INITIALIZED ✓
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º PROJECT INITIALIZED âœ“
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 Project: {name}
 Phases: {N}
 
 Files created:
-• .gsd/SPEC.md (FINALIZED)
-• .gsd/ROADMAP.md ({N} phases)
-• .gsd/STATE.md
-• .gsd/DECISIONS.md
-• .gsd/JOURNAL.md
+â€¢ .gsd/SPEC.md (FINALIZED)
+â€¢ .gsd/ROADMAP.md ({N} phases)
+â€¢ .gsd/STATE.md
+â€¢ .gsd/DECISIONS.md
+â€¢ .gsd/JOURNAL.md
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-▶ NEXT
+â–¶ NEXT
 
-/discuss-phase 1 — Clarify scope (optional but recommended)
-/plan 1 — Create Phase 1 execution plans
+/discuss-phase 1 â€” Clarify scope (optional but recommended)
+/plan 1 â€” Create Phase 1 execution plans
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-💡 The questioning phase is the highest-leverage moment.
+ðŸ’¡ The questioning phase is the highest-leverage moment.
    Time invested here pays dividends throughout execution.
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 </process>

@@ -1,4 +1,4 @@
-# GSD Methodology — Mission Control Rules
+﻿# GSD Methodology â€” Mission Control Rules
 
 > **Get Shit Done**: A spec-driven, context-engineered development methodology.
 > 
@@ -16,21 +16,21 @@ This file provides Gemini-specific integration. For the complete methodology, se
 
 ## Core Principles
 
-1. **Plan Before You Build** — No code without specification
-2. **State Is Sacred** — Every action updates persistent memory
-3. **Context Is Limited** — Prevent degradation through hygiene
-4. **Verify Empirically** — No "trust me, it works"
+1. **Plan Before You Build** â€” No code without specification
+2. **State Is Sacred** â€” Every action updates persistent memory
+3. **Context Is Limited** â€” Prevent degradation through hygiene
+4. **Verify Empirically** â€” No "trust me, it works"
 
 ---
 
 ## Quick Reference
 
 ```
-Before coding    → Check SPEC.md is FINALIZED
-Before file read → Search first, then targeted read
-After each task  → Update STATE.md
-After 3 failures → State dump + fresh session
-Before "Done"    → Empirical proof captured
+Before coding    â†’ Check SPEC.md is FINALIZED
+Before file read â†’ Search first, then targeted read
+After each task  â†’ Update STATE.md
+After 3 failures â†’ State dump + fresh session
+Before "Done"    â†’ Empirical proof captured
 ```
 
 ---

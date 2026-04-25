@@ -1,4 +1,4 @@
-# Model Selection Playbook
+﻿# Model Selection Playbook
 
 > Guidance for choosing models by phase and task type.
 > 
@@ -86,13 +86,13 @@
 
 ## Anti-Patterns
 
-❌ **Using reasoning models for simple edits** — Overkill, slow, expensive
+âŒ **Using reasoning models for simple edits** â€” Overkill, slow, expensive
 
-❌ **Using fast models for architecture** — Insufficient depth for complex decisions
+âŒ **Using fast models for architecture** â€” Insufficient depth for complex decisions
 
-❌ **Ignoring context limits** — Leads to quality degradation
+âŒ **Ignoring context limits** â€” Leads to quality degradation
 
-❌ **Forcing a specific model** — Breaks model-agnosticism
+âŒ **Forcing a specific model** â€” Breaks model-agnosticism
 
 ---
 
@@ -100,7 +100,7 @@
 
 **When to switch:**
 - Context is getting polluted (approaching 50%)
-- Task type changes significantly (planning → implementation)
+- Task type changes significantly (planning â†’ implementation)
 - Current model struggling with task type
 
 **How to switch:**
@@ -115,10 +115,10 @@
 
 GSD works with any capable LLM. The methodology compensates for model differences through:
 
-1. **Structured plans** — Reduce ambiguity
-2. **Explicit verification** — Catch errors regardless of model
-3. **State persistence** — Enable model switching
-4. **Fresh context** — Prevent accumulation issues
+1. **Structured plans** â€” Reduce ambiguity
+2. **Explicit verification** â€” Catch errors regardless of model
+3. **State persistence** â€” Enable model switching
+4. **Fresh context** â€” Prevent accumulation issues
 
 Choose models based on task needs, not methodology requirements.
 

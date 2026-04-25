@@ -1,4 +1,4 @@
-# RESEARCH.md Template
+﻿# RESEARCH.md Template
 
 > Copy this template when documenting phase research.
 
@@ -15,7 +15,7 @@ discovery_level: 1 | 2 | 3
 {What question is this research answering?}
 
 ## Discovery Level
-**Level {1|2|3}** — {Quick verification | Standard research | Deep dive}
+**Level {1|2|3}** â€” {Quick verification | Standard research | Deep dive}
 
 ## Key Decisions
 

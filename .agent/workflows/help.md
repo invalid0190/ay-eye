@@ -1,4 +1,4 @@
----
+﻿---
 description: Show all available GSD commands
 ---
 
@@ -26,27 +26,27 @@ version=$(cat VERSION 2>/dev/null || echo "unknown")
 **Then display help with version in header:**
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- GSD ► HELP (v{version})
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+ GSD â–º HELP (v{version})
+â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 CORE WORKFLOW
-─────────────
-/map              Analyze codebase → ARCHITECTURE.md
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/map              Analyze codebase â†’ ARCHITECTURE.md
 /plan [N]         Create PLAN.md files for phase N
 /execute [N]      Wave-based execution with atomic commits
 /verify [N]       Must-haves validation with proof
 /debug [desc]     Systematic debugging (3-strike rule)
 
 PROJECT SETUP
-─────────────
-/new-project      Deep questioning → SPEC.md
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/new-project      Deep questioning â†’ SPEC.md
 /new-milestone    Create milestone with phases
 /complete-milestone   Archive completed milestone
 /audit-milestone  Review milestone quality
 
 PHASE MANAGEMENT
-────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 /add-phase        Add phase to end of roadmap
 /insert-phase     Insert phase (renumbers subsequent)
 /remove-phase     Remove phase (with safety checks)
@@ -56,7 +56,7 @@ PHASE MANAGEMENT
 /plan-milestone-gaps      Create gap closure plans
 
 NAVIGATION & STATE
-──────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 /progress         Show current position in roadmap
 /pause            Save state for session handoff
 /resume           Restore from last session
@@ -64,33 +64,33 @@ NAVIGATION & STATE
 /check-todos      List pending items
 
 UTILITIES
-─────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€
 /help             Show this help
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 QUICK START
-───────────
-1. /new-project      → Initialize with deep questioning
-2. /plan 1           → Create Phase 1 plans
-3. /execute 1        → Implement Phase 1
-4. /verify 1         → Confirm it works
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+1. /new-project      â†’ Initialize with deep questioning
+2. /plan 1           â†’ Create Phase 1 plans
+3. /execute 1        â†’ Implement Phase 1
+4. /verify 1         â†’ Confirm it works
 5. Repeat
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 CORE RULES
-──────────
-🔒 Planning Lock     No code until SPEC.md is FINALIZED
-💾 State Persistence Update STATE.md after every task
-🧹 Context Hygiene   3 failures → state dump → fresh session
-✅ Empirical Valid.  Proof required, no "it should work"
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ðŸ”’ Planning Lock     No code until SPEC.md is FINALIZED
+ðŸ’¾ State Persistence Update STATE.md after every task
+ðŸ§¹ Context Hygiene   3 failures â†’ state dump â†’ fresh session
+âœ… Empirical Valid.  Proof required, no "it should work"
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-📚 Docs: GSD-STYLE.md, .gsd/examples/
+ðŸ“š Docs: GSD-STYLE.md, .gsd/examples/
 
-───────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 </process>

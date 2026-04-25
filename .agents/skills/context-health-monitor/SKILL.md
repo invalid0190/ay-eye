@@ -1,4 +1,4 @@
----
+﻿---
 name: context-health-monitor
 description: Monitors context complexity and triggers state dumps before quality degrades
 ---
@@ -7,7 +7,7 @@ description: Monitors context complexity and triggers state dumps before quality
 
 ## Purpose
 
-Prevent "Context Rot" — the quality degradation that occurs as the agent processes more information in a single session.
+Prevent "Context Rot" â€” the quality degradation that occurs as the agent processes more information in a single session.
 
 ## When This Skill Activates
 
@@ -67,9 +67,9 @@ When triggered, write to `.gsd/STATE.md`:
 **Reason**: [3 failures / circular / uncertainty]
 
 ### What Was Attempted
-1. [Approach 1] — Result: [outcome]
-2. [Approach 2] — Result: [outcome]
-3. [Approach 3] — Result: [outcome]
+1. [Approach 1] â€” Result: [outcome]
+2. [Approach 2] â€” Result: [outcome]
+3. [Approach 3] â€” Result: [outcome]
 
 ### Current Hypothesis
 [Best guess at root cause]
@@ -79,8 +79,8 @@ When triggered, write to `.gsd/STATE.md`:
 2. [Alternative approach to try]
 
 ### Files Involved
-- [file1.ext] — [what state it's in]
-- [file2.ext] — [what state it's in]
+- [file1.ext] â€” [what state it's in]
+- [file2.ext] â€” [what state it's in]
 ```
 
 ## Auto-Save Protocol
@@ -100,6 +100,6 @@ Sessions can terminate abruptly (usage limits, context limits, network errors). 
 ## Integration
 
 This skill integrates with:
-- `/pause` — Triggers proper session handoff (includes proactive auto-save)
-- `/resume` — Loads the state dump context
-- Rule 3 in `GEMINI.md` — Context Hygiene enforcement
+- `/pause` â€” Triggers proper session handoff (includes proactive auto-save)
+- `/resume` â€” Loads the state dump context
+- Rule 3 in `GEMINI.md` â€” Context Hygiene enforcement

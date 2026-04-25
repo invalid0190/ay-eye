@@ -1,4 +1,4 @@
-# GSD Workflow Example
+﻿# GSD Workflow Example
 
 > A complete walkthrough of using GSD from start to finish.
 
@@ -36,8 +36,8 @@ A simple RESTful API for managing todo items.
 ```
 
 This creates:
-- `.gsd/ARCHITECTURE.md` — Current structure
-- `.gsd/STACK.md` — Technologies in use
+- `.gsd/ARCHITECTURE.md` â€” Current structure
+- `.gsd/STACK.md` â€” Technologies in use
 
 ---
 
@@ -107,14 +107,14 @@ GSD:
 
 **If verified:**
 ```
-/plan 2      → Plan next phase
-/execute 2   → Execute next phase
+/plan 2      â†’ Plan next phase
+/execute 2   â†’ Execute next phase
 ```
 
 **If issues found:**
 ```
-/execute 1 --gaps-only   → Run fix plans
-/debug "API returns 500" → Debug the issue
+/execute 1 --gaps-only   â†’ Run fix plans
+/debug "API returns 500" â†’ Debug the issue
 ```
 
 ---

@@ -1,4 +1,4 @@
----
+﻿---
 name: context-compressor
 description: Strategies for compressing context to maximize token efficiency
 ---
@@ -25,8 +25,8 @@ You are a context compression specialist. Your job is to maintain rich understan
 
 **Purpose:** Handles user login via email/password
 **Key functions:**
-- handleLogin(req, res) → Validates credentials, returns JWT
-- validateCredentials(email, password) → Checks against DB
+- handleLogin(req, res) â†’ Validates credentials, returns JWT
+- validateCredentials(email, password) â†’ Checks against DB
 **Dependencies:** bcrypt, jose, database
 **Tokens saved:** ~400 (95 lines not reloaded)
 ```
@@ -69,7 +69,7 @@ Added:
 - L46: COMPRESSION_ENABLED = true
 
 Modified:
-- L12: MAX_CONTEXT → increased from 100000 to 150000
+- L12: MAX_CONTEXT â†’ increased from 100000 to 150000
 ```
 
 **Use for:** Reviewing modifications, understanding updates
@@ -106,10 +106,10 @@ Modified:
 4. Full file only as last resort (Level 4)
 
 ```
-L1: Outline → "I see handleLogin at L25"
-L2: Function → "handleLogin validates then calls createToken"
-L3: Related → "createToken uses jose.sign with HS256"
-L4: Full → Only for complex debugging
+L1: Outline â†’ "I see handleLogin at L25"
+L2: Function â†’ "handleLogin validates then calls createToken"
+L3: Related â†’ "createToken uses jose.sign with HS256"
+L4: Full â†’ Only for complex debugging
 ```
 
 ---
@@ -132,9 +132,9 @@ L4: Full → Only for complex debugging
 
 When you need details from compressed context:
 
-1. **Check summary first** — Often sufficient
-2. **Load specific section** — If summary incomplete
-3. **Full load as last resort** — And re-compress after
+1. **Check summary first** â€” Often sufficient
+2. **Load specific section** â€” If summary incomplete
+3. **Full load as last resort** â€” And re-compress after
 
 ```markdown
 ## Decompression Log
@@ -152,7 +152,7 @@ When you need details from compressed context:
 ### Summary Template
 
 ```markdown
-## 📦 [filename]
+## ðŸ“¦ [filename]
 **Purpose:** [one line]
 **Key exports:** [list]
 **Dependencies:** [list]
@@ -163,7 +163,7 @@ When you need details from compressed context:
 ### Outline Template
 
 ```markdown
-## 📋 [filename] (N lines)
+## ðŸ“‹ [filename] (N lines)
 - L[start]-[end]: [section name]
   - L[n]: [key item]
   - L[n]: [key item]
@@ -172,7 +172,7 @@ When you need details from compressed context:
 ### Diff Template
 
 ```markdown
-## Δ [filename]
+## Î” [filename]
 **+** [additions]
 **-** [removals]
 **~** [modifications]
@@ -183,18 +183,18 @@ When you need details from compressed context:
 ## Integration
 
 Works with:
-- `token-budget` — Triggers compression at thresholds
-- `context-fetch` — Provides input for compression
-- `context-health-monitor` — Monitors compression effectiveness
+- `token-budget` â€” Triggers compression at thresholds
+- `context-fetch` â€” Provides input for compression
+- `context-health-monitor` â€” Monitors compression effectiveness
 
 ---
 
 ## Anti-Patterns
 
-❌ **Keeping full files in mental context** — Compress after understanding
-❌ **Re-reading instead of referencing** — Use summaries
-❌ **Loading full file for one function** — Use outline + target
-❌ **Skipping compression "to save time"** — Costs more later
+âŒ **Keeping full files in mental context** â€” Compress after understanding
+âŒ **Re-reading instead of referencing** â€” Use summaries
+âŒ **Loading full file for one function** â€” Use outline + target
+âŒ **Skipping compression "to save time"** â€” Costs more later
 
 ---
 

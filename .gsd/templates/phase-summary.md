@@ -1,4 +1,4 @@
-# Phase {N} Summary
+﻿# Phase {N} Summary
 
 > **Status**: Complete
 > **Completed**: YYYY-MM-DD
@@ -10,9 +10,9 @@
 
 | Deliverable | Status | Notes |
 |-------------|--------|-------|
-| {Deliverable 1} | ✅ | {Any relevant notes} |
-| {Deliverable 2} | ✅ | {Any relevant notes} |
-| {Deliverable 3} | ✅ | {Any relevant notes} |
+| {Deliverable 1} | âœ… | {Any relevant notes} |
+| {Deliverable 2} | âœ… | {Any relevant notes} |
+| {Deliverable 3} | âœ… | {Any relevant notes} |
 
 ## Tasks Completed
 
@@ -28,8 +28,8 @@
 
 | Check | Result | Evidence |
 |-------|--------|----------|
-| {Verification 1} | ✅ Pass | {Command output / screenshot path} |
-| {Verification 2} | ✅ Pass | {Command output / screenshot path} |
+| {Verification 1} | âœ… Pass | {Command output / screenshot path} |
+| {Verification 2} | âœ… Pass | {Command output / screenshot path} |
 
 ## Commits
 

@@ -1,4 +1,4 @@
-# Gemini Adapter
+﻿# Gemini Adapter
 
 > **Everything in this file is optional.**
 > For canonical rules, see [PROJECT_RULES.md](../PROJECT_RULES.md).
@@ -24,9 +24,9 @@ This adapter provides optional enhancements for Gemini models in Antigravity.
 
 Gemini models often have large context windows. Optimize usage:
 
-1. **Load full files strategically** — Large context allows it, but still prefer search-first
-2. **Batch related files** — Group related code in single context load
-3. **Clear separation** — Use XML tags to separate file contents
+1. **Load full files strategically** â€” Large context allows it, but still prefer search-first
+2. **Batch related files** â€” Group related code in single context load
+3. **Clear separation** â€” Use XML tags to separate file contents
 
 ### Context Loading Pattern
 
@@ -83,9 +83,9 @@ For Gemini-specific tips, see adapters/GEMINI.md.
 
 ## Anti-Patterns
 
-❌ **Loading entire codebase** — Even with large context, quality degrades
-❌ **Ignoring context thresholds** — 50% is still the quality boundary
-❌ **Skipping STATE.md** — Context window size doesn't replace persistent state
+âŒ **Loading entire codebase** â€” Even with large context, quality degrades
+âŒ **Ignoring context thresholds** â€” 50% is still the quality boundary
+âŒ **Skipping STATE.md** â€” Context window size doesn't replace persistent state
 
 ---
 

@@ -1,4 +1,4 @@
----
+﻿---
 phase: 4
 plan: 4
 wave: 2
@@ -32,7 +32,7 @@ Implement the adaptive trust model and integrate the action pipeline into the ev
   <files>core/engine/action_orchestrator.py</files>
   <action>
     - Subscribe to "ACTION_REQUESTED" from Brain.
-    - Orchestrate the Flow: Resolve → Trust Check → (Optional Confirm) → Highlight → Execute → Re-verify.
+    - Orchestrate the Flow: Resolve â†’ Trust Check â†’ (Optional Confirm) â†’ Highlight â†’ Execute â†’ Re-verify.
     - Emit "ACTION_STARTED" and "ACTION_COMPLETED".
   </action>
   <verify>python core/engine/action_orchestrator.py</verify>
