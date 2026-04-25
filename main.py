@@ -7,6 +7,9 @@ from core.ui.automation import ui_scanner
 from core.ocr.engine import ocr_engine
 from core.engine.triggers import trigger_engine
 from core.engine.brain import brain
+from core.engine.hotkeys import hotkey_manager
+from core.ocr.stt_engine import stt_engine
+from core.engine.voice_controller import voice_controller
 from core.state.manager import state_manager
 from core.utils.logger import logger
 from core.engine.event_bus import bus
@@ -22,6 +25,7 @@ class Orchestrator:
 
     def start(self):
         self.running = True
+        hotkey_manager.start()
         self.thread = threading.Thread(target=self.loop, daemon=True)
         self.thread.start()
         logger.log_event("SYSTEM_STARTED")

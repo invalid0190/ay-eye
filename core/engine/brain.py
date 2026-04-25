@@ -1,4 +1,4 @@
-﻿from core.engine.event_bus import bus
+from core.engine.event_bus import bus
 from core.engine.llm_bridge import llm_bridge
 from core.engine.context_builder import context_distiller, prompt_builder
 from core.engine.decision_engine import decision_engine
@@ -10,6 +10,11 @@ from core.utils.logger import logger
 class Brain:
     def __init__(self):
         bus.subscribe("AI_TRIGGERED", self.on_ai_triggered)
+        bus.subscribe("VOICE_INPUT_RECEIVED", self.on_voice_input)
+
+    def on_voice_input(self, text):
+        logger.log_event("BRAIN_VOICE_INPUT", {"text": text})
+        self.on_ai_triggered({"type": "VOICE_COMMAND", "confidence": 1.0, "text": text})
 
     def on_ai_triggered(self, trigger_data):
         state = state_manager.get_state()

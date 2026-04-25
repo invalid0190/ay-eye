@@ -45,3 +45,28 @@
   - 0.5 - 0.7: UI Suggestion only
   - > 0.7: Voice + UI Suggestion
 - **Failure Handling:** Single retry on JSON failure; fallback to "Safe Response" (clarification request).
+
+---
+
+## Phase 3: Voice & Communication — Decisions
+
+**Date:** 2026-04-25
+
+### Voice Capture (STT)
+- **Engine:** `faster-whisper` (optimized CTranslate2) for low-latency local inference.
+- **Activation:** `Alt + Z` (Push-to-Talk). No continuous heavy listening to save CPU.
+- **Buffering:** Silence detection (0.5-0.7s) to trigger transcription; 10s maximum recording window as a fail-safe.
+- **Event:** Emits `VOICE_INPUT_RECEIVED` containing the transcribed text.
+
+### Voice Synthesis (TTS)
+- **Engine:** `pyttsx3` (lightweight system voices).
+- **Identity:** System default voice with 1.1x - 1.2x speech rate for efficiency.
+- **Interrupt System:** Immediate TTS stop on any **Keypress** or **Mouse Click**. (Mouse movement does not stop speech).
+
+### Control Logic
+- **Gating:** Voice is only triggered if:
+  1. Confidence > 0.7.
+  2. Mode allows voice.
+  3. Not within speech cooldown window.
+- **Event:** Subscribes to `BRAIN_RESPONDED` and processes the "message" field for speech.
+- **Safety:** Immediate release of audio resources after each interaction.
