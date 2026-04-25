@@ -1,3 +1,0 @@
-﻿# JOURNAL.md
-
-> Empty journal
