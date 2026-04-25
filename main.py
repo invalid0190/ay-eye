@@ -1,7 +1,7 @@
 import time
 import threading
-import multiprocessing
 import sys
+from PyQt6.QtWidgets import QApplication
 from core.vision.window_manager import WindowManager
 from core.vision.capture import capture_module
 from core.vision.change_detector import change_detector
@@ -13,14 +13,18 @@ from core.engine.hotkeys import hotkey_manager
 from core.ocr.stt_engine import stt_engine
 from core.engine.voice_controller import voice_controller
 from core.engine.action_orchestrator import action_orchestrator
+from core.vision.audio_capture import audio_capture
 from core.state.manager import state_manager
 from core.utils.logger import logger
 from core.engine.event_bus import bus
+from core.ui.dashboard import AyEyeDashboard
+from core.ui.overlay import VisualOverlay
 
 class Orchestrator:
     def __init__(self):
         self.running = False
         self.thread = None
+        self.last_heartbeat = 0
         
         # Setup subscribers
         bus.subscribe("SCREEN_UPDATED", self.on_screen_update)
@@ -30,19 +34,10 @@ class Orchestrator:
         self.running = True
         hotkey_manager.start()
         
-        # Launch Dashboard in a separate process
-        multiprocessing.Process(target=self._launch_dashboard, daemon=True).start()
-        
+        # Launch engine loop in background
         self.thread = threading.Thread(target=self.loop, daemon=True)
         self.thread.start()
         logger.log_event("SYSTEM_STARTED")
-
-    def _launch_dashboard(self):
-        from core.ui.dashboard import AyEyeDashboard
-        from PyQt6.QtWidgets import QApplication
-        app = QApplication(sys.argv)
-        window = AyEyeDashboard()
-        sys.exit(app.exec())
 
     def stop(self):
         self.running = False
@@ -69,36 +64,49 @@ class Orchestrator:
             # 4. Idle Check
             trigger_engine.check_idle()
             
-            # Performance Guardrail: Stay within < 30% CPU
+            # Heartbeat every 5s
+            if time.time() - self.last_heartbeat > 5:
+                logger.log_event("HEARTBEAT", {"active_window": win_info["window"]})
+                self.last_heartbeat = time.time()
+
+            # Performance Guardrail: Max 2Hz loop
             elapsed = time.time() - start_time
-            sleep_time = max(0.5 - elapsed, 0.1) # Max 2Hz loop
+            sleep_time = max(0.5 - elapsed, 0.1)
             time.sleep(sleep_time)
             
             logger.log_performance("MAIN_LOOP", int(elapsed * 1000))
 
     def on_screen_update(self, image):
         # Triggered when screen actually changes
-        # 1. UI Scan
         ui_elements = ui_scanner.scan_active_window()
-        
-        # 2. OCR (Handles its own cooldown)
         text = ocr_engine.process(image)
         
-        # 3. Update State
         state_manager.update(
             ui_elements=ui_elements,
             ocr_text=text if text else state_manager.get_state().ocr_text
         )
         
-        # 4. Trigger Check
         if text:
             trigger_engine.check_error(text)
 
 if __name__ == "__main__":
+    # 1. Initialize QApplication on the MAIN thread
+    app = QApplication(sys.argv)
+    app.setQuitOnLastWindowClosed(False)
+    
+    # 2. Initialize Overlay (Highlighter)
+    overlay = VisualOverlay()
+    
+    # 3. Initialize Dashboard (Status Bar)
+    dashboard = AyEyeDashboard(overlay=overlay)
+    
+    # 4. Start the Orchestrator Engine (Background Thread)
     orch = Orchestrator()
     orch.start()
+    
+    # 5. Enter the Qt Main Loop
     try:
-        while True:
-            time.sleep(1)
+        sys.exit(app.exec())
     except KeyboardInterrupt:
         orch.stop()
+        sys.exit(0)

@@ -1,4 +1,4 @@
-﻿import keyboard
+import keyboard
 import time
 from core.engine.event_bus import bus
 from core.engine.audio_state import audio_state
@@ -17,21 +17,24 @@ class HotkeyManager:
         if e.name == "z" and keyboard.is_pressed("alt"):
             if not self.is_pressed:
                 self.is_pressed = True
+                logger.log_event("DEBUG_HOTKEY_DOWN", {"key": e.name})
                 if audio_state.start_listening():
                     bus.publish("HOTKEY_PRESSED")
                     logger.log_event("VOICE_RECORDING_START")
+                else:
+                    logger.logger.warning("Could not start listening (busy?)")
         elif e.name == 'x' and keyboard.is_pressed('ctrl') and keyboard.is_pressed('shift'):
             bus.publish('EMERGENCY_STOP')
             logger.log_event('EMERGENCY_STOP_TRIGGERED')
         elif e.name == 'enter' and keyboard.is_pressed('alt'):
             bus.publish('CONFIRM_HOTKEY')
         elif self.is_pressed:
+            # Check if keys released
             if not (keyboard.is_pressed("z") and keyboard.is_pressed("alt")):
                 self.is_pressed = False
+                logger.log_event("DEBUG_HOTKEY_UP", {"key": e.name})
                 audio_state.stop_listening()
                 bus.publish("HOTKEY_RELEASED")
                 logger.log_event("VOICE_RECORDING_STOP")
 
 hotkey_manager = HotkeyManager()
-
-
