@@ -1,4 +1,4 @@
-﻿from faster_whisper import WhisperModel
+from faster_whisper import WhisperModel
 import threading
 import io
 import wave
@@ -22,6 +22,7 @@ class STTEngine:
                     logger.log_event("STT_MODEL_LOADED")
 
     def transcribe(self, audio_data):
+        logger.log_event("STT_TRANSCRIBE_START", {"size": len(audio_data)})
         self._lazy_load()
         
         def _run():
@@ -29,8 +30,14 @@ class STTEngine:
                 # Convert bytes to numpy float array
                 audio_np = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32) / 32768.0
                 
+                logger.log_event("STT_PROCESSING")
                 segments, info = self.model.transcribe(audio_np, beam_size=5)
+                
+                # segments is a generator, must iterate to run transcription
+                segments = list(segments)
                 text = " ".join([s.text for s in segments]).strip()
+                
+                logger.log_event("STT_RESULT", {"text": text, "lang": info.language})
                 
                 if text:
                     bus.publish("VOICE_INPUT_RECEIVED", text)

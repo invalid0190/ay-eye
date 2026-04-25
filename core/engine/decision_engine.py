@@ -1,6 +1,7 @@
-﻿import time
+import time
 from typing import Dict, Any, Optional
 from core.utils.logger import logger
+from core.config import sys_config
 
 class DecisionEngine:
     def __init__(self):
@@ -13,20 +14,23 @@ class DecisionEngine:
             return False
             
         # Layer 2: Context importance
-        # If no window title or no text/ui, it's not meaningful
-        if not state.window or (not state.ocr_text and not state.ui_elements):
-            logger.logger.info("Decision: Context not meaningful, skipping AI")
-            return False
+        # If no window title or no text/ui, it's not meaningful (unless it's a direct voice command)
+        is_voice = trigger_data.get("type") == "VOICE_COMMAND"
+        if not is_voice:
+            if not state.window or (not state.ocr_text and not state.ui_elements):
+                logger.logger.info("Decision: Context not meaningful, skipping AI")
+                return False
             
         # Layer 3: Confidence threshold
-        # (Assuming trigger confidence is passed in data)
         confidence = trigger_data.get("confidence", 1.0)
-        if confidence < 0.7:
-            logger.logger.info(f"Decision: Confidence {confidence} too low")
+        threshold = sys_config.get("trigger_sensitivity")
+        if confidence < threshold:
+            logger.logger.info(f"Decision: Confidence {confidence} below threshold {threshold}")
             return False
             
         # Cooldown check
-        if time.time() - self.last_call_time < self.cooldown:
+        cooldown = sys_config.get("cooldown_seconds")
+        if time.time() - self.last_call_time < cooldown:
             logger.logger.info("Decision: Cooldown active")
             return False
             
@@ -34,11 +38,9 @@ class DecisionEngine:
         return True
 
     def get_response_mode(self, confidence: float) -> str:
-        if confidence < 0.5:
+        threshold = sys_config.get("confidence_threshold")
+        if confidence < threshold:
             return "IGNORE"
-        elif confidence < 0.7:
-            return "UI_ONLY"
-        else:
-            return "UI_VOICE"
+        return "UI_VOICE"
 
 decision_engine = DecisionEngine()

@@ -1,4 +1,4 @@
-﻿import imagehash
+import imagehash
 from core.engine.event_bus import bus
 from core.utils.logger import logger
 
@@ -18,7 +18,7 @@ class ChangeDetector:
         if diff > self.threshold:
             self.last_hash = current_hash
             bus.publish("SCREEN_UPDATED", image)
-            logger.log_event("SCREEN_CHANGE_DETECTED", {"diff": diff})
+            logger.log_event("SCREEN_CHANGE_DETECTED", {"diff": int(diff)})
             return True
         
         return False
