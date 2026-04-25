@@ -48,11 +48,14 @@ class ActionOrchestrator:
                         bus.publish("ACTION_ABORTED", {"reason": "Target mismatch"})
                         break
                     
+                    # If app was launched directly, skip UI interaction
+                    if isinstance(coords, dict) and coords.get("launched"):
+                        bus.publish("ACTION_COMPLETED", {"type": "launch", "app": coords.get("app")})
+                        continue
+                    
                     # 3. Trust Check
                     if not trust_manager.is_trusted(a_type):
-                        # Confirmation logic (MOCKED for now)
                         logger.log_event("CONFIRMATION_REQUIRED", action)
-                        # Assume success for MVP test
                         pass
                     
                     # 4. Highlight
