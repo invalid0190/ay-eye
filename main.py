@@ -1,4 +1,4 @@
-﻿import time
+import time
 import threading
 from core.vision.window_manager import WindowManager
 from core.vision.capture import capture_module
@@ -6,6 +6,7 @@ from core.vision.change_detector import change_detector
 from core.ui.automation import ui_scanner
 from core.ocr.engine import ocr_engine
 from core.engine.triggers import trigger_engine
+from core.engine.brain import brain
 from core.state.manager import state_manager
 from core.utils.logger import logger
 from core.engine.event_bus import bus
