@@ -23,6 +23,8 @@ class HotkeyManager:
         elif e.name == 'x' and keyboard.is_pressed('ctrl') and keyboard.is_pressed('shift'):
             bus.publish('EMERGENCY_STOP')
             logger.log_event('EMERGENCY_STOP_TRIGGERED')
+        elif e.name == 'enter' and keyboard.is_pressed('alt'):
+            bus.publish('CONFIRM_HOTKEY')
         elif self.is_pressed:
             if not (keyboard.is_pressed("z") and keyboard.is_pressed("alt")):
                 self.is_pressed = False
@@ -31,4 +33,5 @@ class HotkeyManager:
                 logger.log_event("VOICE_RECORDING_STOP")
 
 hotkey_manager = HotkeyManager()
+
 
