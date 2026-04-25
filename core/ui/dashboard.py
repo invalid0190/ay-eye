@@ -5,10 +5,12 @@ from core.ui.theme import theme
 from core.ui.models import ui_state_manager
 from core.ui.components import StatusBar, ActionPanel
 from core.engine.event_bus import bus
+from core.utils.health import health_checker
 
 class AyEyeDashboard(QWidget):
-    def __init__(self):
+    def __init__(self, overlay=None):
         super().__init__()
+        self.overlay = overlay
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
@@ -38,6 +40,7 @@ class AyEyeDashboard(QWidget):
         bus.subscribe("BRAIN_RESPONDED", self.on_suggestion)
         bus.subscribe("ACTION_COMPLETED", self.on_action_end)
         bus.subscribe("ACTION_ABORTED", self.on_action_end)
+        bus.subscribe("HIGHLIGHT_REQUESTED", self.on_highlight_request)
         
         self.update_timer = QTimer()
         self.update_timer.timeout.connect(self.sync_state)
@@ -49,7 +52,12 @@ class AyEyeDashboard(QWidget):
 
     def sync_state(self):
         state = ui_state_manager.state
-        self.status_bar.label.setText(f"ay-eye: {state.status}")
+        health = health_checker.run_all()
+        health_status = "✓" if health["ok"] else "⚠"
+        
+        self.status_bar.label.setText(f"ay-eye: {state.status} [{health_status}]")
+        self.status_bar.label.setToolTip(health["details"])
+        
         color = theme.ACCENT_COLOR if state.status != "idle" else theme.GRAY_COLOR
         self.status_bar.icon.setStyleSheet(f"color: {color.name()};")
 
@@ -61,6 +69,14 @@ class AyEyeDashboard(QWidget):
     def on_action_end(self, data=None):
         ui_state_manager.update(status="idle")
         QTimer.singleShot(3000, lambda: self.action_panel.setVisible(False))
+
+    def on_highlight_request(self, coords):
+        if self.overlay:
+            # coords are {x, y, w, h} - resolver returns center for x,y
+            # overlay.highlight expects top-left for rect
+            x = coords["x"] - coords["w"] // 2
+            y = coords["y"] - coords["h"] // 2
+            self.overlay.highlight(x, y, coords["w"], coords["h"])
 
     def animate_expand(self):
         self.anim = QPropertyAnimation(self, b"geometry")
