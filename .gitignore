@@ -1,0 +1,10 @@
+/.agent
+/.agents
+/.gemini
+/.gsd-update-temp
+/.gsd
+/adapters
+/docs
+*.md
+*.yaml
+/scripts
