@@ -8,3 +8,7 @@
 *.md
 *.yaml
 /scripts
+/.gsd
+/.gsd
+.gsd/DECISIONS.md
+.gsd/STATE.md
