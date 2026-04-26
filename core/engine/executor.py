@@ -116,6 +116,34 @@ class ActionExecutor:
                     from core.engine.skill_manager import skill_manager
                     skill_manager.learn_skill(name, instruction)
                     logger.logger.info(f"Executor: Learned new skill '{name}'")
+                    
+            elif a_type == "read_file":
+                path = action.get("path", "")
+                if path and os.path.exists(path):
+                    with open(path, "r", encoding="utf-8") as f:
+                        content = f.read(4000) # Read up to 4k chars to avoid blowing up context
+                    from core.state.short_term import short_term_memory
+                    short_term_memory.add_system_context(f"FILE_CONTENTS [{path}]:\n{content}")
+                    logger.logger.info(f"Executor: Read file '{path}'")
+                else:
+                    logger.logger.warning(f"File not found: {path}")
+                    
+            elif a_type == "list_dir":
+                path = action.get("path", ".")
+                if os.path.exists(path):
+                    files = os.listdir(path)
+                    content = "\n".join(files[:50]) # max 50 items
+                    from core.state.short_term import short_term_memory
+                    short_term_memory.add_system_context(f"DIRECTORY_CONTENTS [{path}]:\n{content}")
+                    logger.logger.info(f"Executor: Listed directory '{path}'")
+                    
+            elif a_type == "write_file":
+                path = action.get("path", "")
+                content = action.get("content", "")
+                if path:
+                    with open(path, "w", encoding="utf-8") as f:
+                        f.write(content)
+                    logger.logger.info(f"Executor: Wrote file '{path}'")
                 
             time.sleep(random.uniform(0.1, 0.2))
             bus.publish("ACTION_COMPLETED", action)

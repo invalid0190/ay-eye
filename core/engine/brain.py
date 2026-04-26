@@ -82,6 +82,13 @@ When the user asks you to "learn a new skill", "remember how to do this", or "cr
 - Example: {"type": "create_skill", "name": "blender_donut", "instruction": "To make a donut in Blender: 1. Shift+A > Mesh > Torus. 2. Tab into Edit Mode. 3. O for Proportional Editing..."}
 - Once a skill is learned, it will automatically appear in your context in future conversations.
 
+**9. LOCAL CODEBASE INTEGRATION (intent: "act")**
+When asked to read files, examine code, or write scripts:
+- Use `list_dir` to view a directory: `{"type": "list_dir", "path": "src"}`
+- Use `read_file` to read contents: `{"type": "read_file", "path": "main.py"}`
+- Use `write_file` to write code: `{"type": "write_file", "path": "hello.py", "content": "print('hi')"}`
+- If you read a file, the contents will be injected into your CONVERSATION HISTORY on the next loop iteration. ALWAYS set `"status": "in_progress"` if you are waiting to read the output!
+
 ### CRITICAL JSON RULES:
 - Keep ALL text in the "message" and "text" fields on a SINGLE LINE. No line breaks inside strings.
 - Use spaces instead of newlines for paragraphs.
@@ -102,6 +109,9 @@ When the user asks you to "learn a new skill", "remember how to do this", or "cr
     {"type": "switch", "target": "discord"},
     {"type": "cmd", "command": "mkdir my_project; cd my_project; npm init -y"},
     {"type": "create_skill", "name": "my_skill", "instruction": "Step-by-step instructions to remember"},
+    {"type": "read_file", "path": "app.py"},
+    {"type": "list_dir", "path": "."},
+    {"type": "write_file", "path": "app.py", "content": "print('hello')"},
     {"type": "scroll", "amount": -5}
   ],
   "confidence": 0.0-1.0

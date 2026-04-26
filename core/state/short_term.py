@@ -14,6 +14,16 @@ class ShortTermMemory:
         if len(self.history) > self.capacity:
             self.history.pop(0)
 
+    def add_system_context(self, context_text: str):
+        """Injects system context (like file contents) into the history."""
+        self.history.append({
+            "user": "SYSTEM_OBSERVATION",
+            "assistant_message": "Acknowledged.",
+            "actions_taken": [{"type": "read_data", "content": context_text}]
+        })
+        if len(self.history) > self.capacity:
+            self.history.pop(0)
+
     def get_history_string(self) -> str:
         if not self.history:
             return "No recent conversation history."
