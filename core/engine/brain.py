@@ -12,6 +12,7 @@ from core.engine.decision_engine import decision_engine
 from core.state.manager import state_manager
 from core.state.memory import memory_manager
 from core.state.short_term import short_term_memory
+from core.engine.skill_manager import skill_manager
 from core.utils.logger import logger
 from core.engine.web_search import web_search
 
@@ -74,6 +75,13 @@ When the user asks to "create a project", "open Antigravity", or run complex OS 
 - For "open Antigravity" or similar tools: if you know the command, run it via `cmd` (e.g. `code .` or `gsd`).
 - If you need multiple steps, chain the actions together!
 
+**8. LEARNING NEW SKILLS (intent: "act")**
+When the user asks you to "learn a new skill", "remember how to do this", or "create a workflow":
+- Use the "create_skill" action to permanently save a workflow to your memory.
+- You must provide a "name" (lowercase, underscores) and "instruction" (the exact steps or prompt to follow next time).
+- Example: {"type": "create_skill", "name": "blender_donut", "instruction": "To make a donut in Blender: 1. Shift+A > Mesh > Torus. 2. Tab into Edit Mode. 3. O for Proportional Editing..."}
+- Once a skill is learned, it will automatically appear in your context in future conversations.
+
 ### CRITICAL JSON RULES:
 - Keep ALL text in the "message" and "text" fields on a SINGLE LINE. No line breaks inside strings.
 - Use spaces instead of newlines for paragraphs.
@@ -91,6 +99,7 @@ When the user asks to "create a project", "open Antigravity", or run complex OS 
     {"type": "launch", "target": "notepad"},
     {"type": "switch", "target": "discord"},
     {"type": "cmd", "command": "mkdir my_project; cd my_project; npm init -y"},
+    {"type": "create_skill", "name": "my_skill", "instruction": "Step-by-step instructions to remember"},
     {"type": "scroll", "amount": -5}
   ],
   "confidence": 0.0-1.0
@@ -191,6 +200,7 @@ class Brain:
             
             if screen_b64:
                 history_str = short_term_memory.get_history_string()
+                skills_str = skill_manager.get_all_skills_context()
                 
                 prompt = f"""{VISION_SYSTEM_PROMPT}
 
@@ -199,7 +209,7 @@ PROCESSED IMAGE SIZE: {self._img_size[0]}x{self._img_size[1]}
 ACTIVE WINDOW: {state.window}
 ACTIVE APP: {state.app}
 {web_context}
-
+{skills_str}
 --- CONVERSATION HISTORY (Use this for context!) ---
 {history_str}
 --------------------------------------------------

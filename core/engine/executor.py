@@ -108,6 +108,14 @@ class ActionExecutor:
                     logger.logger.info(f"Executor: Running command '{command}'")
                     subprocess.Popen(f'powershell -Command "{command}"', shell=True)
                     time.sleep(0.5)
+
+            elif a_type == "create_skill":
+                name = action.get("name", "")
+                instruction = action.get("instruction", "")
+                if name and instruction:
+                    from core.engine.skill_manager import skill_manager
+                    skill_manager.learn_skill(name, instruction)
+                    logger.logger.info(f"Executor: Learned new skill '{name}'")
                 
             time.sleep(random.uniform(0.1, 0.2))
             bus.publish("ACTION_COMPLETED", action)

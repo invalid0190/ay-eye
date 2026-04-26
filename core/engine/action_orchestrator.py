@@ -44,7 +44,7 @@ class ActionOrchestrator:
                         time.sleep(0.3)
                         executor.execute_single(action)
                         
-                    elif a_type in ("type", "hotkey", "scroll", "switch", "cmd"):
+                    elif a_type in ("type", "hotkey", "scroll", "switch", "cmd", "create_skill"):
                         executor.execute_single(action)
                         
                     elif a_type == "launch":
