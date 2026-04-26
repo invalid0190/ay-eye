@@ -1,6 +1,15 @@
+import sys
+import ctypes
+
+# Force DPI Awareness before ANY imports (fixes PyAutoGUI offset clicks & Qt warnings)
+try:
+    # 2 = PROCESS_PER_MONITOR_DPI_AWARE
+    ctypes.windll.shcore.SetProcessDpiAwareness(2)
+except Exception:
+    pass
+
 import time
 import threading
-import sys
 from PyQt6.QtWidgets import QApplication
 from core.vision.window_manager import WindowManager
 from core.vision.capture import capture_module
