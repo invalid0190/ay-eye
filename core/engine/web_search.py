@@ -70,7 +70,26 @@ class WebSearch:
 
         text_lower = voice_text.lower()
 
-        # Knowledge-seeking patterns
+        # EXCLUSIONS: These are screen/vision questions — use the screenshot, NOT web search
+        vision_phrases = [
+            "on my screen", "on the screen", "on screen",
+            "looking at", "look at", "see on",
+            "do you see", "can you see", "what you see",
+            "in front of me", "my desktop", "my monitor",
+            "this window", "this app", "this page",
+            "right now", "currently", "showing",
+            "describe my", "describe the screen", "describe what",
+            "read this", "read the", "read my",
+            "click", "open", "close", "type", "scroll",
+            "move", "switch", "minimize", "maximize",
+            "write a", "write me", "compose", "draft",
+        ]
+
+        for phrase in vision_phrases:
+            if phrase in text_lower:
+                return False
+
+        # Knowledge-seeking patterns (only if NOT a vision/action query)
         search_triggers = [
             "what is", "what are", "who is", "who are",
             "how to", "how do", "how does", "how can",
@@ -88,7 +107,7 @@ class WebSearch:
             if trigger in text_lower:
                 return True
 
-        # Question mark at end
+        # Question mark at end (but not screen questions)
         if text_lower.strip().endswith("?"):
             return True
 
