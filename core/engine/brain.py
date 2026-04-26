@@ -71,7 +71,7 @@ When web search results are provided and the user just wants information:
 **7. TERMINAL, OS & PROJECT CREATION (intent: "act")**
 When the user asks to "create a project", "open Antigravity", or run complex OS commands:
 - You are a senior developer. Use the "cmd" action to run PowerShell commands.
-- For "create a project": use `cmd` to create folders or initialize it.
+- The `cmd` action runs in the agent's project directory. You MUST use ABSOLUTE paths (e.g., `$env:USERPROFILE\\Desktop\\MyFolder`) if the user asks you to create folders on the Desktop!
 - For "open Antigravity" or similar tools: if you know the command, run it via `cmd` (e.g. `code .` or `gsd`).
 - If you need multiple steps, chain the actions together!
 
@@ -149,19 +149,23 @@ class Brain:
             return None
 
     def _scale_coords(self, response):
-        """Scale coordinates from resized image back to desktop pixels."""
+        """Scale coordinates from resized image to PyAutoGUI's virtual coordinate space."""
         if not hasattr(self, '_desktop_size') or not hasattr(self, '_img_size'):
             return response
+            
+        import pyautogui
+        screen_w, screen_h = pyautogui.size()
         
-        scale_x = self._desktop_size[0] / self._img_size[0]
-        scale_y = self._desktop_size[1] / self._img_size[1]
+        # Scale factor from the AI's image to the actual PyAutoGUI coordinate space
+        scale_x = screen_w / self._img_size[0]
+        scale_y = screen_h / self._img_size[1]
         
         actions = response.get("actions", [])
         for action in actions:
             if "x" in action and "y" in action:
-                # Scale and add offset (to handle multi-monitor coordinate space)
-                abs_x = int(action["x"] * scale_x) + self._desktop_offset[0]
-                abs_y = int(action["y"] * scale_y) + self._desktop_offset[1]
+                # Calculate absolute PyAutoGUI coordinates
+                abs_x = int(action["x"] * scale_x)
+                abs_y = int(action["y"] * scale_y)
                 action["x"] = abs_x
                 action["y"] = abs_y
         
