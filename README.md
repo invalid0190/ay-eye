@@ -5,35 +5,44 @@
 > [!WARNING]
 > **Development Status**: This project is currently in the **Early Development Phase**. It is intended for experimental use and is **not yet production-ready**. Expect frequent breaking changes and bugs.
 
-**Ay-Eye** is a powerful multimodal AI agent that acts as an autonomous extension of your desktop. By combining **real-time computer vision**, voice recognition, and **Gemma 3 Vision** models, Ay-Eye "sees" your entire desktop and "hears" your commands, executing complex tasks with pixel-perfect accuracy.
+**Ay-Eye** is a powerful multimodal AI agent that acts as an autonomous extension of your desktop. Powered by **OpenAI GPT-4o**, it "sees" your entire desktop, "hears" your voice commands, searches the web, and executes complex tasks—from browsing and messaging to creating code projects and navigating 3D software.
+
+It is designed to act like a human-like, highly capable assistant living natively on your machine.
 
 ---
 
 ## 🚀 Core Features
 
-- **👁️ Desktop Vision**: Uses `mss` for full-desktop capture (multi-monitor support) and `Gemma 3` for visual understanding.
-- **🎙️ Voice Command & Control**: Hands-free interaction via `faster-whisper`. Hold `Alt + Z` to speak.
-- **🎯 Precise Automation**: Click, Type, Scroll, and Launch apps using human-like mouse movements and easing curves.
-- **💎 Premium UI**: A glassmorphism-inspired dashboard with real-time status indicators, activity logs, and chat history.
-- **🛡️ Safety First**: Integrated "Safe Zone" clamping and `Ctrl+Shift+X` emergency stop to ensure your system is always under control.
-- **🌍 Hybrid Cloud-Local**: High-speed STT runs locally, while LLM (Ollama Cloud) and TTS (Murf AI) leverage professional cloud pipelines.
+- **👁️ Flawless Desktop Vision**: Uses `mss` for full-desktop capture and **GPT-4o Vision** for deep pixel-perfect understanding of UIs.
+- **🧠 Advanced Memory System**: 
+  - *Short-Term Memory*: Tracks full conversation context (your commands + its responses).
+  - *Skill System*: Ay-Eye can dynamically learn new workflows and save them permanently to its brain (e.g. "Learn a skill called 'Daily Setup'").
+- **💻 Developer / OS Control**: Can execute raw PowerShell commands natively, allowing you to say "Create a new React project" and watch it happen in the terminal.
+- **🌍 Web-Augmented Intelligence**: Uses **Brave Search API** to fetch real-time information to answer knowledge questions before executing tasks.
+- **🎙️ Voice Command & Control**: Hands-free interaction via `faster-whisper` for fast STT, and **OpenAI TTS** (Nova) for highly natural, responsive voice playback. 
+- **🪟 Smart Window Management**: Utilizes the Win32 API to seamlessly switch between running windows or launch new apps via the Windows Registry.
+- **🎯 Precise Automation**: Clicks, types, scrolls, and pastes using `pyautogui` and clipboard manipulation for speed and reliability.
+- **💎 Premium UI**: A glassmorphism-inspired PyQt6 dashboard with real-time status indicators, activity logs, and system health checks.
 
 ---
 
 ## 🛠️ Architecture
 
-### The Vision Loop
-1.  **Capture**: Captures the entire virtual desktop (all monitors).
-2.  **Perception**: Resizes and encodes the screen for the Vision LLM (Gemma 3).
-3.  **Brain**: The LLM analyzes the screenshot and the user command, returning structured JSON with pixel coordinates.
-4.  **Execution**: `PyAutoGUI` translates those coordinates into smooth, human-like mouse and keyboard actions.
+### The Vision & Action Loop
+1. **Trigger**: User holds `Alt + Z` to speak. Local `faster-whisper` transcribes audio instantly.
+2. **Context Gathering**: Captures the screen, fetches web results (if needed), loads recent conversation history, and loads learned *Skills*.
+3. **Reasoning**: GPT-4o analyzes the multimodal prompt and outputs a structured JSON action plan.
+4. **Execution**: The Action Orchestrator parses the JSON and executes actions: `click`, `type`, `hotkey`, `launch`, `switch`, `cmd`, or `create_skill`.
 
 ### Tech Stack
 - **Languages**: Python 3.13
-- **Vision LLM**: Ollama Cloud (Gemma 3 Vision)
-- **STT**: Faster-Whisper (Local)
-- **TTS**: Murf AI (Natalie voice)
-- **UI**: PyQt6 (Glassmorphism)
+- **Primary LLM & Vision**: OpenAI GPT-4o
+- **Fallback LLM**: Ollama Cloud / Local Ollama
+- **Speech-to-Text (STT)**: Faster-Whisper (Local)
+- **Text-to-Speech (TTS)**: OpenAI TTS (Fallback: Murf AI)
+- **Web Search**: Brave Search API
+- **UI**: PyQt6
+- **Automation**: PyAutoGUI, Pyperclip, Win32 API (`ctypes`)
 
 ---
 
@@ -41,8 +50,9 @@
 
 ### Prerequisites
 - **Python 3.13+**
-- **Ollama Cloud API Key**
-- **Murf AI API Key**
+- **OpenAI API Key** (Highly Recommended for primary functionality)
+- **Brave Search API Key** (For web capabilities)
+- *(Optional)* Ollama Cloud / Murf AI Keys (For fallbacks)
 
 ### Setup
 1. **Clone & Install:**
@@ -55,8 +65,15 @@
    ```
 
 2. **Configure Environment:**
-   Create a `.env` file:
+   Create a `.env` file in the root directory:
    ```env
+   # Primary AI Engine (Vision, Reasoning, TTS)
+   OPENAI_API_KEY=your_openai_api_key_here
+   
+   # Web Search
+   BRAVE_API_KEY=your_brave_search_key_here
+
+   # Fallbacks (Optional)
    MURF_API_KEY=your_murf_api_key_here
    OLLAMA_API_KEY=your_ollama_api_key_here
    ```
@@ -70,8 +87,8 @@
 
 ## 🚦 Controls
 - **Hold Alt + Z**: Speak to Ay-Eye.
-- **Alt + Enter**: Confirm a pending action.
-- **Ctrl + Shift + X**: Emergency Stop.
+- **Alt + Enter**: Confirm a pending action (if confirmation is required).
+- **Ctrl + Shift + X**: Emergency Stop (immediately halts all mouse/keyboard execution).
 
 ---
 
