@@ -55,6 +55,18 @@ Ay-Eye operates on a high-speed continuous loop that combines real-time data ing
 
 ---
 
+## 💡 Use Cases & Capabilities
+
+Because Ay-Eye is not restricted by APIs, its capabilities are limited only by its visual understanding. Here is what you can use it for:
+
+- **Complex Software Navigation (e.g. Blender, Photoshop)**: "Switch to Blender, add a Torus mesh, and turn on proportional editing."
+- **Autonomous Project Initialization**: "Create a new folder on my desktop called 'NextJS-App', initialize a NextJS project inside it, and open it in VS Code."
+- **Data Gathering & Messaging**: "Search the web for the latest news on SpaceX, summarize the top 3 points, and send that summary to David on Discord."
+- **Accessibility & Hands-Free Usage**: Navigate your entire computer, read emails, and dictate complex responses purely using your voice.
+- **Automated QA / Testing**: Because it clicks native UI elements, you can train Ay-Eye to perform UI regression tests on your applications simply by talking to it.
+
+---
+
 
 
 ### Tech Stack
@@ -141,6 +153,14 @@ Because Ay-Eye controls your physical computer, the intelligence and speed of th
 - **Hold Alt + Z**: Speak to Ay-Eye.
 - **Alt + Enter**: Confirm a pending action (if confirmation is required).
 - **Ctrl + Shift + X**: Emergency Stop (immediately halts all mouse/keyboard execution).
+
+---
+
+## 🔬 Debugging & Analytics
+
+Because Ay-Eye relies on computer vision, seeing what the AI sees is critical for debugging. 
+- **Vision Snapshots**: Every time the AI takes an action, it saves a compressed JPEG of the exact frame it analyzed to `analytics/vision_debug/`. You can view these images to ensure the AI's physical view of the screen matches yours.
+- **Performance Logs**: Core operations (STT parsing, Vision latency, LLM reasoning) are logged in real-time to the terminal to help you monitor API performance and local latency.
 
 ---
 
