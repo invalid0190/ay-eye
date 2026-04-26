@@ -1,3 +1,4 @@
+import os
 import pyautogui
 import subprocess
 import time
