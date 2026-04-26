@@ -145,6 +145,19 @@ class ActionExecutor:
                     with open(path, "w", encoding="utf-8") as f:
                         f.write(content)
                     logger.logger.info(f"Executor: Wrote file '{path}'")
+                    
+            elif a_type == "extract_clipboard":
+                import pyperclip
+                # Trigger Ctrl+C to copy whatever is currently highlighted
+                pyautogui.hotkey('ctrl', 'c')
+                time.sleep(0.2)
+                clipboard_content = pyperclip.paste()
+                if clipboard_content:
+                    from core.state.short_term import short_term_memory
+                    short_term_memory.add_system_context(f"EXTRACTED_CLIPBOARD_DATA:\n{clipboard_content}")
+                    logger.logger.info(f"Executor: Extracted {len(clipboard_content)} chars from clipboard to memory.")
+                else:
+                    logger.logger.warning("Executor: Clipboard extraction failed or clipboard was empty.")
                 
             time.sleep(random.uniform(0.1, 0.2))
             bus.publish("ACTION_COMPLETED", action)

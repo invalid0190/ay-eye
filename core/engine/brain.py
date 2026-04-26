@@ -89,6 +89,12 @@ When asked to read files, examine code, or write scripts:
 - Use `write_file` to write code: `{"type": "write_file", "path": "hello.py", "content": "print('hi')"}`
 - If you read a file, the contents will be injected into your CONVERSATION HISTORY on the next loop iteration. ALWAYS set `"status": "in_progress"` if you are waiting to read the output!
 
+**10. CROSS-APP DATA EXTRACTION (RPA) (intent: "act")**
+When asked to read an email, extract text, or move data from one app to another:
+- First, highlight the target text using `click` or `scroll`.
+- Next, use the `{"type": "extract_clipboard"}` action. This will automatically press Ctrl+C and inject the copied data directly into your conversation history!
+- Set `"status": "in_progress"` so you can process the extracted data on the next loop iteration and type it into the destination app.
+
 ### CRITICAL JSON RULES:
 - Keep ALL text in the "message" and "text" fields on a SINGLE LINE. No line breaks inside strings.
 - Use spaces instead of newlines for paragraphs.
@@ -112,6 +118,7 @@ When asked to read files, examine code, or write scripts:
     {"type": "read_file", "path": "app.py"},
     {"type": "list_dir", "path": "."},
     {"type": "write_file", "path": "app.py", "content": "print('hello')"},
+    {"type": "extract_clipboard"},
     {"type": "scroll", "amount": -5}
   ],
   "confidence": 0.0-1.0
