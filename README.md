@@ -67,7 +67,17 @@ Because Ay-Eye is not restricted by APIs, its capabilities are limited only by i
 
 ---
 
+## 🗺️ Roadmap & Future Capabilities
 
+To ensure Ay-Eye remains a cutting-edge autonomous agent, the following features are actively being explored:
+
+1. **Agentic Verification Loop**: Moving from single-shot execution to continuous autonomous loops. Ay-Eye will take verification screenshots after every action to confirm success or self-correct if an app is lagging.
+2. **Local Codebase Integration**: Advanced file-system reading tools allowing Ay-Eye to act as a fully autonomous coding agent (similar to Devin) that can read your repository, write code, and run tests.
+3. **Always-On Wake Word**: Replacing the `Alt + Z` hotkey with a low-latency local wake word (e.g., "Hey Ay-Eye") for truly hands-free operation.
+4. **Contextual System Audio**: Routing desktop audio into the model's context so it can summarize live meetings, YouTube videos, or podcasts in real-time.
+5. **Cross-App RPA**: Enhanced memory allowing complex multi-app data transfers (e.g., "Read my last email, summarize it, open Jira, and create a ticket").
+
+---
 
 ### Tech Stack
 - **Languages**: Python 3.13
