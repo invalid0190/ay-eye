@@ -67,10 +67,18 @@ When web search results are provided and the user just wants information:
 - Synthesize a comprehensive, spoken answer in the "message" field.
 - Speak naturally, as if explaining to a friend.
 
+**7. TERMINAL, OS & PROJECT CREATION (intent: "act")**
+When the user asks to "create a project", "open Antigravity", or run complex OS commands:
+- You are a senior developer. Use the "cmd" action to run PowerShell commands.
+- For "create a project": use `cmd` to create folders or initialize it.
+- For "open Antigravity" or similar tools: if you know the command, run it via `cmd` (e.g. `code .` or `gsd`).
+- If you need multiple steps, chain the actions together!
+
 ### CRITICAL JSON RULES:
 - Keep ALL text in the "message" and "text" fields on a SINGLE LINE. No line breaks inside strings.
 - Use spaces instead of newlines for paragraphs.
 - The "message" field is spoken aloud — write it as natural speech.
+- Act like a human-like, highly capable assistant. Store memories, refer to past turns if they are in the history.
 
 ### JSON Format:
 {
@@ -82,6 +90,7 @@ When web search results are provided and the user just wants information:
     {"type": "hotkey", "keys": ["enter"]},
     {"type": "launch", "target": "notepad"},
     {"type": "switch", "target": "discord"},
+    {"type": "cmd", "command": "mkdir my_project; cd my_project; npm init -y"},
     {"type": "scroll", "amount": -5}
   ],
   "confidence": 0.0-1.0
@@ -181,6 +190,8 @@ class Brain:
             screen_b64 = self._capture_screen_b64()
             
             if screen_b64:
+                history_str = short_term_memory.get_history_string()
+                
                 prompt = f"""{VISION_SYSTEM_PROMPT}
 
 DESKTOP RESOLUTION: {self._desktop_size[0]}x{self._desktop_size[1]}
@@ -188,9 +199,14 @@ PROCESSED IMAGE SIZE: {self._img_size[0]}x{self._img_size[1]}
 ACTIVE WINDOW: {state.window}
 ACTIVE APP: {state.app}
 {web_context}
+
+--- CONVERSATION HISTORY (Use this for context!) ---
+{history_str}
+--------------------------------------------------
+
 USER VOICE COMMAND: "{voice_text}"
 
-Analyze the screenshot and respond to the user's command. If web search results are provided, use them to give a factual, informed answer."""
+Analyze the screenshot and the conversation history, then respond. If web search results are provided, use them. You are a super-smart, capable assistant. You can chain actions, write scripts, build projects, and help with anything (like Blender or coding)."""
                 
                 try:
                     response = llm_bridge.generate_with_vision(prompt, [screen_b64])
@@ -230,7 +246,8 @@ Analyze the screenshot and respond to the user's command. If web search results 
         
         if mode != "IGNORE":
             memory_manager.store(state.app, str(state.window), response)
-            short_term_memory.add({"response": response})
+            if is_voice and voice_text:
+                short_term_memory.add(voice_text, response)
             bus.publish("BRAIN_RESPONDED", response)
             
             if response.get("intent") == "act":

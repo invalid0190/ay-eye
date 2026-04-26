@@ -102,6 +102,13 @@ class ActionExecutor:
                 amount = action.get("amount", -3)
                 pyautogui.scroll(amount)
                 
+            elif a_type == "cmd":
+                command = action.get("command", "")
+                if command:
+                    logger.logger.info(f"Executor: Running command '{command}'")
+                    subprocess.Popen(f'powershell -Command "{command}"', shell=True)
+                    time.sleep(0.5)
+                
             time.sleep(random.uniform(0.1, 0.2))
             bus.publish("ACTION_COMPLETED", action)
             
