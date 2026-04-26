@@ -70,7 +70,7 @@ class WebSearch:
 
         text_lower = voice_text.lower()
 
-        # EXCLUSIONS: These are screen/vision questions — use the screenshot, NOT web search
+        # EXCLUSIONS: Screen/vision questions — use the screenshot, NOT web search
         vision_phrases = [
             "on my screen", "on the screen", "on screen",
             "looking at", "look at", "see on",
@@ -80,16 +80,24 @@ class WebSearch:
             "right now", "currently", "showing",
             "describe my", "describe the screen", "describe what",
             "read this", "read the", "read my",
-            "click", "open", "close", "type", "scroll",
+            "click", "close", "scroll",
             "move", "switch", "minimize", "maximize",
-            "write a", "write me", "compose", "draft",
         ]
 
         for phrase in vision_phrases:
             if phrase in text_lower:
                 return False
 
-        # Knowledge-seeking patterns (only if NOT a vision/action query)
+        # FORCED SEARCH: These patterns ALWAYS trigger web search
+        force_search = [
+            "search for", "search about", "look up", "find out",
+            "search and", "google", "browse for",
+        ]
+        for trigger in force_search:
+            if trigger in text_lower:
+                return True
+
+        # Knowledge-seeking patterns
         search_triggers = [
             "what is", "what are", "who is", "who are",
             "how to", "how do", "how does", "how can",
@@ -97,7 +105,6 @@ class WebSearch:
             "when did", "when was", "when is",
             "where is", "where are", "where do",
             "tell me about", "explain", "define",
-            "search for", "look up", "find out",
             "latest", "news about", "current",
             "best way to", "tutorial", "guide",
             "meaning of", "difference between",
@@ -107,7 +114,7 @@ class WebSearch:
             if trigger in text_lower:
                 return True
 
-        # Question mark at end (but not screen questions)
+        # Question mark at end
         if text_lower.strip().endswith("?"):
             return True
 
