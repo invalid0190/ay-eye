@@ -142,17 +142,22 @@ class AyEyeDashboard:
             from dotenv import load_dotenv
             load_dotenv()
             try:
-                api_key = os.getenv("OLLAMA_API_KEY")
-                if api_key:
+                openai_key = os.getenv("OPENAI_API_KEY")
+                ollama_key = os.getenv("OLLAMA_API_KEY")
+                if openai_key:
+                    r = requests.get("https://api.openai.com/v1/models",
+                                     headers={"Authorization": f"Bearer {openai_key}"}, timeout=5)
+                    self.bridge.health_llm.emit(r.status_code == 200)
+                elif ollama_key:
                     r = requests.get("https://ollama.com/api/tags",
-                                     headers={"Authorization": f"Bearer {api_key}"}, timeout=5)
+                                     headers={"Authorization": f"Bearer {ollama_key}"}, timeout=5)
                     self.bridge.health_llm.emit(r.status_code == 200)
                 else:
                     r = requests.get("http://localhost:11434/api/tags", timeout=3)
                     self.bridge.health_llm.emit(r.status_code == 200)
             except Exception:
                 self.bridge.health_llm.emit(False)
-            self.bridge.health_tts.emit(bool(os.getenv("MURF_API_KEY")))
+            self.bridge.health_tts.emit(bool(os.getenv("OPENAI_API_KEY") or os.getenv("MURF_API_KEY")))
             self.bridge.health_stt.emit(True)
         threading.Thread(target=_run, daemon=True).start()
 
