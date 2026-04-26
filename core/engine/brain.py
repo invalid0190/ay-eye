@@ -13,6 +13,7 @@ from core.state.manager import state_manager
 from core.state.memory import memory_manager
 from core.state.short_term import short_term_memory
 from core.utils.logger import logger
+from core.engine.web_search import web_search
 
 
 VISION_SYSTEM_PROMPT = """You are ay-eye, an advanced desktop AI assistant, designed to interact seamlessly with the user's screen environment. Your task is to **analyze the user's desktop** via the provided screenshot and **respond with actions** that are both **precise** and **context-aware**.
@@ -143,6 +144,16 @@ class Brain:
         
         if is_voice and voice_text:
             bus.publish("BRAIN_THINKING", {"prompt_length": 0})
+            
+            # Web search enrichment for knowledge questions
+            web_context = ""
+            if web_search.should_search(voice_text):
+                logger.logger.info(f"Brain: Searching web for: {voice_text}")
+                search_results = web_search.search(voice_text)
+                if search_results:
+                    web_context = f"\n\nWEB SEARCH RESULTS (use these to give an accurate, informed answer):\n{search_results}\n"
+                    logger.logger.info(f"Brain: Got {len(search_results)} chars of web context")
+            
             screen_b64 = self._capture_screen_b64()
             
             if screen_b64:
@@ -152,10 +163,10 @@ DESKTOP RESOLUTION: {self._desktop_size[0]}x{self._desktop_size[1]}
 PROCESSED IMAGE SIZE: {self._img_size[0]}x{self._img_size[1]}
 ACTIVE WINDOW: {state.window}
 ACTIVE APP: {state.app}
-
+{web_context}
 USER VOICE COMMAND: "{voice_text}"
 
-Analyze the screenshot and perform the requested actions."""
+Analyze the screenshot and respond to the user's command. If web search results are provided, use them to give a factual, informed answer."""
                 
                 try:
                     response = llm_bridge.generate_with_vision(prompt, [screen_b64])

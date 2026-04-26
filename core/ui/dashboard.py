@@ -28,6 +28,7 @@ class ThreadBridge(QObject):
     health_llm = pyqtSignal(bool)
     health_tts = pyqtSignal(bool)
     health_stt = pyqtSignal(bool)
+    web_search = pyqtSignal(str)
 
 
 class AyEyeDashboard:
@@ -72,6 +73,7 @@ class AyEyeDashboard:
         self.bridge.health_llm.connect(lambda ok: self.health_bar.set_status("LLM", ok))
         self.bridge.health_tts.connect(lambda ok: self.health_bar.set_status("TTS", ok))
         self.bridge.health_stt.connect(lambda ok: self.health_bar.set_status("STT", ok))
+        self.bridge.web_search.connect(self._on_web_search)
         
         # ── Subscribe event bus → emit signals (thread-safe) ──
         bus.subscribe("BRAIN_THINKING", lambda d: self.bridge.thinking.emit())
@@ -99,6 +101,9 @@ class AyEyeDashboard:
         ))
         bus.subscribe("EMERGENCY_STOP", lambda d: self.bridge.emergency.emit())
         bus.subscribe("STT_MODEL_LOADED", lambda d: self.bridge.health_stt.emit(True))
+        bus.subscribe("WEB_SEARCH_COMPLETED", lambda d: self.bridge.web_search.emit(
+            d.get("query", "search") if isinstance(d, dict) else "search"
+        ))
         bus.subscribe("HIGHLIGHT_REQUESTED", self.on_highlight_request)
         
         # Sync timer
@@ -215,6 +220,9 @@ class AyEyeDashboard:
     def _on_emergency(self):
         self.update_status("idle")
         self.command_panel.add_log("🛑", "EMERGENCY STOP", theme.ERROR.name())
+    
+    def _on_web_search(self, query):
+        self.command_panel.add_log("🔍", f"Searching: {query[:35]}", theme.ACCENT_COLOR.name())
 
     def on_highlight_request(self, coords):
         if self.overlay and isinstance(coords, dict):
