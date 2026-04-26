@@ -158,6 +158,37 @@ class ActionExecutor:
                     logger.logger.info(f"Executor: Extracted {len(clipboard_content)} chars from clipboard to memory.")
                 else:
                     logger.logger.warning("Executor: Clipboard extraction failed or clipboard was empty.")
+                    
+            elif a_type == "listen_audio":
+                duration = action.get("duration", 5)
+                logger.logger.info(f"Executor: Listening to system audio for {duration}s...")
+                try:
+                    import soundcard as sc
+                    import soundfile as sf
+                    from core.ocr.stt_engine import stt_engine
+                    
+                    # Get loopback for default speaker
+                    speaker = sc.default_speaker()
+                    mic = sc.get_microphone(id=speaker.id, include_loopback=True)
+                    
+                    sample_rate = 16000
+                    with mic.recorder(samplerate=sample_rate) as recorder:
+                        data = recorder.record(numframes=int(sample_rate * duration))
+                        
+                    # Save to temp file
+                    temp_wav = os.path.join(os.getcwd(), "temp_loopback.wav")
+                    sf.write(temp_wav, data, sample_rate)
+                    
+                    # Transcribe
+                    transcript = stt_engine.transcribe_audio(temp_wav)
+                    if transcript and transcript.strip():
+                        from core.state.short_term import short_term_memory
+                        short_term_memory.add_system_context(f"SYSTEM_AUDIO_TRANSCRIPT ({duration}s):\n{transcript.strip()}")
+                        logger.logger.info(f"Executor: Transcribed {len(transcript)} chars of system audio")
+                    else:
+                        logger.logger.warning("Executor: System audio contained no speech.")
+                except Exception as e:
+                    logger.logger.error(f"Executor: Audio capture failed - {e}")
                 
             time.sleep(random.uniform(0.1, 0.2))
             bus.publish("ACTION_COMPLETED", action)

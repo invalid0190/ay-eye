@@ -95,6 +95,11 @@ When asked to read an email, extract text, or move data from one app to another:
 - Next, use the `{"type": "extract_clipboard"}` action. This will automatically press Ctrl+C and inject the copied data directly into your conversation history!
 - Set `"status": "in_progress"` so you can process the extracted data on the next loop iteration and type it into the destination app.
 
+**11. CONTEXTUAL SYSTEM AUDIO (intent: "act")**
+When asked to listen to a video, meeting, or audio playing on the desktop:
+- Use `{"type": "listen_audio", "duration": 5}` to capture and transcribe the system audio for a specific duration in seconds (max 15s).
+- The transcript will be injected into your CONVERSATION HISTORY on the next loop. Set `"status": "in_progress"` to process the transcript!
+
 ### CRITICAL JSON RULES:
 - Keep ALL text in the "message" and "text" fields on a SINGLE LINE. No line breaks inside strings.
 - Use spaces instead of newlines for paragraphs.
@@ -119,6 +124,7 @@ When asked to read an email, extract text, or move data from one app to another:
     {"type": "list_dir", "path": "."},
     {"type": "write_file", "path": "app.py", "content": "print('hello')"},
     {"type": "extract_clipboard"},
+    {"type": "listen_audio", "duration": 10},
     {"type": "scroll", "amount": -5}
   ],
   "confidence": 0.0-1.0
