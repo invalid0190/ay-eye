@@ -58,14 +58,15 @@ class ActionExecutor:
             elif a_type == "type":
                 text = action.get("text", "")
                 if text:
-                    if len(text) > 10:
-                        import pyperclip
-                        pyperclip.copy(text)
-                        time.sleep(0.1)
-                        pyautogui.hotkey("ctrl", "v")
-                        logger.logger.info(f"Executor: Pasted {len(text)} chars via clipboard")
-                    else:
-                        pyautogui.typewrite(text, interval=0.05)
+                    # Always use clipboard paste — reliable across all apps including Discord
+                    import pyperclip
+                    pyperclip.copy(text)
+                    time.sleep(0.15)
+                    pyautogui.hotkey("ctrl", "v")
+                    time.sleep(0.1)
+                    # Clear clipboard to prevent re-pasting old content
+                    pyperclip.copy("")
+                    logger.logger.info(f"Executor: Pasted {len(text)} chars via clipboard")
                         
             elif a_type == "hotkey":
                 keys = action.get("keys", [])
