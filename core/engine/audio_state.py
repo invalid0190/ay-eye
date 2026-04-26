@@ -1,4 +1,4 @@
-﻿import time
+import time
 import threading
 
 class AudioState:
@@ -10,10 +10,11 @@ class AudioState:
 
     def start_listening(self):
         with self._lock:
-            if not self.is_speaking:
-                self.is_listening = True
-                return True
-            return False
+            # Always allow listening — if speaking, the user is interrupting
+            if self.is_speaking:
+                self.is_speaking = False  # Force stop speaking state
+            self.is_listening = True
+            return True
 
     def stop_listening(self):
         with self._lock:

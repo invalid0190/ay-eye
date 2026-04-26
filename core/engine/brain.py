@@ -234,11 +234,14 @@ Analyze the screenshot and respond to the user's command. If web search results 
             bus.publish("BRAIN_RESPONDED", response)
             
             if response.get("intent") == "act":
-                # Small delay to let TTS start speaking before action
+                # Wait for TTS to announce the plan before executing actions
                 def _dispatch():
-                    import threading # Inline failsafe
                     import time
-                    time.sleep(0.6)
+                    # Give TTS time to speak the confirmation message
+                    msg_len = len(response.get("message", ""))
+                    # Estimate: ~100ms per character of speech, minimum 2s
+                    wait_time = max(2.0, min(msg_len * 0.08, 6.0))
+                    time.sleep(wait_time)
                     bus.publish("ACTION_REQUESTED", response)
                 threading.Thread(target=_dispatch, daemon=True).start()
                 
