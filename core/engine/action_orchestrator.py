@@ -55,6 +55,12 @@ class ActionOrchestrator:
                     
             finally:
                 action_state.stop_action()
+                
+            # Trigger the agentic verification loop if the AI indicated it's still in progress
+            if data.get("status") == "in_progress":
+                logger.logger.info("Actions complete, triggering verification loop...")
+                time.sleep(1.0) # Wait for UI to settle
+                bus.publish("AUTONOMOUS_LOOP_TRIGGER", data)
 
         threading.Thread(target=_run, daemon=True).start()
 

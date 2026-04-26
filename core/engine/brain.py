@@ -92,6 +92,7 @@ When the user asks you to "learn a new skill", "remember how to do this", or "cr
 ### JSON Format:
 {
   "intent": "act|guide|ask|ignore",
+  "status": "in_progress|complete|failed",
   "message": "Your FULL spoken response. Keep on ONE line. No newlines.",
   "actions": [
     {"type": "click", "target": "element", "x": 123, "y": 456},
@@ -111,9 +112,18 @@ class Brain:
     def __init__(self):
         bus.subscribe("AI_TRIGGERED", self.on_ai_triggered)
         bus.subscribe("VOICE_INPUT_RECEIVED", self.on_voice_input)
+        bus.subscribe("AUTONOMOUS_LOOP_TRIGGER", self.on_verification_loop)
         self.debug_dir = os.path.join(os.getcwd(), "analytics", "vision_debug")
         if not os.path.exists(self.debug_dir):
             os.makedirs(self.debug_dir, exist_ok=True)
+
+    def on_verification_loop(self, data):
+        logger.logger.info("Brain: Executing verification loop...")
+        self.on_ai_triggered({
+            "type": "VOICE_COMMAND",
+            "confidence": 1.0,
+            "text": "SYSTEM INSTRUCTION: You are in an autonomous loop. Look at the screen to verify if your previous actions succeeded. If the overall task is finished, set status to 'complete' and actions to empty. If more steps are needed, set status to 'in_progress' and provide the next actions."
+        })
 
     def _capture_screen_b64(self, save_debug=True):
         """Capture the entire desktop and return as base64 string."""
