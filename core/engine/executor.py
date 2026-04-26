@@ -5,11 +5,11 @@ import random
 import threading
 from core.engine.event_bus import bus
 from core.engine.action_state import action_state
+from core.engine.window_manager import window_manager
 from core.utils.logger import logger
 
 class ActionExecutor:
     def __init__(self):
-        # We keep FAILSAFE=True for user safety, but we will clamp coords to prevent accidental triggers
         pyautogui.FAILSAFE = True
         pyautogui.PAUSE = 0.05
         self._stop_event = threading.Event()
@@ -45,7 +45,6 @@ class ActionExecutor:
                 y = action.get("y")
                 
                 if x is not None and y is not None:
-                    # Clamp to safe zone (10px from edges) to avoid fail-safe corners
                     jx = max(10, min(self.screen_w - 10, x + random.randint(-2, 2)))
                     jy = max(10, min(self.screen_h - 10, y + random.randint(-2, 2)))
                     
@@ -60,14 +59,12 @@ class ActionExecutor:
                 text = action.get("text", "")
                 if text:
                     if len(text) > 10:
-                        # For long text: use clipboard paste (fast, reliable, multi-line)
                         import pyperclip
                         pyperclip.copy(text)
                         time.sleep(0.1)
                         pyautogui.hotkey("ctrl", "v")
                         logger.logger.info(f"Executor: Pasted {len(text)} chars via clipboard")
                     else:
-                        # For short text: natural typing
                         pyautogui.typewrite(text, interval=0.05)
                         
             elif a_type == "hotkey":
@@ -78,15 +75,27 @@ class ActionExecutor:
             elif a_type == "launch":
                 target = action.get("target", "")
                 if target:
-                    try:
-                        # Try 'start' command for Windows apps/links
-                        subprocess.Popen(f"start {target}", shell=True)
+                    success = window_manager.launch(target)
+                    if success:
                         logger.log_event("APP_LAUNCHED", {"app": target})
-                        logger.logger.info(f"Executor: Launched {target}")
-                    except Exception as e:
-                        logger.logger.error(f"Launch failed for {target}: {e}")
+                    else:
+                        logger.logger.error(f"All launch attempts failed for: {target}")
+                        bus.publish("ACTION_ABORTED", {"reason": f"Could not launch '{target}'"})
+                        return
                 else:
                     logger.logger.warning("Launch action missing target")
+                        
+            elif a_type == "switch":
+                target = action.get("target", "")
+                if target:
+                    # Try to switch to running window first
+                    switched = window_manager.switch_to(target)
+                    if switched:
+                        logger.logger.info(f"Executor: Switched to {target}")
+                    else:
+                        # If not running, launch it
+                        logger.logger.info(f"Executor: '{target}' not running, launching it")
+                        window_manager.launch(target)
                         
             elif a_type == "scroll":
                 amount = action.get("amount", -3)
@@ -97,7 +106,7 @@ class ActionExecutor:
             
         except pyautogui.FailSafeException:
             logger.logger.error("PyAutoGUI Fail-safe triggered (mouse in corner). Action aborted.")
-            bus.publish("ACTION_ABORTED", {"reason": "Fail-safe triggered (User intervention)"})
+            bus.publish("ACTION_ABORTED", {"reason": "Fail-safe triggered"})
         except Exception as e:
             logger.logger.error(f"Execution error: {e}")
             bus.publish("ACTION_ABORTED", {"reason": str(e)})
