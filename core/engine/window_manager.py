@@ -38,15 +38,42 @@ class WindowManager:
         "powerpoint": "powerpnt.exe",
         "outlook": "outlook.exe",
         "spotify": os.path.join(os.environ.get("APPDATA", ""), "Spotify", "Spotify.exe"),
-        "discord": os.path.join(os.environ.get("LOCALAPPDATA", ""), "Discord", "Update.exe --processStart Discord.exe"),
         "slack": os.path.join(os.environ.get("LOCALAPPDATA", ""), "slack", "slack.exe"),
         "telegram": os.path.join(os.environ.get("APPDATA", ""), "Telegram Desktop", "Telegram.exe"),
         "whatsapp": "explorer.exe shell:AppsFolder\\5319275A.WhatsAppDesktop_cv1g1gvanyjgm!App",
     }
 
+    # Electron apps that use Update.exe --processStart
+    ELECTRON_APPS = {
+        "discord": ("Discord", "Discord.exe"),
+        "slack": ("slack", "slack.exe"),
+    }
+
+    def _find_electron_app(self, app_name):
+        """Find an Electron app that uses Update.exe in LOCALAPPDATA."""
+        if app_name not in self.ELECTRON_APPS:
+            return None
+        folder, exe_name = self.ELECTRON_APPS[app_name]
+        local_appdata = os.environ.get("LOCALAPPDATA", "")
+        update_exe = os.path.join(local_appdata, folder, "Update.exe")
+        if os.path.exists(update_exe):
+            return update_exe, exe_name
+        return None
+
     def launch(self, app_name):
         """Launch an application by name. Tries multiple strategies."""
         app_lower = app_name.lower().strip()
+
+        # Strategy 0: Electron apps (Discord, Slack, etc.)
+        electron = self._find_electron_app(app_lower)
+        if electron:
+            update_exe, exe_name = electron
+            try:
+                subprocess.Popen([update_exe, "--processStart", exe_name])
+                logger.logger.info(f"WindowManager: Launched '{app_lower}' via Update.exe")
+                return True
+            except Exception as e:
+                logger.logger.warning(f"WindowManager: Electron launch failed for '{app_lower}': {e}")
 
         # Strategy 1: Check the registry for known paths
         if app_lower in self.APP_REGISTRY:

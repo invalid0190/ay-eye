@@ -36,7 +36,6 @@ class ActionOrchestrator:
                 for action in actions:
                     a_type = action.get("type")
                     
-                    # If the LLM already gave coordinates, execute directly
                     if a_type == "click" and "x" in action and "y" in action:
                         bus.publish("HIGHLIGHT_REQUESTED", {
                             "x": action["x"], "y": action["y"], 
@@ -45,17 +44,10 @@ class ActionOrchestrator:
                         time.sleep(0.3)
                         executor.execute_single(action)
                         
-                    elif a_type == "type":
-                        executor.execute_single(action)
-                        
-                    elif a_type == "hotkey":
+                    elif a_type in ("type", "hotkey", "scroll", "switch"):
                         executor.execute_single(action)
                         
                     elif a_type == "launch":
-                        executor.execute_single(action)
-                        bus.publish("ACTION_COMPLETED", {"type": "launch", "app": action.get("target")})
-                        
-                    elif a_type == "scroll":
                         executor.execute_single(action)
                         
                     else:
