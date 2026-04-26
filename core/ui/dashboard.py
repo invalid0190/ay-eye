@@ -21,6 +21,7 @@ class ThreadBridge(QObject):
     voice_input = pyqtSignal(str)
     suggestion = pyqtSignal(dict)
     action_done = pyqtSignal(str)
+    action_start = pyqtSignal(str)
     action_abort = pyqtSignal(str)
     emergency = pyqtSignal()
     idle = pyqtSignal()
@@ -63,6 +64,7 @@ class AyEyeDashboard:
         self.bridge.greeting.connect(self._on_greeting)
         self.bridge.voice_input.connect(self._on_voice_input)
         self.bridge.suggestion.connect(self._on_suggestion)
+        self.bridge.action_start.connect(self._on_action_start)
         self.bridge.action_done.connect(self._on_action_done)
         self.bridge.action_abort.connect(self._on_action_abort)
         self.bridge.emergency.connect(self._on_emergency)
@@ -86,6 +88,9 @@ class AyEyeDashboard:
         ))
         bus.subscribe("BRAIN_RESPONDED", lambda d: self.bridge.suggestion.emit(d if isinstance(d, dict) else {}))
         bus.subscribe("SAFE_NO_ACTION", lambda d: self.bridge.idle.emit())
+        bus.subscribe("ACTION_STARTED", lambda d: self.bridge.action_start.emit(
+            d.get("type", "action") if isinstance(d, dict) else "action"
+        ))
         bus.subscribe("ACTION_COMPLETED", lambda d: self.bridge.action_done.emit(
             d.get("type", "action") if isinstance(d, dict) else "action"
         ))
@@ -196,7 +201,12 @@ class AyEyeDashboard:
         self.anim.start()
         self._auto_hide_timer.start(20000)
 
+    def _on_action_start(self, a_type):
+        self.update_status("acting")
+        self.command_panel.add_log("⚡", f"Executing {a_type}...", theme.ACTING.name())
+
     def _on_action_done(self, a_type):
+        self.update_status("idle")
         self.command_panel.add_log("✅", f"{a_type} completed", theme.SUCCESS.name())
     
     def _on_action_abort(self, reason):

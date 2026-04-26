@@ -2,9 +2,7 @@ import time
 import threading
 from core.engine.event_bus import bus
 from core.config import sys_config
-from core.engine.resolver import resolver
 from core.engine.executor import executor
-from core.state.trust import trust_manager
 from core.engine.action_state import action_state
 from core.utils.logger import logger
 
@@ -15,7 +13,6 @@ class ActionOrchestrator:
         bus.subscribe("CONFIRM_HOTKEY", lambda d: self.confirm_event.set())
 
     def on_action_requested(self, data):
-        # 1. Start State
         if not action_state.start_action("orchestration"):
             return
 
@@ -30,42 +27,39 @@ class ActionOrchestrator:
                 # Wait for confirmation if required
                 if sys_config.get("action_confirmation_required"):
                     logger.log_event("WAITING_FOR_CONFIRMATION", data)
-                    # The UI should be showing the suggestion via BRAIN_RESPONDED
-                    # We wait up to 10 seconds
-                    if not self.confirm_event.wait(timeout=10.0):
+                    if not self.confirm_event.wait(timeout=15.0):
                         logger.log_event("ACTION_ABORTED", {"reason": "Timeout"})
-                        bus.publish("ACTION_ABORTED", {"reason": "Timeout"})
+                        bus.publish("ACTION_ABORTED", {"reason": "Confirmation timeout"})
                         return
 
                 actions = data.get("actions", [])
                 for action in actions:
                     a_type = action.get("type")
-                    target = action.get("target")
                     
-                    # 2. Resolve
-                    coords = resolver.resolve(target)
-                    if coords == "AMBIGUOUS" or not coords:
-                        bus.publish("ACTION_ABORTED", {"reason": "Target mismatch"})
-                        break
-                    
-                    # If app was launched directly, skip UI interaction
-                    if isinstance(coords, dict) and coords.get("launched"):
-                        bus.publish("ACTION_COMPLETED", {"type": "launch", "app": coords.get("app")})
-                        continue
-                    
-                    # 3. Trust Check
-                    if not trust_manager.is_trusted(a_type):
-                        logger.log_event("CONFIRMATION_REQUIRED", action)
-                        pass
-                    
-                    # 4. Highlight
-                    bus.publish("HIGHLIGHT_REQUESTED", coords)
-                    time.sleep(0.5)
-                    
-                    # 5. Execute
-                    action.update(coords)
-                    executor.execute_single(action)
-                    trust_manager.update_trust(a_type, success=True)
+                    # If the LLM already gave coordinates, execute directly
+                    if a_type == "click" and "x" in action and "y" in action:
+                        bus.publish("HIGHLIGHT_REQUESTED", {
+                            "x": action["x"], "y": action["y"], 
+                            "w": 40, "h": 40
+                        })
+                        time.sleep(0.3)
+                        executor.execute_single(action)
+                        
+                    elif a_type == "type":
+                        executor.execute_single(action)
+                        
+                    elif a_type == "hotkey":
+                        executor.execute_single(action)
+                        
+                    elif a_type == "launch":
+                        executor.execute_single(action)
+                        bus.publish("ACTION_COMPLETED", {"type": "launch", "app": action.get("target")})
+                        
+                    elif a_type == "scroll":
+                        executor.execute_single(action)
+                        
+                    else:
+                        logger.logger.warning(f"Unknown action type: {a_type}")
                     
             finally:
                 action_state.stop_action()

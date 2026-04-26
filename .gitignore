@@ -9,3 +9,4 @@ scratch/
 eng.traineddata
 .env
 .vscode/
+/analytics/vision_debug
