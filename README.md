@@ -73,38 +73,67 @@ Ay-Eye operates on a high-speed continuous loop that combines real-time data ing
 
 ### Prerequisites
 - **Python 3.13+**
-- **OpenAI API Key** (Highly Recommended for primary functionality)
-- **Brave Search API Key** (For web capabilities)
-- *(Optional)* Ollama Cloud / Murf AI Keys (For fallbacks)
+- **Ollama locally installed** (If you want to run offline)
 
-### Setup
-1. **Clone & Install:**
+### 1. Configure Your AI Brain
+Ay-Eye operates using a cascading fallback system. It attempts to use the best available engine configured in your `.env` file. Create a `.env` file in the root directory:
+
+```env
+# 🥇 PRIMARY: OpenAI (Highly Recommended)
+# Gives you GPT-4o Vision and ultra-fast OpenAI TTS.
+OPENAI_API_KEY=your_openai_api_key_here
+
+# 🥈 FALLBACK 1: Ollama Cloud + Murf AI
+# Uses hosted Gemma 3 Vision and Murf AI TTS.
+OLLAMA_API_KEY=your_ollama_cloud_key
+MURF_API_KEY=your_murf_tts_key
+
+# 🥉 FALLBACK 2: Local Offline (No keys needed)
+# If no keys are provided, Ay-Eye will attempt to connect to http://localhost:11434
+# You must have Ollama installed and the `gemma3:4b` model pulled.
+
+# 🌐 WEB SEARCH (Required for knowledge queries)
+BRAVE_API_KEY=your_brave_search_key_here
+```
+
+### 2. Install Dependencies
+```bash
+git clone https://github.com/invalid0190/ay-eye.git
+cd ay-eye
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### 3. Running Offline / Local Ollama Setup
+If you choose **not** to use OpenAI or Ollama Cloud, you must set up Ollama locally:
+1. Download and install [Ollama](https://ollama.com/).
+2. Open a terminal and pull the vision model:
    ```bash
-   git clone https://github.com/invalid0190/ay-eye.git
-   cd ay-eye
-   python -m venv .venv
-   .venv\Scripts\activate
-   pip install -r requirements.txt
+   ollama run gemma3:4b
    ```
+3. Keep Ollama running in the background.
 
-2. **Configure Environment:**
-   Create a `.env` file in the root directory:
-   ```env
-   # Primary AI Engine (Vision, Reasoning, TTS)
-   OPENAI_API_KEY=your_openai_api_key_here
-   
-   # Web Search
-   BRAVE_API_KEY=your_brave_search_key_here
+### 4. Launch Ay-Eye
+```bash
+.venv\Scripts\python main.py
+```
 
-   # Fallbacks (Optional)
-   MURF_API_KEY=your_murf_api_key_here
-   OLLAMA_API_KEY=your_ollama_api_key_here
-   ```
+---
 
-3. **Run:**
-   ```bash
-   .venv\Scripts\python main.py
-   ```
+## 🧠 Model Selection: What's the Impact?
+
+Because Ay-Eye controls your physical computer, the intelligence and speed of the underlying model dramatically impacts its performance.
+
+| Feature | 🥇 OpenAI (GPT-4o) | 🥈 Ollama Cloud (Gemma 3) | 🥉 Local Ollama (Gemma 3) |
+|---------|--------------------|---------------------------|---------------------------|
+| **Vision Accuracy** | **Flawless**. GPT-4o has a deep understanding of spatial coordinates and rarely misses a click target. | **Good**. Sometimes struggles with small UI elements or dense text areas. | **Good**. Same as cloud, but depends on your local GPU. |
+| **JSON Reliability** | **Perfect**. Uses native `json_object` format. | **Fair**. Requires our custom `JSONHealingParser` to fix formatting errors. | **Fair**. Requires healing parser. |
+| **TTS Voice** | **OpenAI TTS (Nova)**. Extremely fast (streams directly as MP3) and highly expressive. | **Murf AI**. High quality, but slower due to a 2-step generate/download process. | **None**. Ay-Eye will operate silently in text-only mode. |
+| **Speed** | Takes ~2-4 seconds to perceive, think, and start acting. | Takes ~4-8 seconds depending on cloud load. | Depends entirely on your hardware (VRAM). |
+| **Privacy** | Data sent to OpenAI. | Data sent to Ollama Cloud. | **100% Private**. No screen data leaves your machine. |
+
+**Verdict**: If you want the agent to be a highly capable, autonomous developer assistant, **use OpenAI**. If you are doing basic OS navigation and value extreme privacy, **use Local Ollama**.
 
 ---
 
