@@ -59,11 +59,16 @@ class ActionExecutor:
             elif a_type == "type":
                 text = action.get("text", "")
                 if text:
-                    for char in text:
-                        if self._stop_event.is_set():
-                            break
-                        pyautogui.press(char) if len(char) > 1 else pyautogui.write(char, interval=0)
-                        time.sleep(random.uniform(0.03, 0.08))
+                    if len(text) > 10:
+                        # For long text: use clipboard paste (fast, reliable, multi-line)
+                        import pyperclip
+                        pyperclip.copy(text)
+                        time.sleep(0.1)
+                        pyautogui.hotkey("ctrl", "v")
+                        logger.logger.info(f"Executor: Pasted {len(text)} chars via clipboard")
+                    else:
+                        # For short text: natural typing
+                        pyautogui.typewrite(text, interval=0.05)
                         
             elif a_type == "hotkey":
                 keys = action.get("keys", [])
