@@ -73,6 +73,47 @@ class ActionExecutor:
                 clicks = action.get("clicks", 1)
                 
                 if text_to_find:
+                    # --- Special case: Ay-Eye own UI buttons ---
+                    text_upper = text_to_find.strip().upper()
+                    if text_upper == "CONFIRM":
+                        pyautogui.hotkey("alt", "Return")
+                        logger.logger.info("Executor: CONFIRM intercepted -> Alt+Enter")
+                        from core.state.short_term import short_term_memory
+                        short_term_memory.add_system_context("CLICK_TEXT: 'CONFIRM' -> pressed Alt+Enter (Ay-Eye confirm hotkey)")
+                        bus.publish("ACTION_COMPLETE", action)
+                        return
+                    elif text_upper == "DISMISS":
+                        pyautogui.press("escape")
+                        logger.logger.info("Executor: DISMISS intercepted -> Escape")
+                        from core.state.short_term import short_term_memory
+                        short_term_memory.add_system_context("CLICK_TEXT: 'DISMISS' -> pressed Escape (Ay-Eye dismiss)")
+                        bus.publish("ACTION_COMPLETE", action)
+                        return
+                    
+                    # --- Fast-fail for Blender (OCR can't read its OpenGL fonts) ---
+                    try:
+                        active_title = ""
+                        import ctypes
+                        hwnd = ctypes.windll.user32.GetForegroundWindow()
+                        length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+                        if length > 0:
+                            buf = ctypes.create_unicode_buffer(length + 1)
+                            ctypes.windll.user32.GetWindowTextW(hwnd, buf, length + 1)
+                            active_title = buf.value.lower()
+                    except:
+                        active_title = ""
+                    
+                    if "blender" in active_title:
+                        from core.state.short_term import short_term_memory
+                        short_term_memory.add_system_context(
+                            f"CLICK_TEXT BLOCKED: Blender is active. OCR cannot read Blender's OpenGL fonts. "
+                            f"Use keyboard shortcuts instead: Ctrl+O=Open, Ctrl+N=New, F3=Search command, Shift+A=Add menu. "
+                            f"Or use coordinate-based click with the grid."
+                        )
+                        logger.logger.warning(f"Executor: click_text blocked — Blender active, OCR won't work")
+                        bus.publish("ACTION_COMPLETE", action)
+                        return
+                    
                     import mss
                     from PIL import Image
                     import pytesseract
