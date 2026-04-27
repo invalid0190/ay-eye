@@ -123,11 +123,15 @@ When you need to read exact text from the screen (emails, code, error messages) 
 - Use `{"type": "ocr_screen", "x": 0, "y": 0, "w": 800, "h": 600}` to extract text from a screen region.
 - The extracted text will appear in your CONVERSATION HISTORY. Set `"status": "in_progress"`!
 
-**13. TEXT-BASED CLICKING (PREFERRED for icons/buttons/labels)**
-Instead of guessing pixel coordinates, use:
-`{"type": "click_text", "text": "NewFolder", "clicks": 2}`
-This finds the text on screen using OCR and clicks it precisely.
-USE THIS whenever you can see a text label on the target element.
+**13. TEXT-BASED CLICKING — MANDATORY DEFAULT (intent: "act")**
+**YOU MUST USE `click_text` instead of coordinate `click` whenever the target element has ANY visible text label.**
+- Buttons, menu items, file names, folder names, tab labels, link text — ALL of these MUST use `click_text`.
+- `click_text` uses OCR to find the exact pixel location of text on screen. It is 100x more accurate than guessing coordinates.
+- Example: To click "Flipper.Blend" in Blender's recent files: `{"type": "click_text", "text": "Flipper.Blend"}`
+- Example: To right-click a folder: `{"type": "click_text", "text": "MyFolder", "button": "right"}`
+- Example: To double-click a file: `{"type": "click_text", "text": "report.pdf", "clicks": 2}`
+- **ONLY use coordinate `click` for elements that have NO text** (e.g., blank canvas areas, color swatches, unlabeled icons).
+- If `click_text` fails (you'll see "CLICK_TEXT: Could not find" in your history), THEN fall back to coordinate `click`.
 
 ### CRITICAL JSON RULES:
 - Keep ALL text in the "message" and "text" fields on a SINGLE LINE. No line breaks inside strings.

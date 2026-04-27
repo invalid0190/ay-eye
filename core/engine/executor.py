@@ -102,29 +102,64 @@ class ActionExecutor:
                             target_lower = text_to_find.lower()
                             target_clean = "".join(c for c in target_lower if c.isalnum())
                             
-                            # Log top OCR detections for debugging
-                            debug_hits = []
-                            for i, word in enumerate(ocr_data["text"]):
-                                w_stripped = word.strip()
-                                if w_stripped and len(debug_hits) < 5:
-                                    debug_hits.append(f"'{w_stripped}'@({ocr_data['left'][i]},{ocr_data['top'][i]})")
-                            logger.logger.info(f"Executor OCR: Looking for '{text_to_find}', first hits: {debug_hits}")
-                            
-                            for i, word in enumerate(ocr_data["text"]):
-                                word_lower = word.strip().lower()
-                                if not word_lower:
+                            # Build a list of valid OCR entries (non-empty, with positions)
+                            entries = []
+                            for i in range(len(ocr_data["text"])):
+                                word = ocr_data["text"][i].strip()
+                                if not word:
                                     continue
-                                    
                                 x = ocr_data["left"][i]
-                                # Ignore hits on the right edge of the screen (the AI dashboard)
+                                # Ignore hits on the right edge (AI dashboard area)
                                 if x > self.screen_w - 420:
                                     continue
-                                    
-                                word_clean = "".join(c for c in word_lower if c.isalnum())
+                                entries.append({
+                                    "idx": i, "text": word,
+                                    "x": x, "y": ocr_data["top"][i],
+                                    "w": ocr_data["width"][i], "h": ocr_data["height"][i],
+                                    "line": ocr_data["line_num"][i], "block": ocr_data["block_num"][i]
+                                })
+                            
+                            # Log top OCR detections for debugging
+                            debug_hits = [f"'{e['text']}'@({e['x']},{e['y']})" for e in entries[:10]]
+                            logger.logger.info(f"Executor OCR: Looking for '{text_to_find}', detections ({len(entries)} total): {debug_hits}")
+                            
+                            # --- PASS 1: Single-word match ---
+                            for e in entries:
+                                word_clean = "".join(c for c in e["text"].lower() if c.isalnum())
                                 if target_clean in word_clean or word_clean in target_clean:
-                                    best_match_idx = i
-                                    logger.logger.info(f"Executor OCR: MATCHED '{word.strip()}' at index {i}")
+                                    best_match_idx = e["idx"]
+                                    logger.logger.info(f"Executor OCR: PASS1 matched single word '{e['text']}' at ({e['x']},{e['y']})")
                                     break
+                            
+                            # --- PASS 2: Multi-word phrase match (sliding window) ---
+                            if best_match_idx == -1 and len(target_clean) > 3:
+                                for start_i, start_entry in enumerate(entries):
+                                    phrase = start_entry["text"]
+                                    phrase_clean = "".join(c for c in phrase.lower() if c.isalnum())
+                                    
+                                    if target_clean in phrase_clean:
+                                        best_match_idx = start_entry["idx"]
+                                        logger.logger.info(f"Executor OCR: PASS2 matched phrase '{phrase}' at ({start_entry['x']},{start_entry['y']})")
+                                        break
+                                    
+                                    # Extend phrase with adjacent words on the same line
+                                    for next_i in range(start_i + 1, min(start_i + 5, len(entries))):
+                                        next_entry = entries[next_i]
+                                        # Only merge words on the same text line
+                                        if next_entry["line"] != start_entry["line"] or next_entry["block"] != start_entry["block"]:
+                                            break
+                                        phrase += " " + next_entry["text"]
+                                        phrase_clean = "".join(c for c in phrase.lower() if c.isalnum())
+                                        
+                                        if target_clean in phrase_clean or phrase_clean in target_clean:
+                                            # Use the midpoint of the full phrase span
+                                            best_match_idx = start_entry["idx"]
+                                            # Override bbox to cover the full phrase
+                                            ocr_data["width"][start_entry["idx"]] = (next_entry["x"] + next_entry["w"]) - start_entry["x"]
+                                            logger.logger.info(f"Executor OCR: PASS2 matched multi-word phrase '{phrase}' spanning {start_i}-{next_i}")
+                                            break
+                                    if best_match_idx != -1:
+                                        break
                                     
                             if best_match_idx != -1:
                                 x = ocr_data["left"][best_match_idx]
