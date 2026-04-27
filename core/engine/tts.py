@@ -115,7 +115,8 @@ class TTSEngine:
 
     def _play_audio(self, audio_bytes):
         """Play audio bytes as MP3 using PowerShell MediaPlayer."""
-        tmp_path = os.path.join(tempfile.gettempdir(), "ayeye_tts.mp3")
+        import uuid
+        tmp_path = os.path.join(tempfile.gettempdir(), f"ayeye_tts_{uuid.uuid4().hex[:8]}.mp3")
         with open(tmp_path, "wb") as f:
             f.write(audio_bytes)
 
@@ -127,6 +128,7 @@ $player.Play()
 Start-Sleep -Milliseconds 500
 while ($player.Position -lt $player.NaturalDuration.TimeSpan) {{ Start-Sleep -Milliseconds 100 }}
 $player.Close()
+Remove-Item -Path '{tmp_path}' -Force -ErrorAction SilentlyContinue
 """
         self._player_process = subprocess.Popen(
             ["powershell", "-NoProfile", "-c", ps_cmd],

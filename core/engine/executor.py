@@ -264,38 +264,60 @@ class ActionExecutor:
                             break
                     
                     if not blocked:
-                        logger.logger.info(f"Executor: Running command '{command}'")
-                        try:
-                            result = subprocess.run(
-                                ["powershell", "-NoProfile", "-Command", command],
-                                capture_output=True, text=True, timeout=15
-                            )
-                            output = (result.stdout or "").strip()
-                            errors = (result.stderr or "").strip()
+                        # Smart intercept: if the command is just an app name, use launch instead
+                        # This handles cases where AI says cmd "blender" but blender isn't in PATH
+                        app_launch_names = {"blender", "discord", "spotify", "telegram", "slack", "chrome", "firefox", "brave", "notepad", "code", "vscode"}
+                        cmd_stripped = cmd_lower.strip().strip("'\"")
+                        if cmd_stripped in app_launch_names or cmd_stripped.startswith("start-process"):
+                            # Extract app name from Start-Process command
+                            app_name = cmd_stripped
+                            if "start-process" in cmd_stripped:
+                                # Parse: Start-Process 'blender' -> blender
+                                parts = command.strip().split()
+                                if len(parts) >= 2:
+                                    app_name = parts[-1].strip("'\"")
                             
-                            # Inject terminal output into AI memory for self-correction
-                            from core.state.short_term import short_term_memory
-                            if errors and result.returncode != 0:
-                                short_term_memory.add_system_context(
-                                    f"CMD_RESULT [FAILED, exit={result.returncode}]:\nCommand: {command}\nError: {errors[:1000]}"
-                                )
-                                logger.logger.warning(f"Executor: Command failed: {errors[:200]}")
-                            elif output:
-                                short_term_memory.add_system_context(
-                                    f"CMD_RESULT [SUCCESS]:\nCommand: {command}\nOutput: {output[:1000]}"
-                                )
-                                logger.logger.info(f"Executor: Command succeeded with {len(output)} chars output")
+                            logger.logger.info(f"Executor: Intercepted cmd '{command}' -> using window_manager.launch('{app_name}')")
+                            success = window_manager.launch(app_name)
+                            if success:
+                                from core.state.short_term import short_term_memory
+                                short_term_memory.add_system_context(f"CMD_RESULT [SUCCESS]: Launched '{app_name}' via system launcher.")
                             else:
-                                short_term_memory.add_system_context(
-                                    f"CMD_RESULT [SUCCESS, no output]:\nCommand: {command}"
+                                from core.state.short_term import short_term_memory
+                                short_term_memory.add_system_context(f"CMD_RESULT [FAILED]: Could not launch '{app_name}'.")
+                        else:
+                            logger.logger.info(f"Executor: Running command '{command}'")
+                            try:
+                                result = subprocess.run(
+                                    ["powershell", "-NoProfile", "-Command", command],
+                                    capture_output=True, text=True, timeout=15
                                 )
-                                logger.logger.info("Executor: Command succeeded (no output)")
-                        except subprocess.TimeoutExpired:
-                            logger.logger.warning(f"Executor: Command timed out after 15s: {command}")
-                            from core.state.short_term import short_term_memory
-                            short_term_memory.add_system_context(
-                                f"CMD_RESULT [TIMEOUT after 15s]:\nCommand: {command}"
-                            )
+                                output = (result.stdout or "").strip()
+                                errors = (result.stderr or "").strip()
+                                
+                                # Inject terminal output into AI memory for self-correction
+                                from core.state.short_term import short_term_memory
+                                if errors and result.returncode != 0:
+                                    short_term_memory.add_system_context(
+                                        f"CMD_RESULT [FAILED, exit={result.returncode}]:\nCommand: {command}\nError: {errors[:1000]}"
+                                    )
+                                    logger.logger.warning(f"Executor: Command failed: {errors[:200]}")
+                                elif output:
+                                    short_term_memory.add_system_context(
+                                        f"CMD_RESULT [SUCCESS]:\nCommand: {command}\nOutput: {output[:1000]}"
+                                    )
+                                    logger.logger.info(f"Executor: Command succeeded with {len(output)} chars output")
+                                else:
+                                    short_term_memory.add_system_context(
+                                        f"CMD_RESULT [SUCCESS, no output]:\nCommand: {command}"
+                                    )
+                                    logger.logger.info("Executor: Command succeeded (no output)")
+                            except subprocess.TimeoutExpired:
+                                logger.logger.warning(f"Executor: Command timed out after 15s: {command}")
+                                from core.state.short_term import short_term_memory
+                                short_term_memory.add_system_context(
+                                    f"CMD_RESULT [TIMEOUT after 15s]:\nCommand: {command}"
+                                )
 
             elif a_type == "create_skill":
                 name = action.get("name", "")
