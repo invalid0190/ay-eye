@@ -123,13 +123,24 @@ class ActionExecutor:
                             debug_hits = [f"'{e['text']}'@({e['x']},{e['y']})" for e in entries[:10]]
                             logger.logger.info(f"Executor OCR: Looking for '{text_to_find}', detections ({len(entries)} total): {debug_hits}")
                             
-                            # --- PASS 1: Single-word match ---
+                            # --- PASS 1: Exact or near-exact single-word match ---
                             for e in entries:
                                 word_clean = "".join(c for c in e["text"].lower() if c.isalnum())
-                                if target_clean in word_clean or word_clean in target_clean:
+                                if not word_clean or len(word_clean) < 2:
+                                    continue
+                                # Exact match (case-insensitive, ignoring punctuation)
+                                if target_clean == word_clean:
                                     best_match_idx = e["idx"]
-                                    logger.logger.info(f"Executor OCR: PASS1 matched single word '{e['text']}' at ({e['x']},{e['y']})")
+                                    logger.logger.info(f"Executor OCR: EXACT match '{e['text']}' at ({e['x']},{e['y']})")
                                     break
+                                # Substring match but ONLY if lengths are similar (avoid 'e' matching 'file')
+                                min_len = min(len(target_clean), len(word_clean))
+                                max_len = max(len(target_clean), len(word_clean))
+                                if min_len >= 3 and min_len >= max_len * 0.5:
+                                    if target_clean in word_clean or word_clean in target_clean:
+                                        best_match_idx = e["idx"]
+                                        logger.logger.info(f"Executor OCR: PASS1 substr match '{e['text']}' at ({e['x']},{e['y']})")
+                                        break
                             
                             # --- PASS 2: Multi-word phrase match (sliding window) ---
                             if best_match_idx == -1 and len(target_clean) > 3:
@@ -193,7 +204,11 @@ class ActionExecutor:
                     if not found:
                         from core.state.short_term import short_term_memory
                         short_term_memory.add_system_context(
-                            f"CLICK_TEXT: Could not find '{text_to_find}' on screen using OCR."
+                            f"CLICK_TEXT FAILED: Could not find '{text_to_find}' on screen using OCR. "
+                            f"This app may use custom-rendered fonts that OCR cannot read (like Blender or game engines). "
+                            f"FALLBACK OPTIONS: 1) Use coordinate-based click with the grid overlay. "
+                            f"2) Use keyboard shortcuts instead (e.g. hotkey for File menu). "
+                            f"3) Try a shorter or slightly different text label."
                         )
                         logger.logger.warning(f"Executor: OCR could not find text '{text_to_find}'")
                 else:
