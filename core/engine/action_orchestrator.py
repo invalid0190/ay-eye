@@ -9,9 +9,9 @@ from core.utils.logger import logger
 class ActionOrchestrator:
     # All known action types — add new ones here, they route to executor automatically
     KNOWN_ACTIONS = {
-        "click", "type", "hotkey", "scroll", "switch", "launch", "cmd",
-        "create_skill", "read_file", "list_dir", "write_file",
-        "extract_clipboard", "listen_audio"
+        "click", "drag", "type", "hotkey", "scroll", "switch", "launch",
+        "open_url", "cmd", "create_skill", "read_file", "list_dir",
+        "write_file", "extract_clipboard", "listen_audio", "ocr_screen"
     }
 
     def __init__(self):

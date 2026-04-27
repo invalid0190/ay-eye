@@ -44,6 +44,8 @@ class ActionExecutor:
             if a_type == "click":
                 x = action.get("x")
                 y = action.get("y")
+                button = action.get("button", "left")  # left, right, middle
+                clicks = action.get("clicks", 1)        # 1 = single, 2 = double
                 
                 if x is not None and y is not None:
                     jx = max(10, min(self.screen_w - 10, x + random.randint(-2, 2)))
@@ -52,9 +54,25 @@ class ActionExecutor:
                     duration = random.uniform(0.8, 1.2)
                     pyautogui.moveTo(jx, jy, duration=duration, tween=pyautogui.easeOutQuad)
                     time.sleep(random.uniform(0.05, 0.15))
-                    pyautogui.click()
+                    pyautogui.click(button=button, clicks=clicks)
+                    logger.logger.info(f"Executor: {button}-click x{clicks} at ({jx},{jy})")
                 else:
                     logger.logger.warning(f"Click action missing coordinates: {action}")
+
+            elif a_type == "drag":
+                x1, y1 = action.get("x1"), action.get("y1")
+                x2, y2 = action.get("x2"), action.get("y2")
+                if all(v is not None for v in [x1, y1, x2, y2]):
+                    pyautogui.moveTo(x1, y1, duration=0.5)
+                    time.sleep(0.1)
+                    pyautogui.mouseDown()
+                    time.sleep(0.1)
+                    pyautogui.moveTo(x2, y2, duration=0.8, tween=pyautogui.easeOutQuad)
+                    time.sleep(0.1)
+                    pyautogui.mouseUp()
+                    logger.logger.info(f"Executor: Dragged ({x1},{y1}) -> ({x2},{y2})")
+                else:
+                    logger.logger.warning(f"Drag action missing coordinates: {action}")
                     
             elif a_type == "type":
                 text = action.get("text", "")
@@ -103,41 +121,75 @@ class ActionExecutor:
                 amount = action.get("amount", -3)
                 pyautogui.scroll(amount)
                 
+            elif a_type == "open_url":
+                url = action.get("url", "")
+                if url:
+                    import webbrowser
+                    webbrowser.open(url)
+                    logger.logger.info(f"Executor: Opened URL '{url}'")
+                    time.sleep(1.0)  # Wait for browser to load
+                
             elif a_type == "cmd":
                 command = action.get("command", "")
                 if command:
-                    logger.logger.info(f"Executor: Running command '{command}'")
-                    try:
-                        result = subprocess.run(
-                            ["powershell", "-NoProfile", "-Command", command],
-                            capture_output=True, text=True, timeout=15
-                        )
-                        output = (result.stdout or "").strip()
-                        errors = (result.stderr or "").strip()
-                        
-                        # Inject terminal output into AI memory for self-correction
-                        from core.state.short_term import short_term_memory
-                        if errors and result.returncode != 0:
+                    # SECURITY SANDBOX: Block dangerous commands
+                    BLOCKED_PATTERNS = [
+                        "format ", "format-volume", "remove-item -recurse -force /",
+                        "rm -rf", "del /s /q c:\\", "rd /s /q c:\\",
+                        "shutdown", "restart-computer", "stop-computer",
+                        "set-executionpolicy", "reg delete", "reg add",
+                        "invoke-webrequest", "invoke-restmethod",
+                        "wget ", "curl ", "iwr ",
+                        "new-service", "set-service",
+                        "disable-windowsoptionalfeature",
+                        "clear-disk", "initialize-disk",
+                        "net user", "net localgroup",
+                    ]
+                    cmd_lower = command.lower().strip()
+                    blocked = False
+                    for pattern in BLOCKED_PATTERNS:
+                        if pattern in cmd_lower:
+                            blocked = True
+                            logger.logger.error(f"SECURITY: Blocked dangerous command: {command}")
+                            from core.state.short_term import short_term_memory
                             short_term_memory.add_system_context(
-                                f"CMD_RESULT [FAILED, exit={result.returncode}]:\nCommand: {command}\nError: {errors[:1000]}"
+                                f"CMD_RESULT [BLOCKED BY SECURITY]:\nCommand: {command}\nReason: Contains blocked pattern '{pattern}'. This command could damage the system."
                             )
-                            logger.logger.warning(f"Executor: Command failed: {errors[:200]}")
-                        elif output:
+                            break
+                    
+                    if not blocked:
+                        logger.logger.info(f"Executor: Running command '{command}'")
+                        try:
+                            result = subprocess.run(
+                                ["powershell", "-NoProfile", "-Command", command],
+                                capture_output=True, text=True, timeout=15
+                            )
+                            output = (result.stdout or "").strip()
+                            errors = (result.stderr or "").strip()
+                            
+                            # Inject terminal output into AI memory for self-correction
+                            from core.state.short_term import short_term_memory
+                            if errors and result.returncode != 0:
+                                short_term_memory.add_system_context(
+                                    f"CMD_RESULT [FAILED, exit={result.returncode}]:\nCommand: {command}\nError: {errors[:1000]}"
+                                )
+                                logger.logger.warning(f"Executor: Command failed: {errors[:200]}")
+                            elif output:
+                                short_term_memory.add_system_context(
+                                    f"CMD_RESULT [SUCCESS]:\nCommand: {command}\nOutput: {output[:1000]}"
+                                )
+                                logger.logger.info(f"Executor: Command succeeded with {len(output)} chars output")
+                            else:
+                                short_term_memory.add_system_context(
+                                    f"CMD_RESULT [SUCCESS, no output]:\nCommand: {command}"
+                                )
+                                logger.logger.info("Executor: Command succeeded (no output)")
+                        except subprocess.TimeoutExpired:
+                            logger.logger.warning(f"Executor: Command timed out after 15s: {command}")
+                            from core.state.short_term import short_term_memory
                             short_term_memory.add_system_context(
-                                f"CMD_RESULT [SUCCESS]:\nCommand: {command}\nOutput: {output[:1000]}"
+                                f"CMD_RESULT [TIMEOUT after 15s]:\nCommand: {command}"
                             )
-                            logger.logger.info(f"Executor: Command succeeded with {len(output)} chars output")
-                        else:
-                            short_term_memory.add_system_context(
-                                f"CMD_RESULT [SUCCESS, no output]:\nCommand: {command}"
-                            )
-                            logger.logger.info("Executor: Command succeeded (no output)")
-                    except subprocess.TimeoutExpired:
-                        logger.logger.warning(f"Executor: Command timed out after 15s: {command}")
-                        from core.state.short_term import short_term_memory
-                        short_term_memory.add_system_context(
-                            f"CMD_RESULT [TIMEOUT after 15s]:\nCommand: {command}"
-                        )
 
             elif a_type == "create_skill":
                 name = action.get("name", "")
@@ -218,6 +270,34 @@ class ActionExecutor:
                         logger.logger.warning("Executor: System audio contained no speech.")
                 except Exception as e:
                     logger.logger.error(f"Executor: Audio capture failed - {e}")
+                
+            elif a_type == "ocr_screen":
+                # Extract text from a screen region using Tesseract OCR
+                x = action.get("x", 0)
+                y = action.get("y", 0)
+                w = action.get("w", self.screen_w)
+                h = action.get("h", self.screen_h)
+                try:
+                    import mss
+                    import pytesseract
+                    from PIL import Image
+                    
+                    with mss.mss() as sct:
+                        region = {"top": y, "left": x, "width": w, "height": h}
+                        screenshot = sct.grab(region)
+                        img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
+                    
+                    text = pytesseract.image_to_string(img).strip()
+                    if text:
+                        from core.state.short_term import short_term_memory
+                        short_term_memory.add_system_context(f"OCR_EXTRACTED_TEXT [region: {x},{y} {w}x{h}]:\n{text[:2000]}")
+                        logger.logger.info(f"Executor: OCR extracted {len(text)} chars from screen region")
+                    else:
+                        logger.logger.warning("Executor: OCR found no readable text in region")
+                except ImportError:
+                    logger.logger.warning("Executor: pytesseract not installed, falling back to full-screen OCR")
+                except Exception as e:
+                    logger.logger.error(f"Executor: OCR failed - {e}")
                 
             time.sleep(random.uniform(0.1, 0.2))
             bus.publish("ACTION_COMPLETED", action)
