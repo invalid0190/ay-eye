@@ -1,0 +1,4 @@
+{
+  "name": "codex",
+  "instruction": "Codex (OpenAI Codex CLI) is a terminal-based AI coding agent. LAUNCH: Open a terminal and run 'codex' in any project directory. INTERACT: Type natural language prompts directly in the terminal. Codex can read/write files, run commands, and build features. WORKFLOW: 1. Navigate to project directory. 2. Run 'codex'. 3. Describe what you want built. 4. Codex will propose changes \u2014 review and approve. TIPS: Be specific about file paths and desired behavior. Codex works best with clear, step-by-step instructions. It respects .codexrc for project configuration."
+}

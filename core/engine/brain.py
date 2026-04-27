@@ -118,6 +118,12 @@ When you need to read exact text from the screen (emails, code, error messages) 
 - Use `{"type": "ocr_screen", "x": 0, "y": 0, "w": 800, "h": 600}` to extract text from a screen region.
 - The extracted text will appear in your CONVERSATION HISTORY. Set `"status": "in_progress"`!
 
+**13. TEXT-BASED CLICKING (PREFERRED for icons/buttons/labels)**
+Instead of guessing pixel coordinates, use:
+`{"type": "click_text", "text": "NewFolder", "clicks": 2}`
+This finds the text on screen using OCR and clicks it precisely.
+USE THIS whenever you can see a text label on the target element.
+
 ### CRITICAL JSON RULES:
 - Keep ALL text in the "message" and "text" fields on a SINGLE LINE. No line breaks inside strings.
 - Use spaces instead of newlines for paragraphs.
@@ -134,6 +140,8 @@ When you need to read exact text from the screen (emails, code, error messages) 
   "status": "in_progress|complete|failed",
   "message": "Your FULL spoken response. Keep on ONE line. No newlines.",
   "actions": [
+    {"type": "click_text", "text": "Submit"},
+    {"type": "click_text", "text": "NewFolder", "clicks": 2},
     {"type": "click", "target": "element", "x": 123, "y": 456},
     {"type": "click", "target": "context menu", "x": 123, "y": 456, "button": "right"},
     {"type": "click", "target": "open file", "x": 123, "y": 456, "clicks": 2},

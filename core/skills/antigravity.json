@@ -1,0 +1,4 @@
+{
+  "name": "antigravity",
+  "instruction": "Antigravity is Google DeepMind's AI coding assistant (VS Code extension). LAUNCH: It runs inside VS Code — use 'code .' or switch to VS Code. INTERACT: Click the Antigravity chat panel (usually on the right sidebar). Type prompts in the chat input at the bottom. SHORTCUTS: Ctrl+Shift+P > 'Antigravity' to access commands. The chat supports file references with @file syntax. Use @workspace for repo-wide context. TIPS: Antigravity can edit files, run commands, search code. Give it clear, specific instructions. It creates artifacts (plans, walkthroughs) that you can review."
+}

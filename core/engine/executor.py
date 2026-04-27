@@ -65,6 +65,80 @@ class ActionExecutor:
                     )
                 else:
                     logger.logger.warning(f"Click action missing coordinates: {action}")
+                    
+            elif a_type == "click_text":
+                text_to_find = action.get("text", "")
+                button = action.get("button", "left")
+                clicks = action.get("clicks", 1)
+                
+                if text_to_find:
+                    import mss
+                    from PIL import Image
+                    import pytesseract
+                    from pytesseract import Output
+                    
+                    found = False
+                    with mss.mss() as sct:
+                        monitor = sct.monitors[0]
+                        screenshot = sct.grab(monitor)
+                        img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
+                        
+                        try:
+                            # Configure tesseract path
+                            tesseract_path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Tesseract-OCR", "tesseract.exe")
+                            if os.path.exists(tesseract_path):
+                                pytesseract.pytesseract.tesseract_cmd = tesseract_path
+                                
+                            ocr_data = pytesseract.image_to_data(img, output_type=Output.DICT)
+                            best_match_idx = -1
+                            best_match_score = -1
+                            
+                            target_lower = text_to_find.lower()
+                            for i, word in enumerate(ocr_data["text"]):
+                                word_lower = word.strip().lower()
+                                if not word_lower:
+                                    continue
+                                    
+                                if target_lower in word_lower or word_lower in target_lower:
+                                    # Very basic substring matching. For better results we'd use fuzzywuzzy.
+                                    best_match_idx = i
+                                    break
+                                    
+                            if best_match_idx != -1:
+                                x = ocr_data["left"][best_match_idx]
+                                y = ocr_data["top"][best_match_idx]
+                                w = ocr_data["width"][best_match_idx]
+                                h = ocr_data["height"][best_match_idx]
+                                
+                                cx = x + (w // 2)
+                                cy = y + (h // 2)
+                                
+                                jx = max(10, min(self.screen_w - 10, cx + random.randint(-1, 1)))
+                                jy = max(10, min(self.screen_h - 10, cy + random.randint(-1, 1)))
+                                
+                                duration = random.uniform(0.3, 0.5)
+                                pyautogui.moveTo(jx, jy, duration=duration, tween=pyautogui.easeOutQuad)
+                                time.sleep(random.uniform(0.05, 0.15))
+                                pyautogui.click(button=button, clicks=clicks)
+                                logger.logger.info(f"Executor: OCR {button}-click x{clicks} at ({jx},{jy}) for text '{text_to_find}'")
+                                
+                                from core.state.short_term import short_term_memory
+                                short_term_memory.add_system_context(
+                                    f"CLICK_TEXT: Found '{text_to_find}' at ({cx}, {cy}), clicked successfully."
+                                )
+                                found = True
+                        except Exception as e:
+                            logger.logger.error(f"Executor OCR click failed: {e}")
+                            
+                    if not found:
+                        from core.state.short_term import short_term_memory
+                        short_term_memory.add_system_context(
+                            f"CLICK_TEXT: Could not find '{text_to_find}' on screen using OCR."
+                        )
+                        logger.logger.warning(f"Executor: OCR could not find text '{text_to_find}'")
+                else:
+                    logger.logger.warning("click_text action missing 'text' field")
+
 
             elif a_type == "drag":
                 x1, y1 = action.get("x1"), action.get("y1")

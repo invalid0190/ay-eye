@@ -1,0 +1,4 @@
+{
+  "name": "blender",
+  "instruction": "Blender is a 3D modeling, animation, and rendering application. LAUNCH: Run 'blender' from terminal or click the Blender shortcut. MAIN AREAS: 3D Viewport (center), Properties (right), Outliner (top-right), Timeline (bottom). KEY SHORTCUTS: Tab=Edit/Object mode toggle, Shift+A=Add menu, G=Grab/Move, R=Rotate, S=Scale, X=Delete, Ctrl+Z=Undo, Numpad0=Camera view, F12=Render. NAVIGATION: Middle-mouse=Orbit, Scroll=Zoom, Shift+Middle=Pan. COMMON WORKFLOWS: Add mesh (Shift+A > Mesh), apply modifiers (Properties > Wrench icon), UV unwrap (Tab > Edit > U), add materials (Properties > Sphere icon). PYTHON SCRIPTING: Blender has built-in Python console. Go to Editor Type > Python Console. Use bpy module for automation. Example: bpy.ops.mesh.primitive_cube_add(). TIPS: For file operations use cmd actions. For Blender-internal operations (modeling, animation), click the UI directly using click_text on menu items."
+}
