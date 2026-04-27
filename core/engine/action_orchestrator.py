@@ -11,6 +11,11 @@ class ActionOrchestrator:
         bus.subscribe("ACTION_REQUESTED", self.on_action_requested)
         self.confirm_event = threading.Event()
         bus.subscribe("CONFIRM_HOTKEY", lambda d: self.confirm_event.set())
+        bus.subscribe("BRAIN_ERROR", self.on_error)
+
+    def on_error(self, data):
+        action_state.stop_action()
+        logger.logger.error(f"Orchestrator: Resetting state due to brain error: {data}")
 
     def on_action_requested(self, data):
         if not action_state.start_action("orchestration"):

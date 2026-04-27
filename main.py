@@ -1,12 +1,8 @@
 import sys
 import ctypes
 
-# Force DPI Awareness before ANY imports (fixes PyAutoGUI offset clicks & Qt warnings)
-try:
-    # 2 = PROCESS_PER_MONITOR_DPI_AWARE
-    ctypes.windll.shcore.SetProcessDpiAwareness(2)
-except Exception:
-    pass
+# We let PyQt6 handle DPI awareness natively (V2) to avoid conflicts
+# and ensure PyAutoGUI physical pixel coordinate mapping is accurate.
 
 import time
 import threading

@@ -105,10 +105,32 @@ class ActionExecutor:
                 
             elif a_type == "cmd":
                 command = action.get("command", "")
+                capture = action.get("capture_output", True) # Default to True for smarter RPA
                 if command:
-                    logger.logger.info(f"Executor: Running command '{command}'")
-                    subprocess.Popen(f'powershell -Command "{command}"', shell=True)
-                    time.sleep(0.5)
+                    logger.logger.info(f"Executor: Running command '{command}' (capture={capture})")
+                    try:
+                        if capture:
+                            # Run and wait for output
+                            result = subprocess.run(
+                                f'powershell -Command "{command}"', 
+                                shell=True, 
+                                capture_output=True, 
+                                text=True, 
+                                timeout=30
+                            )
+                            output = (result.stdout + "\n" + result.stderr).strip()
+                            if output:
+                                from core.state.short_term import short_term_memory
+                                short_term_memory.add_system_context(f"COMMAND_OUTPUT:\n{output[:2000]}")
+                                logger.logger.info(f"Executor: Captured {len(output)} chars of output")
+                        else:
+                            # Fire and forget
+                            subprocess.Popen(f'powershell -Command "{command}"', shell=True)
+                            time.sleep(0.5)
+                    except subprocess.TimeoutExpired:
+                        logger.logger.error("Executor: Command timed out after 30s")
+                    except Exception as e:
+                        logger.logger.error(f"Executor: Command failed: {e}")
 
             elif a_type == "create_skill":
                 name = action.get("name", "")
