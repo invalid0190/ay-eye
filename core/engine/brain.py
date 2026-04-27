@@ -359,9 +359,14 @@ class Brain:
                 if "blender" in active_app or "blender" in active_window:
                     app_context = """
 ⚠️ BLENDER IS ACTIVE. Blender uses OpenGL custom fonts — click_text WILL FAIL on Blender UI elements.
-USE KEYBOARD SHORTCUTS ONLY: File menu=Alt+F, N-panel=N, Add menu=Shift+A.
-To open a .blend file directly: use cmd action with the full blender.exe path and the file path.
-For coordinate clicks in Blender, use the grid overlay carefully.
+BLENDER DOES NOT USE Alt+key MENUS. Use these correct shortcuts:
+- Ctrl+O = Open file dialog
+- Ctrl+N = New file
+- Ctrl+S = Save
+- F3 = Search any command by name (type 'Open Recent' to find it)
+- Shift+A = Add menu, N = N-panel, Tab = Edit/Object mode
+To open a specific .blend file: use cmd action: & 'C:\\Program Files\\Blender Foundation\\Blender 4.2\\blender.exe' 'C:\\path\\to\\file.blend'
+For clicking Blender UI elements, use coordinate-based click with the grid — NOT click_text.
 """
                 
                 prompt = f"""{VISION_SYSTEM_PROMPT}
