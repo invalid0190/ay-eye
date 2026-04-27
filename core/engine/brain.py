@@ -31,14 +31,22 @@ When the user asks a question ("What is X?", "How does Y work?", "Tell me about 
 
 **2. SCREEN ACTIONS (intent: "act")**
 When the user wants you to DO something on screen (click, type, open, close, scroll):
-- Identify exact pixel coordinates from the screenshot.
 - Use precise actions: click, type, hotkey, launch, switch, scroll, drag.
-- Coordinates (0,0) = top-left. Stay 20px from edges.
 - For RIGHT-CLICK (context menus): `{"type": "click", "x": 100, "y": 200, "button": "right"}`
 - For DOUBLE-CLICK (open files): `{"type": "click", "x": 100, "y": 200, "clicks": 2}`
 - For DRAG-AND-DROP (move files, resize): `{"type": "drag", "x1": 100, "y1": 200, "x2": 400, "y2": 300}`
 - For OPENING URLS directly: `{"type": "open_url", "url": "https://google.com"}`
 - Keep the "message" field as a short verbal confirmation of what you're doing.
+
+### CRITICAL COORDINATE RULES:
+- The screenshot has a GRID OVERLAY with numbered axis labels on the edges.
+- USE THE GRID to determine coordinates. The numbers on the left/top edges tell you pixel positions.
+- Coordinates (0,0) = top-left corner of the image.
+- Your x,y values MUST be in the PROCESSED IMAGE coordinate space (see PROCESSED IMAGE SIZE below).
+- To click the CENTER of an icon, estimate where the icon center is using the grid markers.
+- COMMON MISTAKE: Do NOT confuse left-side icons with right-side icons. Use the grid X-axis labels to verify.
+- The AY-EYE overlay panel on the right side of the screen is NOT something you should click on.
+- If your previous click went to the wrong place (check conversation history), RECALCULATE using the grid.
 
 **3. APP SWITCHING (intent: "act")**
 When the user says "switch to Discord", "go to Chrome", "open Discord" (and it might already be running):
@@ -182,7 +190,7 @@ class Brain:
         })
 
     def _capture_screen_b64(self, save_debug=True):
-        """Capture the entire desktop and return as base64 string."""
+        """Capture the entire desktop, overlay a coordinate grid, and return as base64 string."""
         try:
             with mss.mss() as sct:
                 # Monitor 0 is the full desktop (all monitors combined)
@@ -201,7 +209,10 @@ class Brain:
                 self._desktop_offset = (monitor["left"], monitor["top"])
                 self._img_size = (img.width, img.height)
                 
-                # Save debug image
+                # Draw coordinate grid overlay to help AI with spatial accuracy
+                img = self._draw_grid(img)
+                
+                # Save debug image (with grid)
                 if save_debug:
                     ts = int(time.time())
                     img.save(os.path.join(self.debug_dir, f"vision_{ts}.jpg"), quality=60)
@@ -213,6 +224,45 @@ class Brain:
         except Exception as e:
             logger.logger.error(f"Screen capture failed: {e}")
             return None
+
+    def _draw_grid(self, img):
+        """Draw a subtle coordinate grid on the screenshot to help the AI estimate positions."""
+        try:
+            from PIL import ImageDraw, ImageFont
+            draw = ImageDraw.Draw(img)
+            w, h = img.size
+            
+            # Use a small built-in font
+            try:
+                font = ImageFont.truetype("arial.ttf", 14)
+            except Exception:
+                font = ImageFont.load_default()
+            
+            grid_color = (255, 255, 0, 128)  # Yellow, semi-transparent
+            text_color = (255, 255, 0)
+            
+            # Vertical lines every 200px with labels
+            for x in range(0, w, 200):
+                draw.line([(x, 0), (x, h)], fill=grid_color, width=1)
+                draw.text((x + 2, 2), str(x), fill=text_color, font=font)
+            
+            # Horizontal lines every 200px with labels
+            for y in range(0, h, 200):
+                draw.line([(0, y), (w, y)], fill=grid_color, width=1)
+                draw.text((2, y + 2), str(y), fill=text_color, font=font)
+            
+            # Draw edge markers at more fine-grained intervals (100px) - just tick marks
+            for x in range(100, w, 200):
+                draw.line([(x, 0), (x, 8)], fill=grid_color, width=1)
+                draw.text((x + 1, 10), str(x), fill=text_color, font=font)
+            for y in range(100, h, 200):
+                draw.line([(0, y), (8, y)], fill=grid_color, width=1)
+                draw.text((10, y + 1), str(y), fill=text_color, font=font)
+                
+        except Exception as e:
+            logger.logger.warning(f"Brain: Grid overlay failed: {e}")
+        
+        return img
 
     def _scale_coords(self, response):
         """Scale coordinates from the AI's resized image back to the physical desktop space."""

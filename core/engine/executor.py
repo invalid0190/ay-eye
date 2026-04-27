@@ -51,11 +51,18 @@ class ActionExecutor:
                     jx = max(10, min(self.screen_w - 10, x + random.randint(-2, 2)))
                     jy = max(10, min(self.screen_h - 10, y + random.randint(-2, 2)))
                     
-                    duration = random.uniform(0.8, 1.2)
+                    duration = random.uniform(0.3, 0.5)
                     pyautogui.moveTo(jx, jy, duration=duration, tween=pyautogui.easeOutQuad)
                     time.sleep(random.uniform(0.05, 0.15))
                     pyautogui.click(button=button, clicks=clicks)
                     logger.logger.info(f"Executor: {button}-click x{clicks} at ({jx},{jy})")
+                    
+                    # Inject click feedback into memory for AI self-correction
+                    target_name = action.get("target", "unknown element")
+                    from core.state.short_term import short_term_memory
+                    short_term_memory.add_system_context(
+                        f"CLICK_EXECUTED: {button}-click x{clicks} at pixel ({jx},{jy}) targeting '{target_name}'"
+                    )
                 else:
                     logger.logger.warning(f"Click action missing coordinates: {action}")
 
