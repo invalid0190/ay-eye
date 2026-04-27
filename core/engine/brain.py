@@ -72,6 +72,7 @@ When web search results are provided and the user just wants information:
 When the user asks to "create a project", "open Antigravity", or run complex OS commands:
 - You are a senior developer. Use the "cmd" action to run PowerShell commands.
 - The `cmd` action runs in the agent's project directory. You MUST use ABSOLUTE paths (e.g., `$env:USERPROFILE\\Desktop\\MyFolder`) if the user asks you to create folders on the Desktop!
+- **Terminal output is captured!** After your command runs, its stdout/stderr will be injected into your CONVERSATION HISTORY. Set `"status": "in_progress"` so you can check the result and fix any errors.
 - For "open Antigravity" or similar tools: if you know the command, run it via `cmd` (e.g. `code .` or `gsd`).
 - If you need multiple steps, chain the actions together!
 
@@ -96,15 +97,18 @@ When asked to read an email, extract text, or move data from one app to another:
 - Set `"status": "in_progress"` so you can process the extracted data on the next loop iteration and type it into the destination app.
 
 **11. CONTEXTUAL SYSTEM AUDIO (intent: "act")**
-- Use `{"type": "listen_audio", "duration": 5}` to transcribe desktop sound.
-- Transcript is injected into memory on next loop.
+When asked to listen to a video, meeting, or audio playing on the desktop:
+- Use `{"type": "listen_audio", "duration": 5}` to capture and transcribe the system audio for a specific duration in seconds (max 15s).
+- The transcript will be injected into your CONVERSATION HISTORY on the next loop. Set `"status": "in_progress"` to process the transcript!
 
-### CRITICAL RULES:
-- **STATUS**: You MUST include `"status": "in_progress"` if more steps are needed, or `"complete"` when finished.
-- **PATHS**: Use absolute paths in single quotes for all file/cmd operations (e.g. `'C:\\Users\\...'`).
-- **CMD**: Use `{"type": "cmd", "command": "...", "capture_output": true}` to see the result of a command. Use `false` only for launching background apps.
-- **JSON**: Output strict JSON. No newlines inside string values. Keep `message` concise.
-- **VISION**: Ignore recursive screen mirrors or stream previews. Target native UI only.
+### CRITICAL JSON RULES:
+- Keep ALL text in the "message" and "text" fields on a SINGLE LINE. No line breaks inside strings.
+- Use spaces instead of newlines for paragraphs.
+- You MUST ALWAYS include the "status" field in your output. If the user's task requires multiple steps, output `"status": "in_progress"`.
+- If using `cmd`, ALWAYS use absolute paths AND wrap them in single quotes (e.g., `'C:\\Users\\LENOVO\\Desktop\\AI test'`) to prevent PowerShell space/argument errors.
+- The "message" field is spoken aloud — write it as natural speech.
+- Act like a human-like, highly capable assistant. Store memories, refer to past turns if they are in the history.
+- **IGNORE STREAM PREVIEWS**: If you see a picture-in-picture window or a recursive screen mirror (like a Discord stream preview), DO NOT click inside it. Always target the actual native UI elements on the main desktop.
 
 ### JSON Format:
 {
@@ -131,20 +135,35 @@ When asked to read an email, extract text, or move data from one app to another:
 
 
 class Brain:
+    MAX_LOOP_ITERATIONS = 5
+
     def __init__(self):
         bus.subscribe("AI_TRIGGERED", self.on_ai_triggered)
         bus.subscribe("VOICE_INPUT_RECEIVED", self.on_voice_input)
         bus.subscribe("AUTONOMOUS_LOOP_TRIGGER", self.on_verification_loop)
+        self._loop_count = 0
         self.debug_dir = os.path.join(os.getcwd(), "analytics", "vision_debug")
         if not os.path.exists(self.debug_dir):
             os.makedirs(self.debug_dir, exist_ok=True)
 
     def on_verification_loop(self, data):
-        logger.logger.info("Brain: Executing verification loop...")
+        self._loop_count += 1
+        if self._loop_count > self.MAX_LOOP_ITERATIONS:
+            logger.logger.warning(f"Brain: Loop limit reached ({self.MAX_LOOP_ITERATIONS}). Stopping.")
+            self._loop_count = 0
+            bus.publish("BRAIN_RESPONDED", {
+                "intent": "guide",
+                "status": "failed",
+                "message": "I've reached my maximum number of autonomous steps. I'll stop here so you can review what happened.",
+                "actions": [],
+                "confidence": 1.0
+            })
+            return
+        logger.logger.info(f"Brain: Verification loop iteration {self._loop_count}/{self.MAX_LOOP_ITERATIONS}")
         self.on_ai_triggered({
             "type": "VOICE_COMMAND",
             "confidence": 1.0,
-            "text": "SYSTEM INSTRUCTION: You are in an autonomous loop. Look at the screen to verify if your previous actions succeeded. If the overall task is finished, set status to 'complete' and actions to empty. If more steps are needed, set status to 'in_progress' and provide the next actions."
+            "text": f"SYSTEM INSTRUCTION: You are in autonomous loop iteration {self._loop_count}/{self.MAX_LOOP_ITERATIONS}. Look at the screen to verify if your previous actions succeeded. If the overall task is finished, set status to 'complete' and actions to empty. If more steps are needed, set status to 'in_progress' and provide the next actions. The terminal command output (if any) is in your conversation history."
         })
 
     def _capture_screen_b64(self, save_debug=True):
@@ -181,29 +200,36 @@ class Brain:
             return None
 
     def _scale_coords(self, response):
-        """Scale coordinates from resized image to PyAutoGUI's virtual coordinate space."""
+        """Scale coordinates from the AI's resized image back to the physical desktop space."""
         if not hasattr(self, '_desktop_size') or not hasattr(self, '_img_size'):
             return response
-            
-        import pyautogui
-        screen_w, screen_h = pyautogui.size()
         
-        # Scale factor from the AI's image to the actual PyAutoGUI coordinate space
-        scale_x = screen_w / self._img_size[0]
-        scale_y = screen_h / self._img_size[1]
+        # Use the actual MSS desktop pixel dimensions for scaling
+        # MSS gives us the true physical resolution, matching pyautogui's coordinate space
+        desk_w, desk_h = self._desktop_size
+        img_w, img_h = self._img_size
+        
+        scale_x = desk_w / img_w
+        scale_y = desk_h / img_h
         
         actions = response.get("actions", [])
         for action in actions:
             if "x" in action and "y" in action:
-                # Calculate absolute PyAutoGUI coordinates
-                abs_x = int(action["x"] * scale_x)
-                abs_y = int(action["y"] * scale_y)
+                raw_x = action["x"]
+                raw_y = action["y"]
+                abs_x = int(raw_x * scale_x)
+                abs_y = int(raw_y * scale_y)
+                # Clamp to screen bounds with 10px safety margin
+                abs_x = max(10, min(desk_w - 10, abs_x))
+                abs_y = max(10, min(desk_h - 10, abs_y))
                 action["x"] = abs_x
                 action["y"] = abs_y
+                logger.logger.info(f"Brain: Scaled ({raw_x},{raw_y}) -> ({abs_x},{abs_y}) [img:{img_w}x{img_h} desk:{desk_w}x{desk_h}]")
         
         return response
 
     def on_voice_input(self, text):
+        self._loop_count = 0  # Reset loop counter on new user input
         logger.log_event("BRAIN_VOICE_INPUT", {"text": text})
         self.on_ai_triggered({
             "type": "VOICE_COMMAND",
@@ -298,14 +324,22 @@ Analyze the screenshot and the conversation history, then respond. If web search
             bus.publish("BRAIN_RESPONDED", response)
             
             if response.get("intent") == "act":
-                # Wait for TTS to announce the plan before executing actions
+                # Wait for TTS to finish speaking before executing actions
                 def _dispatch():
                     import time
-                    # Give TTS time to speak the confirmation message
-                    msg_len = len(response.get("message", ""))
-                    # Estimate: ~100ms per character of speech, minimum 2s
-                    wait_time = max(2.0, min(msg_len * 0.08, 6.0))
-                    time.sleep(wait_time)
+                    tts_done = threading.Event()
+                    
+                    def _on_tts_finished(data):
+                        tts_done.set()
+                    
+                    bus.subscribe("TTS_FINISHED", _on_tts_finished)
+                    
+                    # Wait for TTS to finish, but timeout after 10s as safety net
+                    if not tts_done.wait(timeout=10.0):
+                        logger.logger.warning("Brain: TTS timeout, proceeding with actions")
+                    
+                    # Small buffer for audio playback to fully stop
+                    time.sleep(0.3)
                     bus.publish("ACTION_REQUESTED", response)
                 threading.Thread(target=_dispatch, daemon=True).start()
                 

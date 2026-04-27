@@ -7,15 +7,17 @@ from core.engine.action_state import action_state
 from core.utils.logger import logger
 
 class ActionOrchestrator:
+    # All known action types — add new ones here, they route to executor automatically
+    KNOWN_ACTIONS = {
+        "click", "type", "hotkey", "scroll", "switch", "launch", "cmd",
+        "create_skill", "read_file", "list_dir", "write_file",
+        "extract_clipboard", "listen_audio"
+    }
+
     def __init__(self):
         bus.subscribe("ACTION_REQUESTED", self.on_action_requested)
         self.confirm_event = threading.Event()
         bus.subscribe("CONFIRM_HOTKEY", lambda d: self.confirm_event.set())
-        bus.subscribe("BRAIN_ERROR", self.on_error)
-
-    def on_error(self, data):
-        action_state.stop_action()
-        logger.logger.error(f"Orchestrator: Resetting state due to brain error: {data}")
 
     def on_action_requested(self, data):
         if not action_state.start_action("orchestration"):
@@ -41,22 +43,19 @@ class ActionOrchestrator:
                 for action in actions:
                     a_type = action.get("type")
                     
+                    if a_type not in self.KNOWN_ACTIONS:
+                        logger.logger.warning(f"Unknown action type: {a_type}")
+                        continue
+                    
+                    # Click gets special visual highlight before execution
                     if a_type == "click" and "x" in action and "y" in action:
                         bus.publish("HIGHLIGHT_REQUESTED", {
                             "x": action["x"], "y": action["y"], 
                             "w": 40, "h": 40
                         })
                         time.sleep(0.3)
-                        executor.execute_single(action)
-                        
-                    elif a_type in ("type", "hotkey", "scroll", "switch", "cmd", "create_skill", "read_file", "list_dir", "write_file", "extract_clipboard", "listen_audio"):
-                        executor.execute_single(action)
-                        
-                    elif a_type == "launch":
-                        executor.execute_single(action)
-                        
-                    else:
-                        logger.logger.warning(f"Unknown action type: {a_type}")
+                    
+                    executor.execute_single(action)
                     
             finally:
                 action_state.stop_action()

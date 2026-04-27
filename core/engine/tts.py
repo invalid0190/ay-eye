@@ -34,6 +34,8 @@ class TTSEngine:
     def speak(self, text):
         if not self.provider:
             logger.logger.warning("TTS skipped: no provider")
+            from core.engine.event_bus import bus
+            bus.publish("TTS_FINISHED", {})
             return
 
         if not audio_state.start_speaking():
@@ -52,6 +54,8 @@ class TTSEngine:
                 logger.logger.error(f"TTS error: {e}")
             finally:
                 audio_state.stop_speaking()
+                from core.engine.event_bus import bus
+                bus.publish("TTS_FINISHED", {})
 
         threading.Thread(target=_run, daemon=True).start()
 

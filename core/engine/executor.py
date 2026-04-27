@@ -105,32 +105,39 @@ class ActionExecutor:
                 
             elif a_type == "cmd":
                 command = action.get("command", "")
-                capture = action.get("capture_output", True) # Default to True for smarter RPA
                 if command:
-                    logger.logger.info(f"Executor: Running command '{command}' (capture={capture})")
+                    logger.logger.info(f"Executor: Running command '{command}'")
                     try:
-                        if capture:
-                            # Run and wait for output
-                            result = subprocess.run(
-                                f'powershell -Command "{command}"', 
-                                shell=True, 
-                                capture_output=True, 
-                                text=True, 
-                                timeout=30
+                        result = subprocess.run(
+                            ["powershell", "-NoProfile", "-Command", command],
+                            capture_output=True, text=True, timeout=15
+                        )
+                        output = (result.stdout or "").strip()
+                        errors = (result.stderr or "").strip()
+                        
+                        # Inject terminal output into AI memory for self-correction
+                        from core.state.short_term import short_term_memory
+                        if errors and result.returncode != 0:
+                            short_term_memory.add_system_context(
+                                f"CMD_RESULT [FAILED, exit={result.returncode}]:\nCommand: {command}\nError: {errors[:1000]}"
                             )
-                            output = (result.stdout + "\n" + result.stderr).strip()
-                            if output:
-                                from core.state.short_term import short_term_memory
-                                short_term_memory.add_system_context(f"COMMAND_OUTPUT:\n{output[:2000]}")
-                                logger.logger.info(f"Executor: Captured {len(output)} chars of output")
+                            logger.logger.warning(f"Executor: Command failed: {errors[:200]}")
+                        elif output:
+                            short_term_memory.add_system_context(
+                                f"CMD_RESULT [SUCCESS]:\nCommand: {command}\nOutput: {output[:1000]}"
+                            )
+                            logger.logger.info(f"Executor: Command succeeded with {len(output)} chars output")
                         else:
-                            # Fire and forget
-                            subprocess.Popen(f'powershell -Command "{command}"', shell=True)
-                            time.sleep(0.5)
+                            short_term_memory.add_system_context(
+                                f"CMD_RESULT [SUCCESS, no output]:\nCommand: {command}"
+                            )
+                            logger.logger.info("Executor: Command succeeded (no output)")
                     except subprocess.TimeoutExpired:
-                        logger.logger.error("Executor: Command timed out after 30s")
-                    except Exception as e:
-                        logger.logger.error(f"Executor: Command failed: {e}")
+                        logger.logger.warning(f"Executor: Command timed out after 15s: {command}")
+                        from core.state.short_term import short_term_memory
+                        short_term_memory.add_system_context(
+                            f"CMD_RESULT [TIMEOUT after 15s]:\nCommand: {command}"
+                        )
 
             elif a_type == "create_skill":
                 name = action.get("name", "")
