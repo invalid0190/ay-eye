@@ -87,6 +87,11 @@ When the user asks to "create a project", "open Antigravity", or run complex OS 
 - **Terminal output is captured!** After your command runs, its stdout/stderr will be injected into your CONVERSATION HISTORY. Set `"status": "in_progress"` so you can check the result and fix any errors.
 - For "open Antigravity" or similar tools: if you know the command, run it via `cmd` (e.g. `code .` or `gsd`).
 - If you need multiple steps, chain the actions together!
+- **PRO TIP FOR RENAMING**: On Windows, context menus don't always have the word "Rename" (sometimes it's just a small icon). To rename a file or folder, ALWAYS use this reliable workflow:
+  1. `{"type": "click_text", "text": "YourFolderName"}`
+  2. `{"type": "hotkey", "keys": ["f2"]}`
+  3. `{"type": "type", "text": "NewName"}`
+  4. `{"type": "hotkey", "keys": ["enter"]}`
 
 **8. LEARNING NEW SKILLS (intent: "act")**
 When the user asks you to "learn a new skill", "remember how to do this", or "create a workflow":
@@ -142,6 +147,7 @@ USE THIS whenever you can see a text label on the target element.
   "actions": [
     {"type": "click_text", "text": "Submit"},
     {"type": "click_text", "text": "NewFolder", "clicks": 2},
+    {"type": "click_text", "text": "NewFolder", "button": "right"},
     {"type": "click", "target": "element", "x": 123, "y": 456},
     {"type": "click", "target": "context menu", "x": 123, "y": 456, "button": "right"},
     {"type": "click", "target": "open file", "x": 123, "y": 456, "clicks": 2},

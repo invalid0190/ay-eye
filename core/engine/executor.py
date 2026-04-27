@@ -29,7 +29,8 @@ class ActionExecutor:
         for action in actions:
             if self._stop_event.is_set():
                 break
-            time.sleep(random.uniform(0.1, 0.3))
+            # Increased delay to allow UI elements (like context menus) to render
+            time.sleep(random.uniform(0.5, 0.8))
             self.execute_single(action)
 
     def execute_single(self, action):
@@ -94,13 +95,19 @@ class ActionExecutor:
                             best_match_score = -1
                             
                             target_lower = text_to_find.lower()
+                            target_clean = "".join(c for c in target_lower if c.isalnum())
                             for i, word in enumerate(ocr_data["text"]):
                                 word_lower = word.strip().lower()
                                 if not word_lower:
                                     continue
                                     
-                                if target_lower in word_lower or word_lower in target_lower:
-                                    # Very basic substring matching. For better results we'd use fuzzywuzzy.
+                                x = ocr_data["left"][i]
+                                # Ignore hits on the right edge of the screen (the AI dashboard)
+                                if x > self.screen_w - 420:
+                                    continue
+                                    
+                                word_clean = "".join(c for c in word_lower if c.isalnum())
+                                if target_clean in word_clean or word_clean in target_clean:
                                     best_match_idx = i
                                     break
                                     
