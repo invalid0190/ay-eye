@@ -282,6 +282,16 @@ class ActionExecutor:
                     import pytesseract
                     from PIL import Image
                     
+                    # Set Tesseract path (check common Windows install locations)
+                    for tess_path in [
+                        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Tesseract-OCR", "tesseract.exe"),
+                        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+                        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+                    ]:
+                        if os.path.exists(tess_path):
+                            pytesseract.pytesseract.tesseract_cmd = tess_path
+                            break
+                    
                     with mss.mss() as sct:
                         region = {"top": y, "left": x, "width": w, "height": h}
                         screenshot = sct.grab(region)
