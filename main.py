@@ -39,6 +39,14 @@ class Orchestrator:
         self.running = True
         hotkey_manager.start()
         
+        # Preload heavy STT model asynchronously to prevent first-speech lag
+        def _preload():
+            try:
+                stt_engine._lazy_load()
+            except Exception as e:
+                logger.logger.error(f"Orchestrator: STT Preload failed - {e}")
+        threading.Thread(target=_preload, daemon=True).start()
+        
         # Launch engine loop in background
         self.thread = threading.Thread(target=self.loop, daemon=True)
         self.thread.start()

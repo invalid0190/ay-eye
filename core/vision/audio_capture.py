@@ -38,7 +38,13 @@ class AudioCapture:
             silence_start = None
             
             while self.recording and (time.time() - start_time < self.max_recording_time):
-                data = self.stream.read(self.chunk)
+                try:
+                    data = self.stream.read(self.chunk, exception_on_overflow=False)
+                except IOError as e:
+                    # Log and skip this chunk
+                    logger.logger.warning(f"AudioCapture: Buffer overflow/IOError: {e}")
+                    continue
+                
                 self.buffer.append(data)
                 
                 # Silence detection (0.6s)
