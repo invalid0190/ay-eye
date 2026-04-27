@@ -80,9 +80,15 @@ class ActionExecutor:
                     
                     found = False
                     with mss.mss() as sct:
-                        monitor = sct.monitors[0]
+                        # Use monitor[1] (primary) not monitor[0] (virtual desktop)
+                        # monitor[0] can have negative offsets on multi-monitor setups
+                        monitor = sct.monitors[1]
                         screenshot = sct.grab(monitor)
                         img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
+                        
+                        # Track the monitor offset so we can add it back
+                        mon_left = monitor["left"]
+                        mon_top = monitor["top"]
                         
                         try:
                             # Configure tesseract path
@@ -92,10 +98,18 @@ class ActionExecutor:
                                 
                             ocr_data = pytesseract.image_to_data(img, output_type=Output.DICT)
                             best_match_idx = -1
-                            best_match_score = -1
                             
                             target_lower = text_to_find.lower()
                             target_clean = "".join(c for c in target_lower if c.isalnum())
+                            
+                            # Log top OCR detections for debugging
+                            debug_hits = []
+                            for i, word in enumerate(ocr_data["text"]):
+                                w_stripped = word.strip()
+                                if w_stripped and len(debug_hits) < 5:
+                                    debug_hits.append(f"'{w_stripped}'@({ocr_data['left'][i]},{ocr_data['top'][i]})")
+                            logger.logger.info(f"Executor OCR: Looking for '{text_to_find}', first hits: {debug_hits}")
+                            
                             for i, word in enumerate(ocr_data["text"]):
                                 word_lower = word.strip().lower()
                                 if not word_lower:
@@ -109,6 +123,7 @@ class ActionExecutor:
                                 word_clean = "".join(c for c in word_lower if c.isalnum())
                                 if target_clean in word_clean or word_clean in target_clean:
                                     best_match_idx = i
+                                    logger.logger.info(f"Executor OCR: MATCHED '{word.strip()}' at index {i}")
                                     break
                                     
                             if best_match_idx != -1:
@@ -117,8 +132,11 @@ class ActionExecutor:
                                 w = ocr_data["width"][best_match_idx]
                                 h = ocr_data["height"][best_match_idx]
                                 
-                                cx = x + (w // 2)
-                                cy = y + (h // 2)
+                                # Center of the bounding box, offset by the monitor position
+                                cx = mon_left + x + (w // 2)
+                                cy = mon_top + y + (h // 2)
+                                
+                                logger.logger.info(f"Executor OCR: BBox=({x},{y},{w},{h}) center=({cx},{cy}) mon_offset=({mon_left},{mon_top})")
                                 
                                 jx = max(10, min(self.screen_w - 10, cx + random.randint(-1, 1)))
                                 jy = max(10, min(self.screen_h - 10, cy + random.randint(-1, 1)))

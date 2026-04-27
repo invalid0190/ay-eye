@@ -288,6 +288,9 @@ class Brain:
         desk_w, desk_h = self._desktop_size
         img_w, img_h = self._img_size
         
+        # Desktop offset (where the virtual desktop starts — can be negative on multi-monitor)
+        off_x, off_y = getattr(self, '_desktop_offset', (0, 0))
+        
         scale_x = desk_w / img_w
         scale_y = desk_h / img_h
         
@@ -296,14 +299,15 @@ class Brain:
             if "x" in action and "y" in action:
                 raw_x = action["x"]
                 raw_y = action["y"]
-                abs_x = int(raw_x * scale_x)
-                abs_y = int(raw_y * scale_y)
+                # Scale from image space to desktop space, then add monitor offset
+                abs_x = int(raw_x * scale_x) + off_x
+                abs_y = int(raw_y * scale_y) + off_y
                 # Clamp to screen bounds with 10px safety margin
-                abs_x = max(10, min(desk_w - 10, abs_x))
-                abs_y = max(10, min(desk_h - 10, abs_y))
+                abs_x = max(10, min(desk_w + off_x - 10, abs_x))
+                abs_y = max(10, min(desk_h + off_y - 10, abs_y))
                 action["x"] = abs_x
                 action["y"] = abs_y
-                logger.logger.info(f"Brain: Scaled ({raw_x},{raw_y}) -> ({abs_x},{abs_y}) [img:{img_w}x{img_h} desk:{desk_w}x{desk_h}]")
+                logger.logger.info(f"Brain: Scaled ({raw_x},{raw_y}) -> ({abs_x},{abs_y}) [img:{img_w}x{img_h} desk:{desk_w}x{desk_h} off:({off_x},{off_y})]")
         
         return response
 
