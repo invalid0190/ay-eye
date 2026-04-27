@@ -352,12 +352,25 @@ class Brain:
                 history_str = short_term_memory.get_history_string()
                 skills_str = skill_manager.get_all_skills_context()
                 
+                # App-aware context injection
+                app_context = ""
+                active_app = (state.app or "").lower()
+                active_window = (state.window or "").lower()
+                if "blender" in active_app or "blender" in active_window:
+                    app_context = """
+⚠️ BLENDER IS ACTIVE. Blender uses OpenGL custom fonts — click_text WILL FAIL on Blender UI elements.
+USE KEYBOARD SHORTCUTS ONLY: File menu=Alt+F, N-panel=N, Add menu=Shift+A.
+To open a .blend file directly: use cmd action with the full blender.exe path and the file path.
+For coordinate clicks in Blender, use the grid overlay carefully.
+"""
+                
                 prompt = f"""{VISION_SYSTEM_PROMPT}
 
 DESKTOP RESOLUTION: {self._desktop_size[0]}x{self._desktop_size[1]}
 PROCESSED IMAGE SIZE: {self._img_size[0]}x{self._img_size[1]}
 ACTIVE WINDOW: {state.window}
 ACTIVE APP: {state.app}
+{app_context}
 {web_context}
 {skills_str}
 --- CONVERSATION HISTORY (Use this for context!) ---
