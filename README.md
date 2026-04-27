@@ -96,6 +96,7 @@ To ensure Ay-Eye remains a cutting-edge autonomous agent, the following features
 ### Prerequisites
 - **Python 3.13+**
 - **Ollama locally installed** (If you want to run offline)
+- **Tesseract OCR installed on Windows** (Required for the `click_text` feature. Ensure it's installed either in your PATH or inside your user folder: `C:\Users\<YourUsername>\AppData\Local\Programs\Tesseract-OCR\`)
 
 ### 1. Configure Your AI Brain
 Ay-Eye operates using a cascading fallback system. It attempts to use the best available engine configured in your `.env` file. Create a `.env` file in the root directory:
