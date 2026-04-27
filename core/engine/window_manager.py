@@ -75,6 +75,21 @@ class WindowManager:
             except Exception as e:
                 logger.logger.warning(f"WindowManager: Electron launch failed for '{app_lower}': {e}")
 
+        # Strategy 0.5: Special dynamic path resolution for Blender
+        if app_lower == "blender":
+            blender_base = r"C:\Program Files\Blender Foundation"
+            if os.path.exists(blender_base):
+                try:
+                    for folder in os.listdir(blender_base):
+                        if folder.startswith("Blender"):
+                            exe_path = os.path.join(blender_base, folder, "blender.exe")
+                            if os.path.exists(exe_path):
+                                subprocess.Popen(f'"{exe_path}"', shell=True)
+                                logger.logger.info(f"WindowManager: Launched Blender dynamically at {exe_path}")
+                                return True
+                except Exception as e:
+                    logger.logger.warning(f"WindowManager: Blender dynamic search failed: {e}")
+
         # Strategy 1: Check the registry for known paths
         if app_lower in self.APP_REGISTRY:
             exe_path = self.APP_REGISTRY[app_lower]
