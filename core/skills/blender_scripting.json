@@ -1,0 +1,4 @@
+{
+  "name": "blender_scripting",
+  "instruction": "Advanced Blender Automation via Python (bpy). HOW TO ACCESS: Go to Scripting Workspace or change an Area to Python Console. CORE MODULES: 1. `bpy.ops` (Operators): Used to perform actions. e.g., `bpy.ops.mesh.primitive_cube_add()`. 2. `bpy.context`: Access current state. e.g., `bpy.context.active_object`. 3. `bpy.data`: Access all data in the blend file. e.g., `bpy.data.materials['MaterialName']`. SELECTING OBJECTS: `obj = bpy.context.active_object` or `bpy.data.objects['Cube']`. MODIFIERS: `mod = obj.modifiers.new(name='Subsurf', type='SUBSURF')`. MATERIALS: `mat = bpy.data.materials.new(name='Gold')`; `obj.data.materials.append(mat)`. RENDERING: `bpy.ops.render.render(write_still=True)`. TIP: Use auto-complete in the Python Console to explore modules."
+}

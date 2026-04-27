@@ -1,0 +1,4 @@
+{
+  "name": "blender_modeling",
+  "instruction": "Advanced Blender Modeling Techniques & Shortcuts. EDIT MODE: Tab to enter. VERTEX/EDGE/FACE SELECT: 1, 2, 3 keys. EXTRUDE: E. INSET: I. BEVEL: Ctrl+B. LOOP CUT: Ctrl+R. MERGE VERTICES: M. SEPARATE: P. JOIN OBJECTS: Ctrl+J (Object mode). PROPORTIONAL EDITING: Toggle with O, scroll mouse wheel to adjust falloff radius. SHADING: Right-click > Shade Smooth. EDGE LOOPS: Alt+Left Click on an edge to select the loop. HIDING: H to hide selection, Alt+H to unhide. SNAPPING: Shift+Tab to toggle, dropdown at top center to configure (Vertex, Face, etc.). ORIGIN POINT: Right-click > Set Origin. NORMALS: Alt+N menu, or Shift+N to Recalculate Outside. VISUALIZATION: Z menu for Wireframe, Solid, Material Preview, Rendered."
+}

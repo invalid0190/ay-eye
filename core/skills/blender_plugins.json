@@ -1,0 +1,4 @@
+{
+  "name": "blender_plugins",
+  "instruction": "Blender Essential Add-ons Mastery. NODE WRANGLER: Ctrl+Shift+T on Principled BSDF to load all PBR textures at once. Ctrl+T for mapping nodes. Shift+Right Drag to merge nodes with a reroute. HARD OPS / BOXCUTTER: Q key opens the Hard Ops menu. Alt+W starts Boxcutter. Use for non-destructive hard surface modeling. MACHINE3TOOLS: Tab opens an advanced pie menu for modes. Alt+A for smart align tools. LOOPTOOLS: Right-click in Edit Mode > LoopTools (Bridge, Circle, Relax, Flatten). F2 ADDON: Simply press F in Edit mode to generate faces intelligently between edges. IMPORT IMAGES AS PLANES: File > Import > Images as Planes. AUTO MIRROR: N-panel > Edit > Auto Mirror for quick symmetrical modeling."
+}
