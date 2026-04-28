@@ -15,6 +15,7 @@ from core.state.short_term import short_term_memory
 from core.engine.skill_manager import skill_manager
 from core.utils.logger import logger
 from core.engine.web_search import web_search
+from core.vision.live_perception import live_perception
 
 VISION_SYSTEM_PROMPT = """You are ay-eye, an advanced desktop AI assistant. You can SEE the user's screen and HEAR their voice commands. You also may receive WEB SEARCH RESULTS for knowledge questions.
 
@@ -42,6 +43,7 @@ When the user wants you to DO something on screen (click, type, open, close, scr
 - The screenshot has a GRID OVERLAY with numbered axis labels on the edges.
 - USE THE GRID to determine coordinates. The numbers on the left/top edges tell you pixel positions.
 - Coordinates (0,0) = top-left corner of the image.
+- Return coordinates relative to the PROCESSED IMAGE SIZE you are seeing, not the desktop resolution.
 - Your x,y values MUST be in the PROCESSED IMAGE coordinate space (see PROCESSED IMAGE SIZE below).
 - To click the CENTER of an icon, estimate where the icon center is using the grid markers.
 - COMMON MISTAKE: Do NOT confuse left-side icons with right-side icons. Use the grid X-axis labels to verify.
@@ -208,40 +210,33 @@ class Brain:
         })
 
     def _capture_screen_b64(self, save_debug=True):
-        """Capture the entire desktop, overlay a coordinate grid, and return as base64 string."""
+        """Get latest frame from live perception and add grid."""
+        b64, frame = live_perception.get_latest_frame_b64()
+        if not b64 or not frame:
+            import time
+            time.sleep(0.5)
+            b64, frame = live_perception.get_latest_frame_b64()
+            if not b64 or not frame:
+                logger.logger.error("Screen capture failed: No live frame available")
+                return None, None
+                
         try:
-            with mss.mss() as sct:
-                # Monitor 0 is the full desktop (all monitors combined)
-                monitor = sct.monitors[0]
-                screenshot = sct.grab(monitor)
-                img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
-                
-                # Resize for performance while keeping enough detail for coordinates
-                max_w = 1920
-                if img.width > max_w:
-                    ratio = max_w / img.width
-                    img = img.resize((max_w, int(img.height * ratio)), Image.Resampling.LANCZOS)
-                
-                # Store dimensions for coordinate scaling
-                self._desktop_size = (screenshot.width, screenshot.height)
-                self._desktop_offset = (monitor["left"], monitor["top"])
-                self._img_size = (img.width, img.height)
-                
-                # Draw coordinate grid overlay to help AI with spatial accuracy
-                img = self._draw_grid(img)
-                
-                # Save debug image (with grid)
-                if save_debug:
-                    ts = int(time.time())
-                    img.save(os.path.join(self.debug_dir, f"vision_{ts}.jpg"), quality=60)
-                
-                # Convert to base64
-                buffer = io.BytesIO()
-                img.save(buffer, format="JPEG", quality=75)
-                return base64.b64encode(buffer.getvalue()).decode("utf-8")
+            # Draw coordinate grid overlay on a copy of the processed image
+            img = frame.processed_image.copy()
+            img = self._draw_grid(img)
+            
+            # Save debug image (with grid)
+            if save_debug:
+                ts = int(time.time())
+                img.save(os.path.join(self.debug_dir, f"vision_{ts}.jpg"), quality=60)
+            
+            # Convert to base64
+            buffer = io.BytesIO()
+            img.save(buffer, format="JPEG", quality=75)
+            return base64.b64encode(buffer.getvalue()).decode("utf-8"), frame
         except Exception as e:
-            logger.logger.error(f"Screen capture failed: {e}")
-            return None
+            logger.logger.error(f"Screen capture grid/encode failed: {e}")
+            return None, None
 
     def _draw_grid(self, img):
         """Draw a subtle coordinate grid on the screenshot to help the AI estimate positions."""
@@ -283,37 +278,8 @@ class Brain:
         return img
 
     def _scale_coords(self, response):
-        """Scale coordinates from the AI's resized image back to the physical desktop space."""
-        if not hasattr(self, '_desktop_size') or not hasattr(self, '_img_size'):
-            return response
-        
-        # Use the actual MSS desktop pixel dimensions for scaling
-        # MSS gives us the true physical resolution, matching pyautogui's coordinate space
-        desk_w, desk_h = self._desktop_size
-        img_w, img_h = self._img_size
-        
-        # Desktop offset (where the virtual desktop starts — can be negative on multi-monitor)
-        off_x, off_y = getattr(self, '_desktop_offset', (0, 0))
-        
-        scale_x = desk_w / img_w
-        scale_y = desk_h / img_h
-        
-        actions = response.get("actions", [])
-        for action in actions:
-            if "x" in action and "y" in action:
-                raw_x = action["x"]
-                raw_y = action["y"]
-                # Scale from image space to desktop space, then add monitor offset
-                abs_x = int(raw_x * scale_x) + off_x
-                abs_y = int(raw_y * scale_y) + off_y
-                # Clamp to screen bounds with 10px safety margin
-                abs_x = max(10, min(desk_w + off_x - 10, abs_x))
-                abs_y = max(10, min(desk_h + off_y - 10, abs_y))
-                action["x"] = abs_x
-                action["y"] = abs_y
-                logger.logger.info(f"Brain: Scaled ({raw_x},{raw_y}) -> ({abs_x},{abs_y}) [img:{img_w}x{img_h} desk:{desk_w}x{desk_h} off:({off_x},{off_y})]")
-        
-        return response
+        """Deprecated: live_perception.scale_actions handles this now."""
+        return live_perception.scale_actions(response)
 
     def on_voice_input(self, text):
         self._loop_count = 0  # Reset loop counter on new user input
@@ -346,9 +312,9 @@ class Brain:
                     web_context = f"\n\nWEB SEARCH RESULTS (use these to give an accurate, informed answer):\n{search_results}\n"
                     logger.logger.info(f"Brain: Got {len(search_results)} chars of web context")
             
-            screen_b64 = self._capture_screen_b64()
+            screen_b64, frame = self._capture_screen_b64()
             
-            if screen_b64:
+            if screen_b64 and frame:
                 history_str = short_term_memory.get_history_string()
                 skills_str = skill_manager.get_all_skills_context()
                 
@@ -371,8 +337,11 @@ For clicking Blender UI elements, use coordinate-based click with the grid — N
                 
                 prompt = f"""{VISION_SYSTEM_PROMPT}
 
-DESKTOP RESOLUTION: {self._desktop_size[0]}x{self._desktop_size[1]}
-PROCESSED IMAGE SIZE: {self._img_size[0]}x{self._img_size[1]}
+IMPORTANT: Return coordinates relative to the PROCESSED IMAGE SIZE you are seeing, not the desktop resolution.
+
+DESKTOP RAW SIZE: {frame.raw_size[0]}x{frame.raw_size[1]}
+PROCESSED IMAGE SIZE: {frame.processed_size[0]}x{frame.processed_size[1]}
+DESKTOP OFFSET: {frame.desktop_offset[0]}, {frame.desktop_offset[1]}
 ACTIVE WINDOW: {state.window}
 ACTIVE APP: {state.app}
 {app_context}

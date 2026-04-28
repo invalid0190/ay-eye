@@ -8,6 +8,7 @@ from core.engine.event_bus import bus
 from core.engine.action_state import action_state
 from core.engine.window_manager import window_manager
 from core.utils.logger import logger
+from core.vision.live_perception import live_perception
 
 class ActionExecutor:
     def __init__(self):
@@ -41,6 +42,8 @@ class ActionExecutor:
         bus.publish("ACTION_STARTED", action)
         logger.log_event("ACTION_STARTED", action)
         
+        frame_before = live_perception.get_latest_frame()
+        
         try:
             if a_type == "click":
                 x = action.get("x")
@@ -49,8 +52,17 @@ class ActionExecutor:
                 clicks = action.get("clicks", 1)        # 1 = single, 2 = double
                 
                 if x is not None and y is not None:
-                    jx = max(10, min(self.screen_w - 10, x + random.randint(-2, 2)))
-                    jy = max(10, min(self.screen_h - 10, y + random.randint(-2, 2)))
+                    if frame_before:
+                        desk_w, desk_h = frame_before.raw_size
+                        off_x, off_y = frame_before.desktop_offset
+                        min_x, max_x = off_x, off_x + desk_w
+                        min_y, max_y = off_y, off_y + desk_h
+                    else:
+                        min_x, max_x = 0, self.screen_w
+                        min_y, max_y = 0, self.screen_h
+                        
+                    jx = max(min_x + 10, min(max_x - 10, x + random.randint(-2, 2)))
+                    jy = max(min_y + 10, min(max_y - 10, y + random.randint(-2, 2)))
                     
                     duration = random.uniform(0.3, 0.5)
                     pyautogui.moveTo(jx, jy, duration=duration, tween=pyautogui.easeOutQuad)
@@ -80,6 +92,8 @@ class ActionExecutor:
                         logger.logger.info("Executor: CONFIRM intercepted -> Alt+Enter")
                         from core.state.short_term import short_term_memory
                         short_term_memory.add_system_context("CLICK_TEXT: 'CONFIRM' -> pressed Alt+Enter (Ay-Eye confirm hotkey)")
+                        time.sleep(0.3)
+                        live_perception.verify_screen_changed(frame_before)
                         bus.publish("ACTION_COMPLETE", action)
                         return
                     elif text_upper == "DISMISS":
@@ -87,6 +101,8 @@ class ActionExecutor:
                         logger.logger.info("Executor: DISMISS intercepted -> Escape")
                         from core.state.short_term import short_term_memory
                         short_term_memory.add_system_context("CLICK_TEXT: 'DISMISS' -> pressed Escape (Ay-Eye dismiss)")
+                        time.sleep(0.3)
+                        live_perception.verify_screen_changed(frame_before)
                         bus.publish("ACTION_COMPLETE", action)
                         return
                     
@@ -151,7 +167,8 @@ class ActionExecutor:
                                     continue
                                 x = ocr_data["left"][i]
                                 # Ignore hits on the right edge (AI dashboard area)
-                                if x > self.screen_w - 420:
+                                max_x = frame_before.raw_size[0] + frame_before.desktop_offset[0] if frame_before else self.screen_w
+                                if x > max_x - 420:
                                     continue
                                 entries.append({
                                     "idx": i, "text": word,
@@ -225,8 +242,15 @@ class ActionExecutor:
                                 
                                 logger.logger.info(f"Executor OCR: BBox=({x},{y},{w},{h}) center=({cx},{cy}) mon_offset=({mon_left},{mon_top})")
                                 
-                                jx = max(10, min(self.screen_w - 10, cx + random.randint(-1, 1)))
-                                jy = max(10, min(self.screen_h - 10, cy + random.randint(-1, 1)))
+                                if frame_before:
+                                    max_x = frame_before.desktop_offset[0] + frame_before.raw_size[0]
+                                    max_y = frame_before.desktop_offset[1] + frame_before.raw_size[1]
+                                else:
+                                    max_x = self.screen_w
+                                    max_y = self.screen_h
+                                
+                                jx = max(10, min(max_x - 10, cx + random.randint(-1, 1)))
+                                jy = max(10, min(max_y - 10, cy + random.randint(-1, 1)))
                                 
                                 duration = random.uniform(0.3, 0.5)
                                 pyautogui.moveTo(jx, jy, duration=duration, tween=pyautogui.easeOutQuad)
@@ -494,8 +518,12 @@ class ActionExecutor:
                 # Extract text from a screen region using Tesseract OCR
                 x = action.get("x", 0)
                 y = action.get("y", 0)
-                w = action.get("w", self.screen_w)
-                h = action.get("h", self.screen_h)
+                if frame_before:
+                    desk_w, desk_h = frame_before.raw_size
+                else:
+                    desk_w, desk_h = self.screen_w, self.screen_h
+                w = action.get("w", desk_w)
+                h = action.get("h", desk_h)
                 try:
                     import mss
                     import pytesseract
@@ -529,6 +557,12 @@ class ActionExecutor:
                     logger.logger.error(f"Executor: OCR failed - {e}")
                 
             time.sleep(random.uniform(0.1, 0.2))
+            
+            # Post action verification
+            if a_type in ["click", "click_text", "type", "hotkey"]:
+                time.sleep(0.3)
+                live_perception.verify_screen_changed(frame_before)
+                
             bus.publish("ACTION_COMPLETED", action)
             
         except pyautogui.FailSafeException:

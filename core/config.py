@@ -11,7 +11,13 @@ class SystemConfig:
             "voice_enabled": True,
             "action_confirmation_required": False, # Faster testing
             "cooldown_seconds": 5.0,
-            "debug_mode": True
+            "debug_mode": True,
+            "live_perception_enabled": True,
+            "live_perception_fps": 5,
+            "live_perception_max_width": 1920,
+            "live_perception_jpeg_quality": 75,
+            "click_debug_enabled": True,
+            "post_action_verify_enabled": True
         }
         self.config = self.load()
 

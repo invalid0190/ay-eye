@@ -117,11 +117,18 @@ class Orchestrator:
         else:
             state_manager.update(ui_elements=ui_elements)
 
+from core.config import sys_config
+from core.vision.live_perception import live_perception
+
 if __name__ == "__main__":
     # 1. Initialize QApplication on the MAIN thread
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
     
+    # 1.5 Start Live Perception if enabled
+    if sys_config.get("live_perception_enabled"):
+        live_perception.start()
+        
     # 2. Initialize Overlay (Highlighter)
     overlay = VisualOverlay()
     
@@ -136,5 +143,6 @@ if __name__ == "__main__":
     try:
         sys.exit(app.exec())
     except KeyboardInterrupt:
+        live_perception.stop()
         orch.stop()
         sys.exit(0)
