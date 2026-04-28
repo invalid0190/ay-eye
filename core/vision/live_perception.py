@@ -37,7 +37,7 @@ class LivePerceptionService:
         self._running = True
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
-        logger.info("LivePerceptionService started.")
+        logger.logger.info("LivePerceptionService started.")
 
     def stop(self):
         self._running = False
@@ -46,7 +46,7 @@ class LivePerceptionService:
         if self._sct:
             self._sct.close()
             self._sct = None
-        logger.info("LivePerceptionService stopped.")
+        logger.logger.info("LivePerceptionService stopped.")
 
     def _loop(self):
         try:
@@ -80,13 +80,13 @@ class LivePerceptionService:
                         self._latest_frame = frame
                         
                 except Exception as e:
-                    logger.error(f"LivePerception loop error: {e}")
+                    logger.logger.error(f"LivePerception loop error: {e}")
                 
                 elapsed = time.time() - start_time
                 sleep_time = max(0, (1.0 / self._fps) - elapsed)
                 time.sleep(sleep_time)
         except Exception as e:
-            logger.error(f"LivePerception setup error: {e}")
+            logger.logger.error(f"LivePerception setup error: {e}")
 
     def get_latest_frame(self):
         with self._lock:
@@ -153,7 +153,7 @@ class LivePerceptionService:
         }
         
         if sys_config.get("click_debug_enabled"):
-            logger.info(f"PLANNED_CLICK_DEBUG: raw=({raw_x},{raw_y}) -> desktop=({desktop_x},{desktop_y})")
+            logger.logger.info(f"PLANNED_CLICK_DEBUG: raw=({raw_x},{raw_y}) -> desktop=({desktop_x},{desktop_y})")
             bus.publish("PLANNED_CLICK_DEBUG", event_data)
 
     def verify_screen_changed(self, previous_frame):
@@ -168,12 +168,12 @@ class LivePerceptionService:
             diff = ImageChops.difference(previous_frame.processed_image, current_frame.processed_image)
             bbox = diff.getbbox()
             if not bbox:
-                logger.warning("Click may have missed target. No screen change detected.")
+                logger.logger.warning("Click may have missed target. No screen change detected.")
                 bus.publish("ACTION_VERIFICATION_FAILED", {"reason": "no_change"})
                 return False
             return True
         except Exception as e:
-            logger.error(f"Error in verify_screen_changed: {e}")
+            logger.logger.error(f"Error in verify_screen_changed: {e}")
             return True
 
 live_perception = LivePerceptionService()
