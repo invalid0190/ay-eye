@@ -136,6 +136,53 @@ class LivePerceptionService:
         
         return img_x, img_y
 
+    def scale_actions(self, response_json):
+        """Scale AI coordinates (processed image) to desktop coordinates."""
+        if not response_json:
+            return response_json
+            
+        actions = []
+        if "action" in response_json:
+            actions = [response_json["action"]]
+        elif "actions" in response_json:
+            actions = response_json["actions"]
+            
+        for action in actions:
+            a_type = action.get("type")
+            # Scale single points
+            if a_type in ["click", "double_click", "right_click", "hover"]:
+                if "x" in action and "y" in action:
+                    rx, ry = action["x"], action["y"]
+                    dx, dy = self.image_to_desktop(rx, ry)
+                    action["x"] = dx
+                    action["y"] = dy
+                    self.mark_planned_click(rx, ry, dx, dy, a_type)
+            # Scale ranges
+            elif a_type == "drag":
+                if all(k in action for k in ["x1", "y1", "x2", "y2"]):
+                    rx1, ry1 = action["x1"], action["y1"]
+                    rx2, ry2 = action["x2"], action["y2"]
+                    dx1, dy1 = self.image_to_desktop(rx1, ry1)
+                    dx2, dy2 = self.image_to_desktop(rx2, ry2)
+                    action["x1"], action["y1"] = dx1, dy1
+                    action["x2"], action["y2"] = dx2, dy2
+            elif a_type == "ocr_screen":
+                if all(k in action for k in ["x", "y", "w", "h"]):
+                    rx, ry = action["x"], action["y"]
+                    rw, rh = action["w"], action["h"]
+                    dx, dy = self.image_to_desktop(rx, ry)
+                    
+                    frame = self.get_latest_frame()
+                    if frame:
+                        scale_x = frame.raw_size[0] / frame.processed_size[0]
+                        scale_y = frame.raw_size[1] / frame.processed_size[1]
+                        action["w"] = int(rw * scale_x)
+                        action["h"] = int(rh * scale_y)
+                    
+                    action["x"] = dx
+                    action["y"] = dy
+        return response_json
+
     def mark_planned_click(self, raw_x, raw_y, desktop_x, desktop_y, action_type="click"):
         frame = self.get_latest_frame()
         if not frame:

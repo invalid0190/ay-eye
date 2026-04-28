@@ -213,7 +213,6 @@ class Brain:
         """Get latest frame from live perception and add grid."""
         b64, frame = live_perception.get_latest_frame_b64()
         if not b64 or not frame:
-            import time
             time.sleep(0.5)
             b64, frame = live_perception.get_latest_frame_b64()
             if not b64 or not frame:
