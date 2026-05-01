@@ -145,6 +145,8 @@ When you need to read exact text from the screen (emails, code, error messages) 
 - Example: To right-click a folder: `{"type": "click_text", "text": "MyFolder", "button": "right"}`
 - Example: To double-click a file: `{"type": "click_text", "text": "report.pdf", "clicks": 2}`
 - **ONLY use coordinate `click` for elements that have NO text** (e.g., blank canvas areas, color swatches, unlabeled icons).
+- For coordinate `click`, always include a specific `"target"` label when you know what the element is; the executor will re-locate that target through UI Automation/OCR before clicking.
+- For unlabeled icons, include both a specific `"target"` and your best `"x","y"` estimate; the executor will visually snap the click to the nearest icon-like screen component and retry once if the click appears to miss.
 - If `click_text` fails (you'll see "CLICK_TEXT: Could not find" in your history), THEN fall back to coordinate `click`.
 
 ### CRITICAL JSON RULES:

@@ -1,5 +1,5 @@
 import mss
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageDraw
 import threading
 import time
 import base64
@@ -203,7 +203,31 @@ class LivePerceptionService:
             logger.logger.info(f"PLANNED_CLICK_DEBUG: raw=({raw_x},{raw_y}) -> desktop=({desktop_x},{desktop_y})")
             bus.publish("PLANNED_CLICK_DEBUG", event_data)
 
-    def verify_screen_changed(self, previous_frame):
+    @staticmethod
+    def _desktop_rect_to_processed(rect, frame):
+        x, y, w, h = rect
+        raw_width, raw_height = frame.raw_size
+        proc_width, proc_height = frame.processed_size
+        offset_x, offset_y = frame.desktop_offset
+
+        scale_x = proc_width / raw_width
+        scale_y = proc_height / raw_height
+
+        left = int((x - offset_x) * scale_x)
+        top = int((y - offset_y) * scale_y)
+        right = int((x + w - offset_x) * scale_x)
+        bottom = int((y + h - offset_y) * scale_y)
+
+        left = max(0, min(proc_width - 1, left))
+        top = max(0, min(proc_height - 1, top))
+        right = max(0, min(proc_width - 1, right))
+        bottom = max(0, min(proc_height - 1, bottom))
+
+        if right <= left or bottom <= top:
+            return None
+        return left, top, right, bottom
+
+    def verify_screen_changed(self, previous_frame, ignore_regions=None):
         if not sys_config.get("post_action_verify_enabled"):
             return True
             
@@ -213,10 +237,21 @@ class LivePerceptionService:
             
         try:
             diff = ImageChops.difference(previous_frame.processed_image, current_frame.processed_image)
+            if ignore_regions:
+                diff = diff.copy()
+                draw = ImageDraw.Draw(diff)
+                for region in ignore_regions:
+                    processed_rect = self._desktop_rect_to_processed(region, previous_frame)
+                    if processed_rect:
+                        draw.rectangle(processed_rect, fill=(0, 0, 0))
+
             bbox = diff.getbbox()
             if not bbox:
                 logger.logger.warning("Click may have missed target. No screen change detected.")
-                bus.publish("ACTION_VERIFICATION_FAILED", {"reason": "no_change"})
+                bus.publish("ACTION_VERIFICATION_FAILED", {
+                    "reason": "no_change",
+                    "ignored_regions": len(ignore_regions or []),
+                })
                 return False
             return True
         except Exception as e:

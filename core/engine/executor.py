@@ -10,6 +10,7 @@ from core.engine.action_state import action_state
 from core.engine.window_manager import window_manager
 from core.utils.logger import logger
 from core.vision.live_perception import live_perception
+from core.vision.screen_locator import screen_locator
 
 class ActionExecutor:
     _DIRECT_EXE_RE = re.compile(
@@ -103,57 +104,164 @@ class ActionExecutor:
     def _clean_label(value):
         return "".join(ch for ch in (value or "").lower() if ch.isalnum())
 
-    def _resolve_target_point(self, target):
-        """Resolve a named target from the latest UI Automation state."""
-        if not target:
+    def _resolve_target_point(
+        self,
+        target,
+        frame=None,
+        methods=("uia", "ocr"),
+        min_confidence=0.62,
+        approximate=None,
+    ):
+        """Resolve a named target through the shared screen locator."""
+        result = screen_locator.locate(
+            target,
+            frame=frame,
+            methods=methods,
+            min_confidence=min_confidence,
+            approximate=approximate,
+        )
+        if not result:
             return None
+        return result.x, result.y
 
-        try:
-            from core.state.manager import state_manager
+    def _publish_click_highlight(self, x, y, locator_result=None):
+        width = 40
+        height = 40
+        if locator_result and locator_result.bbox:
+            width = max(24, min(180, int(locator_result.bbox[2])))
+            height = max(24, min(180, int(locator_result.bbox[3])))
 
-            target_clean = self._clean_label(target)
-            if not target_clean:
-                return None
+        bus.publish("HIGHLIGHT_REQUESTED", {
+            "x": int(x),
+            "y": int(y),
+            "w": width,
+            "h": height,
+            "method": locator_result.method if locator_result else "coordinate",
+            "target": locator_result.target if locator_result else "",
+        })
 
-            best = None
-            best_score = 0
-            for element in state_manager.get_state().ui_elements:
-                labels = [element.name, element.text, element.role]
-                label_clean = " ".join(self._clean_label(label) for label in labels if label)
-                if not label_clean:
-                    continue
+    @staticmethod
+    def _point_xy(point):
+        if not point:
+            return None
+        if hasattr(point, "x") and hasattr(point, "y"):
+            return int(point.x), int(point.y)
+        return int(point[0]), int(point[1])
 
-                score = 0
-                if target_clean == self._clean_label(element.name):
-                    score = 100
-                elif target_clean == self._clean_label(element.text):
-                    score = 95
-                elif target_clean in label_clean:
-                    score = 80
-                elif label_clean in target_clean:
-                    score = 65
+    def _click_ignore_regions(self, old_cursor, new_cursor, locator_result=None):
+        regions = []
+        for point in [self._point_xy(old_cursor), self._point_xy(new_cursor)]:
+            if not point:
+                continue
+            x, y = point
+            regions.append((x - 96, y - 96, 192, 192))
 
-                if score > best_score and element.rect and len(element.rect) >= 2:
-                    best = element
-                    best_score = score
+        if locator_result and locator_result.bbox:
+            x, y, w, h = locator_result.bbox
+            pad = 36
+            regions.append((int(x) - pad, int(y) - pad, int(w) + (pad * 2), int(h) + (pad * 2)))
 
-            if not best:
-                return None
+        return regions
 
-            rect = best.rect
-            if len(rect) >= 4:
-                x = rect[0] + rect[2] / 2
-                y = rect[1] + rect[3] / 2
-            else:
-                x, y = rect[0], rect[1]
+    def _click_at(self, x, y, button, clicks, frame_before, target_name="", locator_result=None):
+        jx, jy = self._clamp_point(x, y, frame_before)
+        self._publish_click_highlight(jx, jy, locator_result)
 
-            logger.logger.info(
-                f"Executor: Resolved target '{target}' to UI element '{best.name}' at ({int(x)},{int(y)})"
+        duration = random.uniform(0.12, 0.25)
+        pyautogui.moveTo(jx, jy, duration=duration, tween=pyautogui.easeOutQuad)
+        time.sleep(0.05)
+        pyautogui.click(button=button, clicks=clicks)
+
+        locator_note = ""
+        if locator_result:
+            locator_note = (
+                f" via {locator_result.method} match '{locator_result.label}' "
+                f"(confidence={locator_result.confidence:.2f})"
             )
-            return int(x), int(y)
-        except Exception as e:
-            logger.logger.warning(f"Executor: Target resolution failed for '{target}': {e}")
-            return None
+
+        logger.logger.info(f"Executor: {button}-click x{clicks} at ({jx},{jy}){locator_note}")
+
+        from core.state.short_term import short_term_memory
+        short_term_memory.add_system_context(
+            f"CLICK_EXECUTED: {button}-click x{clicks} at pixel ({jx},{jy}) "
+            f"targeting '{target_name or 'coordinate target'}'{locator_note}"
+        )
+        return jx, jy
+
+    def _click_with_retry(
+        self,
+        x,
+        y,
+        button,
+        clicks,
+        frame_before,
+        target_name="",
+        locator_result=None,
+        original_point=None,
+    ):
+        old_cursor = pyautogui.position()
+        clicked_x, clicked_y = self._click_at(
+            x,
+            y,
+            button,
+            clicks,
+            frame_before,
+            target_name,
+            locator_result,
+        )
+
+        time.sleep(0.3)
+        ignore_regions = self._click_ignore_regions(old_cursor, (clicked_x, clicked_y), locator_result)
+        changed = live_perception.verify_screen_changed(frame_before, ignore_regions=ignore_regions)
+        if changed:
+            return True
+
+        if button != "left" or clicks != 1 or not target_name or not original_point:
+            return False
+        if locator_result and locator_result.method == "visual":
+            return False
+
+        retry_frame = live_perception.get_latest_frame() or frame_before
+        retry_result = screen_locator.locate(
+            target_name,
+            frame=retry_frame,
+            methods=("visual",),
+            min_confidence=0.45,
+            approximate=original_point,
+        )
+        if not retry_result:
+            return False
+
+        distance = ((retry_result.x - clicked_x) ** 2 + (retry_result.y - clicked_y) ** 2) ** 0.5
+        if distance < 6:
+            return False
+
+        from core.state.short_term import short_term_memory
+        short_term_memory.add_system_context(
+            f"CLICK_RETRY: No screen change detected after clicking '{target_name}'. "
+            f"Retrying via visual locator at ({retry_result.x}, {retry_result.y})."
+        )
+        logger.logger.info(
+            f"Executor: Retrying click for '{target_name}' via visual locator at "
+            f"({retry_result.x},{retry_result.y})"
+        )
+        old_retry_cursor = pyautogui.position()
+        self._click_at(
+            retry_result.x,
+            retry_result.y,
+            button,
+            clicks,
+            frame_before,
+            target_name,
+            retry_result,
+        )
+        time.sleep(0.3)
+        retry_ignore_regions = ignore_regions + self._click_ignore_regions(
+            old_retry_cursor,
+            (retry_result.x, retry_result.y),
+            retry_result,
+        )
+        return live_perception.verify_screen_changed(frame_before, ignore_regions=retry_ignore_regions)
 
     @staticmethod
     def _indent_script(script):
@@ -296,27 +404,39 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                 button = action.get("button", "left")  # left, right, middle
                 clicks = action.get("clicks", 1)        # 1 = single, 2 = double
                 target_name = action.get("target", "")
+                original_point = (x, y) if x is not None and y is not None else None
 
-                if (x is None or y is None) and target_name:
-                    resolved = self._resolve_target_point(target_name)
-                    if resolved:
-                        x, y = resolved
+                locator_result = None
+                if target_name and screen_locator.is_specific_target(target_name):
+                    locator_result = screen_locator.locate(
+                        target_name,
+                        frame=frame_before,
+                        methods=("uia", "ocr"),
+                        min_confidence=0.62,
+                    )
+                    if not locator_result and original_point:
+                        locator_result = screen_locator.locate(
+                            target_name,
+                            frame=frame_before,
+                            methods=("visual",),
+                            min_confidence=0.45,
+                            approximate=original_point,
+                        )
+                    if locator_result:
+                        x, y = locator_result.x, locator_result.y
                         action["x"] = x
                         action["y"] = y
                 
                 if x is not None and y is not None:
-                    jx, jy = self._clamp_point(x, y, frame_before)
-                    
-                    duration = random.uniform(0.12, 0.25)
-                    pyautogui.moveTo(jx, jy, duration=duration, tween=pyautogui.easeOutQuad)
-                    time.sleep(0.05)
-                    pyautogui.click(button=button, clicks=clicks)
-                    logger.logger.info(f"Executor: {button}-click x{clicks} at ({jx},{jy})")
-                    
-                    # Inject click feedback into memory for AI self-correction
-                    from core.state.short_term import short_term_memory
-                    short_term_memory.add_system_context(
-                        f"CLICK_EXECUTED: {button}-click x{clicks} at pixel ({jx},{jy}) targeting '{target_name or 'coordinate target'}'"
+                    self._click_with_retry(
+                        x,
+                        y,
+                        button,
+                        clicks,
+                        frame_before,
+                        target_name,
+                        locator_result,
+                        original_point,
                     )
                 else:
                     logger.logger.warning(f"Click action missing coordinates: {action}")
@@ -367,146 +487,49 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                         from core.state.short_term import short_term_memory
                         short_term_memory.add_system_context(
                             f"CLICK_TEXT BLOCKED: Blender is active. OCR cannot read Blender's OpenGL fonts. "
-                            f"Use keyboard shortcuts instead: Ctrl+O=Open, Ctrl+N=New, F3=Search command, Shift+A=Add menu. "
-                            f"Or use coordinate-based click with the grid."
+                            f"Use blender_import_file, blender_open_import_menu, blender_python, or keyboard shortcuts instead."
                         )
-                        logger.logger.warning(f"Executor: click_text blocked — Blender active, OCR won't work")
+                        logger.logger.warning("Executor: click_text blocked - Blender active, OCR won't work")
                         bus.publish("ACTION_COMPLETED", action)
                         return
                     
-                    import mss
-                    from PIL import Image
-                    import pytesseract
-                    from pytesseract import Output
-                    
-                    found = False
-                    with mss.mss() as sct:
-                        # Search the full virtual desktop so OCR clicks work on any monitor.
-                        monitor = sct.monitors[0]
-                        screenshot = sct.grab(monitor)
-                        img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
-                        
-                        # Track the monitor offset so we can add it back
-                        mon_left = monitor["left"]
-                        mon_top = monitor["top"]
-                        
-                        try:
-                            # Configure tesseract path
-                            tesseract_path = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Tesseract-OCR", "tesseract.exe")
-                            if os.path.exists(tesseract_path):
-                                pytesseract.pytesseract.tesseract_cmd = tesseract_path
-                                
-                            ocr_data = pytesseract.image_to_data(img, output_type=Output.DICT)
-                            best_match_idx = -1
-                            
-                            target_lower = text_to_find.lower()
-                            target_clean = "".join(c for c in target_lower if c.isalnum())
-                            
-                            # Build a list of valid OCR entries (non-empty, with positions)
-                            entries = []
-                            for i in range(len(ocr_data["text"])):
-                                word = ocr_data["text"][i].strip()
-                                if not word:
-                                    continue
-                                x = ocr_data["left"][i]
-                                entries.append({
-                                    "idx": i, "text": word,
-                                    "x": x, "y": ocr_data["top"][i],
-                                    "w": ocr_data["width"][i], "h": ocr_data["height"][i],
-                                    "line": ocr_data["line_num"][i], "block": ocr_data["block_num"][i]
-                                })
-                            
-                            # Log top OCR detections for debugging
-                            debug_hits = [f"'{e['text']}'@({e['x']},{e['y']})" for e in entries[:10]]
-                            logger.logger.info(f"Executor OCR: Looking for '{text_to_find}', detections ({len(entries)} total): {debug_hits}")
-                            
-                            # --- PASS 1: Exact or near-exact single-word match ---
-                            for e in entries:
-                                word_clean = "".join(c for c in e["text"].lower() if c.isalnum())
-                                if not word_clean or len(word_clean) < 2:
-                                    continue
-                                # Exact match (case-insensitive, ignoring punctuation)
-                                if target_clean == word_clean:
-                                    best_match_idx = e["idx"]
-                                    logger.logger.info(f"Executor OCR: EXACT match '{e['text']}' at ({e['x']},{e['y']})")
-                                    break
-                                # Substring match but ONLY if lengths are similar (avoid 'e' matching 'file')
-                                min_len = min(len(target_clean), len(word_clean))
-                                max_len = max(len(target_clean), len(word_clean))
-                                if min_len >= 3 and min_len >= max_len * 0.5:
-                                    if target_clean in word_clean or word_clean in target_clean:
-                                        best_match_idx = e["idx"]
-                                        logger.logger.info(f"Executor OCR: PASS1 substr match '{e['text']}' at ({e['x']},{e['y']})")
-                                        break
-                            
-                            # --- PASS 2: Multi-word phrase match (sliding window) ---
-                            if best_match_idx == -1 and len(target_clean) > 3:
-                                for start_i, start_entry in enumerate(entries):
-                                    phrase = start_entry["text"]
-                                    phrase_clean = "".join(c for c in phrase.lower() if c.isalnum())
-                                    
-                                    if target_clean in phrase_clean:
-                                        best_match_idx = start_entry["idx"]
-                                        logger.logger.info(f"Executor OCR: PASS2 matched phrase '{phrase}' at ({start_entry['x']},{start_entry['y']})")
-                                        break
-                                    
-                                    # Extend phrase with adjacent words on the same line
-                                    for next_i in range(start_i + 1, min(start_i + 5, len(entries))):
-                                        next_entry = entries[next_i]
-                                        # Only merge words on the same text line
-                                        if next_entry["line"] != start_entry["line"] or next_entry["block"] != start_entry["block"]:
-                                            break
-                                        phrase += " " + next_entry["text"]
-                                        phrase_clean = "".join(c for c in phrase.lower() if c.isalnum())
-                                        
-                                        if target_clean in phrase_clean or phrase_clean in target_clean:
-                                            # Use the midpoint of the full phrase span
-                                            best_match_idx = start_entry["idx"]
-                                            # Override bbox to cover the full phrase
-                                            ocr_data["width"][start_entry["idx"]] = (next_entry["x"] + next_entry["w"]) - start_entry["x"]
-                                            logger.logger.info(f"Executor OCR: PASS2 matched multi-word phrase '{phrase}' spanning {start_i}-{next_i}")
-                                            break
-                                    if best_match_idx != -1:
-                                        break
-                                    
-                            if best_match_idx != -1:
-                                x = ocr_data["left"][best_match_idx]
-                                y = ocr_data["top"][best_match_idx]
-                                w = ocr_data["width"][best_match_idx]
-                                h = ocr_data["height"][best_match_idx]
-                                
-                                # Center of the bounding box, offset by the monitor position
-                                cx = mon_left + x + (w // 2)
-                                cy = mon_top + y + (h // 2)
-                                
-                                logger.logger.info(f"Executor OCR: BBox=({x},{y},{w},{h}) center=({cx},{cy}) mon_offset=({mon_left},{mon_top})")
-                                
-                                jx, jy = self._clamp_point(cx, cy, frame_before)
-                                
-                                duration = random.uniform(0.12, 0.25)
-                                pyautogui.moveTo(jx, jy, duration=duration, tween=pyautogui.easeOutQuad)
-                                time.sleep(0.05)
-                                pyautogui.click(button=button, clicks=clicks)
-                                logger.logger.info(f"Executor: OCR {button}-click x{clicks} at ({jx},{jy}) for text '{text_to_find}'")
-                                
-                                from core.state.short_term import short_term_memory
-                                short_term_memory.add_system_context(
-                                    f"CLICK_TEXT: Found '{text_to_find}' at ({cx}, {cy}), clicked successfully."
-                                )
-                                found = True
-                        except Exception as e:
-                            logger.logger.error(f"Executor OCR click failed: {e}")
-                            
-                    if not found:
+                    locator_result = screen_locator.locate(
+                        text_to_find,
+                        frame=frame_before,
+                        methods=("uia", "ocr"),
+                        min_confidence=0.62,
+                    )
+
+                    if locator_result:
+                        self._click_with_retry(
+                            locator_result.x,
+                            locator_result.y,
+                            button,
+                            clicks,
+                            frame_before,
+                            text_to_find,
+                            locator_result,
+                            original_point=(locator_result.x, locator_result.y),
+                        )
                         from core.state.short_term import short_term_memory
                         short_term_memory.add_system_context(
-                            f"CLICK_TEXT FAILED: Could not find '{text_to_find}' on screen using OCR. "
-                            f"This app may use custom-rendered fonts that OCR cannot read (like Blender or game engines). "
+                            f"CLICK_TEXT: Found '{text_to_find}' via {locator_result.method} "
+                            f"at ({locator_result.x}, {locator_result.y}), clicked successfully."
+                        )
+                    else:
+                        from core.state.short_term import short_term_memory
+                        short_term_memory.add_system_context(
+                            f"CLICK_TEXT FAILED: Could not find '{text_to_find}' on screen using UI Automation or OCR. "
+                            f"This app may use custom-rendered UI that accessibility/OCR cannot read. "
                             f"FALLBACK OPTIONS: 1) Use coordinate-based click with the grid overlay. "
-                            f"2) Use keyboard shortcuts instead (e.g. hotkey for File menu). "
+                            f"2) Use keyboard shortcuts or app-specific APIs. "
                             f"3) Try a shorter or slightly different text label."
                         )
-                        logger.logger.warning(f"Executor: OCR could not find text '{text_to_find}'")
+                        logger.logger.warning(f"Executor: Locator could not find text '{text_to_find}'")
+
+                    bus.publish("ACTION_COMPLETED", action)
+                    return
+
                 else:
                     logger.logger.warning("click_text action missing 'text' field")
 
@@ -833,7 +856,7 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
             time.sleep(random.uniform(0.1, 0.2))
             
             # Post action verification
-            if a_type in ["click", "click_text", "type", "hotkey"]:
+            if a_type in ["type", "hotkey"]:
                 time.sleep(0.3)
                 live_perception.verify_screen_changed(frame_before)
                 

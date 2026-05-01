@@ -57,14 +57,6 @@ class ActionOrchestrator:
                         logger.logger.warning(f"Unknown action type: {a_type}")
                         continue
                     
-                    # Click gets special visual highlight before execution
-                    if a_type == "click" and "x" in action and "y" in action:
-                        bus.publish("HIGHLIGHT_REQUESTED", {
-                            "x": action["x"], "y": action["y"], 
-                            "w": 40, "h": 40
-                        })
-                        time.sleep(0.3)
-                    
                     executor.execute_single(action)
 
                 logger.log_event("ACTION_SEQUENCE_COMPLETED", {

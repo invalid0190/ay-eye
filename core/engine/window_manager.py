@@ -9,6 +9,10 @@ import ctypes.wintypes
 from core.utils.logger import logger
 
 
+def _ps_quote(value):
+    return "'" + value.replace("'", "''") + "'"
+
+
 class WindowManager:
     """Manages Windows application launching and window switching."""
 
@@ -105,23 +109,41 @@ class WindowManager:
 
         # Strategy 2: Try Windows Search (Start Menu)
         try:
-            subprocess.Popen(
-                f'powershell -Command "Start-Process \'{app_name}\'"',
-                shell=True
+            result = subprocess.run(
+                ["powershell", "-NoProfile", "-Command", f"Start-Process -FilePath {_ps_quote(app_name)}"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
-            logger.logger.info(f"WindowManager: Launched '{app_name}' via PowerShell Start-Process")
-            return True
+            if result.returncode == 0:
+                logger.logger.info(f"WindowManager: Launched '{app_name}' via PowerShell Start-Process")
+                return True
+
+            error = (result.stderr or result.stdout or "").strip()
+            logger.logger.warning(f"WindowManager: PowerShell launch failed for '{app_name}': {error[:200]}")
         except Exception as e:
             logger.logger.warning(f"WindowManager: PowerShell launch failed: {e}")
 
         # Strategy 3: Raw 'start' command as last resort
         try:
-            subprocess.Popen(f'start "" "{app_name}"', shell=True)
-            logger.logger.info(f"WindowManager: Launched '{app_name}' via start command")
-            return True
+            result = subprocess.run(
+                ["cmd", "/c", "start", "", app_name],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+            )
+            if result.returncode == 0:
+                logger.logger.info(f"WindowManager: Launched '{app_name}' via start command")
+                return True
+
+            error = (result.stderr or result.stdout or "").strip()
+            logger.logger.warning(f"WindowManager: start command failed for '{app_name}': {error[:200]}")
         except Exception as e:
             logger.logger.error(f"WindowManager: All launch strategies failed for '{app_name}': {e}")
-            return False
+
+        return False
 
     def switch_to(self, app_name):
         """Switch to an already-running application window by searching window titles."""
