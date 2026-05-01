@@ -155,6 +155,121 @@ class ActionExecutor:
             logger.logger.warning(f"Executor: Target resolution failed for '{target}': {e}")
             return None
 
+    @staticmethod
+    def _indent_script(script):
+        return "\n".join(f"    {line}" if line.strip() else "" for line in script.splitlines())
+
+    def _send_python_to_blender_console(self, script, description="Blender script", restore_layout=True):
+        """Run bpy code in the active Blender process using the Python console."""
+        if not script or not script.strip():
+            logger.logger.warning("Executor: Empty Blender Python script")
+            return False
+
+        switched = window_manager.switch_to("blender")
+        if not switched:
+            logger.logger.info("Executor: Blender is not focused, launching Blender before API action")
+            window_manager.launch("blender")
+            time.sleep(2.0)
+            switched = window_manager.switch_to("blender")
+
+        if not switched:
+            from core.state.short_term import short_term_memory
+            short_term_memory.add_system_context(
+                f"BLENDER_API_RESULT [FAILED]: Could not focus or launch Blender for {description}."
+            )
+            return False
+
+        start_msg = f"AYEYE_BLENDER_ACTION_START: {description}"
+        done_msg = f"AYEYE_BLENDER_ACTION_DONE: {description}"
+        wrapped = (
+            "import traceback\n"
+            f"print({start_msg!r})\n"
+            "try:\n"
+            f"{self._indent_script(script)}\n"
+            f"    print({done_msg!r})\n"
+            "except Exception:\n"
+            "    traceback.print_exc()\n"
+        )
+
+        import pyperclip
+
+        previous_clipboard = ""
+        try:
+            previous_clipboard = pyperclip.paste()
+        except Exception:
+            pass
+
+        try:
+            pyperclip.copy(f"exec({wrapped!r})")
+            time.sleep(0.1)
+            pyautogui.hotkey("shift", "f4")
+            time.sleep(0.6)
+            pyautogui.hotkey("ctrl", "v")
+            time.sleep(0.1)
+            pyautogui.press("enter")
+            time.sleep(0.8)
+            if restore_layout:
+                pyautogui.hotkey("shift", "f5")
+
+            from core.state.short_term import short_term_memory
+            short_term_memory.add_system_context(
+                f"BLENDER_API_RESULT [SENT]: {description}. Watch for AYEYE_BLENDER_ACTION_DONE in Blender console."
+            )
+            logger.logger.info(f"Executor: Sent Blender Python action: {description}")
+            return True
+        finally:
+            try:
+                pyperclip.copy(previous_clipboard)
+            except Exception:
+                pass
+
+    def _blender_import_script(self, filepath):
+        safe_path = os.path.abspath(os.path.expandvars(os.path.expanduser(filepath)))
+        return f"""
+import os
+import bpy
+
+path = r{safe_path!r}
+if not os.path.exists(path):
+    raise FileNotFoundError(path)
+
+ext = os.path.splitext(path)[1].lower()
+before = len(bpy.data.objects)
+
+if ext == ".fbx":
+    bpy.ops.import_scene.fbx(filepath=path)
+elif ext == ".obj":
+    if hasattr(bpy.ops.wm, "obj_import"):
+        bpy.ops.wm.obj_import(filepath=path)
+    else:
+        bpy.ops.import_scene.obj(filepath=path)
+elif ext in {{".glb", ".gltf"}}:
+    bpy.ops.import_scene.gltf(filepath=path)
+elif ext == ".stl":
+    if hasattr(bpy.ops.wm, "stl_import"):
+        bpy.ops.wm.stl_import(filepath=path)
+    else:
+        bpy.ops.import_mesh.stl(filepath=path)
+elif ext == ".ply":
+    if hasattr(bpy.ops.wm, "ply_import"):
+        bpy.ops.wm.ply_import(filepath=path)
+    else:
+        bpy.ops.import_mesh.ply(filepath=path)
+elif ext == ".dae":
+    bpy.ops.wm.collada_import(filepath=path)
+elif ext == ".abc":
+    bpy.ops.wm.alembic_import(filepath=path)
+elif ext == ".usd" or ext == ".usda" or ext == ".usdc" or ext == ".usdz":
+    bpy.ops.wm.usd_import(filepath=path)
+elif ext == ".blend":
+    bpy.ops.wm.open_mainfile(filepath=path)
+else:
+    raise ValueError(f"Unsupported import extension: {{ext}}")
+
+after = len(bpy.data.objects)
+print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{after}}")
+"""
+
     def execute_sequence(self, actions):
         self._stop_event.clear()
         for action in actions:
@@ -556,6 +671,42 @@ class ActionExecutor:
                                 short_term_memory.add_system_context(
                                     f"CMD_RESULT [TIMEOUT after 15s]:\nCommand: {command}"
                                 )
+
+            elif a_type == "blender_python":
+                script = action.get("script", "")
+                description = action.get("description", "custom Blender Python")
+                restore_layout = action.get("restore_layout", True)
+                success = self._send_python_to_blender_console(script, description, restore_layout)
+                if not success:
+                    bus.publish("ACTION_ABORTED", {"reason": f"Blender API action failed: {description}"})
+                    return
+
+            elif a_type == "blender_open_import_menu":
+                script = "import bpy\nbpy.ops.wm.call_menu(name='TOPBAR_MT_file_import')"
+                success = self._send_python_to_blender_console(
+                    script,
+                    "open Blender Import menu",
+                    restore_layout=False,
+                )
+                if not success:
+                    bus.publish("ACTION_ABORTED", {"reason": "Could not open Blender import menu through API"})
+                    return
+
+            elif a_type == "blender_import_file":
+                filepath = action.get("path") or action.get("filepath") or action.get("file")
+                if not filepath:
+                    logger.logger.warning("Blender import action missing path")
+                    bus.publish("ACTION_ABORTED", {"reason": "Blender import action missing file path"})
+                    return
+                script = self._blender_import_script(filepath)
+                success = self._send_python_to_blender_console(
+                    script,
+                    f"import Blender file {filepath}",
+                    restore_layout=True,
+                )
+                if not success:
+                    bus.publish("ACTION_ABORTED", {"reason": f"Could not import file in Blender: {filepath}"})
+                    return
 
             elif a_type == "create_skill":
                 name = action.get("name", "")

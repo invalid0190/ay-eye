@@ -4,7 +4,7 @@ import time
 import os
 import base64
 import threading
-from queue import Queue
+from queue import Full, Queue
 from typing import Optional, Dict, Any, List
 from core.utils.logger import logger
 from core.utils.json_parser import json_parser
@@ -37,6 +37,7 @@ class LLMBridge:
         
         self.timeout = 60.0
         self.queue = Queue(maxsize=1)
+        self.busy_wait_timeout = 20.0
         self._lock = threading.Lock()
 
     def _build_headers(self):
@@ -48,11 +49,12 @@ class LLMBridge:
         return headers
 
     def generate(self, prompt: str, retry=True) -> Optional[Dict[str, Any]]:
-        if self.queue.full():
-            logger.logger.warning("LLM Bridge busy, dropping request")
+        try:
+            self.queue.put(True, timeout=self.busy_wait_timeout)
+        except Full:
+            logger.logger.warning("LLM Bridge busy for 20s, dropping request")
             return None
-        
-        self.queue.put(True)
+
         queued = True
         try:
             start_time = time.time()
@@ -102,11 +104,12 @@ class LLMBridge:
 
     def generate_with_vision(self, prompt: str, images_b64: List[str], retry=True) -> Optional[Dict[str, Any]]:
         """Send a prompt with screenshot images to the vision-capable LLM."""
-        if self.queue.full():
-            logger.logger.warning("LLM Bridge busy, dropping request")
+        try:
+            self.queue.put(True, timeout=self.busy_wait_timeout)
+        except Full:
+            logger.logger.warning("LLM Bridge busy for 20s, dropping request")
             return None
-        
-        self.queue.put(True)
+
         queued = True
         try:
             start_time = time.time()

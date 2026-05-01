@@ -16,6 +16,7 @@ from core.engine.skill_manager import skill_manager
 from core.utils.logger import logger
 from core.engine.web_search import web_search
 from core.vision.live_perception import live_perception
+from core.engine.audio_state import audio_state
 
 VISION_SYSTEM_PROMPT = """You are ay-eye, an advanced desktop AI assistant. You can SEE the user's screen and HEAR their voice commands. You also may receive WEB SEARCH RESULTS for knowledge questions.
 
@@ -56,6 +57,16 @@ When the user says "switch to Discord", "go to Chrome", "open Discord" (and it m
 - If the app is not running, the system will automatically launch it.
 - Use "switch" when the user says: "switch to", "go to", "show me", "bring up", "focus on", "open" (for common apps).
 - Use "launch" ONLY when the user explicitly wants to start a NEW instance.
+
+**3B. BLENDER API MODE (intent: "act")**
+When Blender is active, DO NOT claim success from a visual menu click. Blender UI is OpenGL-rendered, so OCR and Windows UI clicking are unreliable.
+- Prefer Blender API actions over clicking menus.
+- To open Blender's File > Import menu: use `{"type": "blender_open_import_menu"}`.
+- To import a known file path directly: use `{"type": "blender_import_file", "path": "C:\\absolute\\path\\model.fbx"}`. Supported common formats include .fbx, .obj, .glb/.gltf, .stl, .ply, .dae, .abc, .usd, and .blend.
+- To run a custom Blender command: use `{"type": "blender_python", "description": "short description", "script": "import bpy\\nbpy.ops.object.select_all(action='SELECT')"}`.
+- If the user asks to import but has not provided a file path, ask for the file path instead of clicking around.
+- For Blender API actions, use `"status": "in_progress"` on the first response so the verification loop checks the screen before you report completion.
+- Only use coordinate `click` in Blender for viewport/canvas operations that cannot be done through bpy or keyboard shortcuts.
 
 **4. CONTENT CREATION (intent: "act")**
 When the user asks you to write/compose/draft/create text:
@@ -127,9 +138,10 @@ When you need to read exact text from the screen (emails, code, error messages) 
 
 **13. TEXT-BASED CLICKING — MANDATORY DEFAULT (intent: "act")**
 **YOU MUST USE `click_text` instead of coordinate `click` whenever the target element has ANY visible text label.**
+- Exception: if Blender is active, do NOT use `click_text`; use Blender API actions or keyboard shortcuts.
 - Buttons, menu items, file names, folder names, tab labels, link text — ALL of these MUST use `click_text`.
 - `click_text` uses OCR to find the exact pixel location of text on screen. It is 100x more accurate than guessing coordinates.
-- Example: To click "Flipper.Blend" in Blender's recent files: `{"type": "click_text", "text": "Flipper.Blend"}`
+- Example: To click "Submit" in a normal Windows/browser app: `{"type": "click_text", "text": "Submit"}`
 - Example: To right-click a folder: `{"type": "click_text", "text": "MyFolder", "button": "right"}`
 - Example: To double-click a file: `{"type": "click_text", "text": "report.pdf", "clicks": 2}`
 - **ONLY use coordinate `click` for elements that have NO text** (e.g., blank canvas areas, color swatches, unlabeled icons).
@@ -164,6 +176,9 @@ When you need to read exact text from the screen (emails, code, error messages) 
     {"type": "switch", "target": "discord"},
     {"type": "open_url", "url": "https://google.com"},
     {"type": "cmd", "command": "mkdir 'C:\\Users\\LENOVO\\Desktop\\MyFolder'"},
+    {"type": "blender_open_import_menu"},
+    {"type": "blender_import_file", "path": "C:\\absolute\\path\\model.fbx"},
+    {"type": "blender_python", "description": "select all objects", "script": "import bpy\\nbpy.ops.object.select_all(action='SELECT')"},
     {"type": "create_skill", "name": "my_skill", "instruction": "Step-by-step instructions"},
     {"type": "read_file", "path": "app.py"},
     {"type": "list_dir", "path": "."},
@@ -289,6 +304,22 @@ class Brain:
             "text": text
         })
 
+    def _wait_for_tts_to_finish(self, timeout=10.0, start_grace=0.4):
+        """Wait only while TTS is actually speaking, avoiding missed TTS_FINISHED races."""
+        start = time.time()
+        grace_deadline = start + start_grace
+
+        while time.time() < grace_deadline:
+            if audio_state.is_speaking:
+                break
+            time.sleep(0.05)
+
+        deadline = start + timeout
+        while audio_state.is_speaking and time.time() < deadline:
+            time.sleep(0.05)
+
+        return not audio_state.is_speaking
+
     def on_ai_triggered(self, trigger_data):
         state = state_manager.get_state()
         
@@ -331,7 +362,7 @@ BLENDER DOES NOT USE Alt+key MENUS. Use these correct shortcuts:
 - F3 = Search any command by name (type 'Open Recent' to find it)
 - Shift+A = Add menu, N = N-panel, Tab = Edit/Object mode
 To open a specific .blend file: use cmd action: & 'C:\\Program Files\\Blender Foundation\\Blender 4.2\\blender.exe' 'C:\\path\\to\\file.blend'
-For clicking Blender UI elements, use coordinate-based click with the grid — NOT click_text.
+For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, or blender_python with status=in_progress so you can verify after the API action. Do NOT use click_text, and do not claim a Blender menu opened unless you used the Blender API action or verified it on screen.
 """
                 
                 prompt = f"""{VISION_SYSTEM_PROMPT}
@@ -399,16 +430,9 @@ Analyze the screenshot and the conversation history, then respond. If web search
             if response.get("intent") == "act":
                 # Wait for TTS to finish speaking before executing actions
                 def _dispatch():
-                    import time
-                    tts_done = threading.Event()
-                    
-                    def _on_tts_finished(data):
-                        tts_done.set()
-                    
-                    bus.subscribe("TTS_FINISHED", _on_tts_finished)
-                    
-                    # Wait for TTS to finish, but timeout after 10s as safety net
-                    if not tts_done.wait(timeout=10.0):
+                    # Wait for TTS only if it actually started. The old event-only
+                    # path could miss fast TTS_FINISHED events and wait 10s every time.
+                    if not self._wait_for_tts_to_finish(timeout=10.0):
                         logger.logger.warning("Brain: TTS timeout, proceeding with actions")
                     
                     # Small buffer for audio playback to fully stop

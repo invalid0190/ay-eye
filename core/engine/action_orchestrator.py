@@ -11,7 +11,8 @@ class ActionOrchestrator:
     KNOWN_ACTIONS = {
         "click", "click_text", "drag", "type", "hotkey", "scroll", "switch", "launch",
         "open_url", "cmd", "create_skill", "read_file", "list_dir",
-        "write_file", "extract_clipboard", "listen_audio", "ocr_screen"
+        "write_file", "extract_clipboard", "listen_audio", "ocr_screen",
+        "blender_python", "blender_open_import_menu", "blender_import_file"
     }
 
     def __init__(self):

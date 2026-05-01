@@ -1,4 +1,5 @@
 import ctypes
+import time
 
 import comtypes.client
 
@@ -8,6 +9,7 @@ from core.utils.logger import logger
 
 class UIAutoScanner:
     def __init__(self):
+        self._last_error_log = 0
         try:
             # Import UIAutomationClient
             comtypes.client.GetModule("UIAutomationCore.dll")
@@ -17,12 +19,29 @@ class UIAutoScanner:
             logger.logger.error(f"UIAutomation init error: {e}")
             self.uia = None
 
+    @staticmethod
+    def _window_title(hwnd):
+        if not hwnd:
+            return ""
+
+        length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+        if length <= 0:
+            return ""
+
+        buf = ctypes.create_unicode_buffer(length + 1)
+        ctypes.windll.user32.GetWindowTextW(hwnd, buf, length + 1)
+        return buf.value
+
     def scan_active_window(self):
         if not self.uia:
             return []
 
         try:
             hwnd = ctypes.windll.user32.GetForegroundWindow()
+            title = self._window_title(hwnd).lower()
+            if "blender" in title:
+                return []
+
             root = self.uia.ElementFromHandle(hwnd) if hwnd else self.uia.GetFocusedElement()
             if not root:
                 return []
@@ -59,7 +78,10 @@ class UIAutoScanner:
             bus.publish("UI_UPDATED", elements)
             return elements
         except Exception as e:
-            logger.logger.error(f"UI scan error: {e}")
+            now = time.time()
+            if now - self._last_error_log > 10:
+                logger.logger.warning(f"UI scan skipped after automation error: {e}")
+                self._last_error_log = now
             return []
 
 

@@ -62,6 +62,35 @@ class ExecutorRegressionTests(unittest.TestCase):
         x, y = move_to.call_args.args[:2]
         self.assertEqual((x, y), (125, 110))
 
+    def test_blender_import_script_uses_bpy_importer(self):
+        executor = ActionExecutor()
+
+        script = executor._blender_import_script("C:\\assets\\chair.fbx")
+
+        self.assertIn("bpy.ops.import_scene.fbx", script)
+        self.assertIn("AYEYE_IMPORT_RESULT", script)
+
+    @patch("core.engine.executor.pyautogui.press")
+    @patch("core.engine.executor.pyautogui.hotkey")
+    @patch("pyperclip.copy")
+    @patch("pyperclip.paste", return_value="old")
+    @patch("core.engine.executor.window_manager.switch_to", return_value=True)
+    def test_blender_python_uses_console_without_mouse_clicks(self, switch_to, paste, copy, hotkey, press):
+        executor = ActionExecutor()
+
+        ok = executor._send_python_to_blender_console(
+            "import bpy\nbpy.ops.object.select_all(action='SELECT')",
+            "select all",
+        )
+
+        self.assertTrue(ok)
+        switch_to.assert_called_with("blender")
+        hotkey.assert_any_call("shift", "f4")
+        hotkey.assert_any_call("ctrl", "v")
+        press.assert_called_with("enter")
+        copied = copy.call_args_list[0].args[0]
+        self.assertIn("bpy.ops.object.select_all", copied)
+
 
 if __name__ == "__main__":
     unittest.main()
