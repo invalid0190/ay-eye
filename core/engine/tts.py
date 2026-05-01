@@ -39,6 +39,8 @@ class TTSEngine:
             return
 
         if not audio_state.start_speaking():
+            from core.engine.event_bus import bus
+            bus.publish("TTS_FINISHED", {})
             return
 
         def _run():

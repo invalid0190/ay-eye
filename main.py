@@ -1,8 +1,9 @@
 import sys
-import ctypes
 
-# We let PyQt6 handle DPI awareness natively (V2) to avoid conflicts
-# and ensure PyAutoGUI physical pixel coordinate mapping is accurate.
+# Enable DPI awareness before Qt, MSS, or PyAutoGUI initialize so screenshot pixels
+# and click coordinates refer to the same physical desktop space.
+from core.utils.dpi import enable_dpi_awareness
+enable_dpi_awareness()
 
 import time
 import threading

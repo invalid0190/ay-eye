@@ -20,7 +20,16 @@ class ActionOrchestrator:
         bus.subscribe("CONFIRM_HOTKEY", lambda d: self.confirm_event.set())
 
     def on_action_requested(self, data):
+        logger.log_event("ACTION_REQUESTED", {
+            "status": data.get("status"),
+            "actions": data.get("actions", [])
+        })
+
         if not action_state.start_action("orchestration"):
+            logger.log_event("ACTION_SKIPPED_BUSY", {
+                "current_action": action_state.current_action,
+                "requested_actions": data.get("actions", [])
+            })
             return
 
         def _run():
@@ -56,6 +65,11 @@ class ActionOrchestrator:
                         time.sleep(0.3)
                     
                     executor.execute_single(action)
+
+                logger.log_event("ACTION_SEQUENCE_COMPLETED", {
+                    "count": len(actions),
+                    "status": data.get("status")
+                })
                     
             finally:
                 action_state.stop_action()

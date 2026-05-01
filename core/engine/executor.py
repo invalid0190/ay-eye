@@ -1,5 +1,6 @@
 import os
 import pyautogui
+import re
 import subprocess
 import time
 import random
@@ -11,6 +12,11 @@ from core.utils.logger import logger
 from core.vision.live_perception import live_perception
 
 class ActionExecutor:
+    _DIRECT_EXE_RE = re.compile(
+        r"^\s*(?:&\s*)?(?P<quote>['\"])(?P<exe>[A-Za-z]:\\[^'\"]+\.exe)(?P=quote)(?P<args>.*)$",
+        re.IGNORECASE,
+    )
+
     def __init__(self):
         pyautogui.FAILSAFE = True
         pyautogui.PAUSE = 0.05
@@ -24,6 +30,130 @@ class ActionExecutor:
         self._stop_event.set()
         action_state.stop_action()
         logger.log_event("EXECUTOR_FORCE_STOPPED")
+
+    def _desktop_bounds(self, frame=None):
+        """Return inclusive desktop bounds in PyAutoGUI coordinates."""
+        if frame:
+            off_x, off_y = frame.desktop_offset
+            raw_w, raw_h = frame.raw_size
+            return off_x, off_y, off_x + raw_w - 1, off_y + raw_h - 1
+
+        width, height = pyautogui.size()
+        return 0, 0, width - 1, height - 1
+
+    def _clamp_point(self, x, y, frame=None, margin=1):
+        min_x, min_y, max_x, max_y = self._desktop_bounds(frame)
+        safe_min_x = min_x + margin
+        safe_min_y = min_y + margin
+        safe_max_x = max_x - margin
+        safe_max_y = max_y - margin
+
+        if safe_min_x > safe_max_x:
+            safe_min_x, safe_max_x = min_x, max_x
+        if safe_min_y > safe_max_y:
+            safe_min_y, safe_max_y = min_y, max_y
+
+        return (
+            int(max(safe_min_x, min(safe_max_x, x))),
+            int(max(safe_min_y, min(safe_max_y, y))),
+        )
+
+    @staticmethod
+    def _ps_quote(value):
+        return "'" + value.replace("'", "''") + "'"
+
+    @staticmethod
+    def _detached_creationflags():
+        return (
+            getattr(subprocess, "DETACHED_PROCESS", 0)
+            | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+        )
+
+    def _try_launch_detached_command(self, command):
+        """Launch direct GUI executable commands without capturing their stdio forever."""
+        match = self._DIRECT_EXE_RE.match(command)
+        if not match:
+            return False
+
+        exe_path = match.group("exe")
+        args = match.group("args").strip()
+        if not os.path.exists(exe_path):
+            return False
+
+        ps_command = f"Start-Process -FilePath {self._ps_quote(exe_path)}"
+        if args:
+            ps_command += f" -ArgumentList {self._ps_quote(args)}"
+
+        subprocess.Popen(
+            ["powershell", "-NoProfile", "-Command", ps_command],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=self._detached_creationflags(),
+            close_fds=True,
+        )
+        logger.logger.info(f"Executor: Detached GUI launch '{exe_path}'")
+        from core.state.short_term import short_term_memory
+        short_term_memory.add_system_context(
+            f"CMD_RESULT [LAUNCHED]: Started '{exe_path}' without blocking the action executor."
+        )
+        return True
+
+    @staticmethod
+    def _clean_label(value):
+        return "".join(ch for ch in (value or "").lower() if ch.isalnum())
+
+    def _resolve_target_point(self, target):
+        """Resolve a named target from the latest UI Automation state."""
+        if not target:
+            return None
+
+        try:
+            from core.state.manager import state_manager
+
+            target_clean = self._clean_label(target)
+            if not target_clean:
+                return None
+
+            best = None
+            best_score = 0
+            for element in state_manager.get_state().ui_elements:
+                labels = [element.name, element.text, element.role]
+                label_clean = " ".join(self._clean_label(label) for label in labels if label)
+                if not label_clean:
+                    continue
+
+                score = 0
+                if target_clean == self._clean_label(element.name):
+                    score = 100
+                elif target_clean == self._clean_label(element.text):
+                    score = 95
+                elif target_clean in label_clean:
+                    score = 80
+                elif label_clean in target_clean:
+                    score = 65
+
+                if score > best_score and element.rect and len(element.rect) >= 2:
+                    best = element
+                    best_score = score
+
+            if not best:
+                return None
+
+            rect = best.rect
+            if len(rect) >= 4:
+                x = rect[0] + rect[2] / 2
+                y = rect[1] + rect[3] / 2
+            else:
+                x, y = rect[0], rect[1]
+
+            logger.logger.info(
+                f"Executor: Resolved target '{target}' to UI element '{best.name}' at ({int(x)},{int(y)})"
+            )
+            return int(x), int(y)
+        except Exception as e:
+            logger.logger.warning(f"Executor: Target resolution failed for '{target}': {e}")
+            return None
 
     def execute_sequence(self, actions):
         self._stop_event.clear()
@@ -50,34 +180,33 @@ class ActionExecutor:
                 y = action.get("y")
                 button = action.get("button", "left")  # left, right, middle
                 clicks = action.get("clicks", 1)        # 1 = single, 2 = double
+                target_name = action.get("target", "")
+
+                if (x is None or y is None) and target_name:
+                    resolved = self._resolve_target_point(target_name)
+                    if resolved:
+                        x, y = resolved
+                        action["x"] = x
+                        action["y"] = y
                 
                 if x is not None and y is not None:
-                    if frame_before:
-                        desk_w, desk_h = frame_before.raw_size
-                        off_x, off_y = frame_before.desktop_offset
-                        min_x, max_x = off_x, off_x + desk_w
-                        min_y, max_y = off_y, off_y + desk_h
-                    else:
-                        min_x, max_x = 0, self.screen_w
-                        min_y, max_y = 0, self.screen_h
-                        
-                    jx = max(min_x + 10, min(max_x - 10, x + random.randint(-2, 2)))
-                    jy = max(min_y + 10, min(max_y - 10, y + random.randint(-2, 2)))
+                    jx, jy = self._clamp_point(x, y, frame_before)
                     
-                    duration = random.uniform(0.3, 0.5)
+                    duration = random.uniform(0.12, 0.25)
                     pyautogui.moveTo(jx, jy, duration=duration, tween=pyautogui.easeOutQuad)
-                    time.sleep(random.uniform(0.05, 0.15))
+                    time.sleep(0.05)
                     pyautogui.click(button=button, clicks=clicks)
                     logger.logger.info(f"Executor: {button}-click x{clicks} at ({jx},{jy})")
                     
                     # Inject click feedback into memory for AI self-correction
-                    target_name = action.get("target", "unknown element")
                     from core.state.short_term import short_term_memory
                     short_term_memory.add_system_context(
-                        f"CLICK_EXECUTED: {button}-click x{clicks} at pixel ({jx},{jy}) targeting '{target_name}'"
+                        f"CLICK_EXECUTED: {button}-click x{clicks} at pixel ({jx},{jy}) targeting '{target_name or 'coordinate target'}'"
                     )
                 else:
                     logger.logger.warning(f"Click action missing coordinates: {action}")
+                    bus.publish("ACTION_ABORTED", {"reason": f"Click target could not be resolved: {action}"})
+                    return
                     
             elif a_type == "click_text":
                 text_to_find = action.get("text", "")
@@ -94,7 +223,7 @@ class ActionExecutor:
                         short_term_memory.add_system_context("CLICK_TEXT: 'CONFIRM' -> pressed Alt+Enter (Ay-Eye confirm hotkey)")
                         time.sleep(0.3)
                         live_perception.verify_screen_changed(frame_before)
-                        bus.publish("ACTION_COMPLETE", action)
+                        bus.publish("ACTION_COMPLETED", action)
                         return
                     elif text_upper == "DISMISS":
                         pyautogui.press("escape")
@@ -103,7 +232,7 @@ class ActionExecutor:
                         short_term_memory.add_system_context("CLICK_TEXT: 'DISMISS' -> pressed Escape (Ay-Eye dismiss)")
                         time.sleep(0.3)
                         live_perception.verify_screen_changed(frame_before)
-                        bus.publish("ACTION_COMPLETE", action)
+                        bus.publish("ACTION_COMPLETED", action)
                         return
                     
                     # --- Fast-fail for Blender (OCR can't read its OpenGL fonts) ---
@@ -127,7 +256,7 @@ class ActionExecutor:
                             f"Or use coordinate-based click with the grid."
                         )
                         logger.logger.warning(f"Executor: click_text blocked — Blender active, OCR won't work")
-                        bus.publish("ACTION_COMPLETE", action)
+                        bus.publish("ACTION_COMPLETED", action)
                         return
                     
                     import mss
@@ -137,9 +266,8 @@ class ActionExecutor:
                     
                     found = False
                     with mss.mss() as sct:
-                        # Use monitor[1] (primary) not monitor[0] (virtual desktop)
-                        # monitor[0] can have negative offsets on multi-monitor setups
-                        monitor = sct.monitors[1]
+                        # Search the full virtual desktop so OCR clicks work on any monitor.
+                        monitor = sct.monitors[0]
                         screenshot = sct.grab(monitor)
                         img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
                         
@@ -166,10 +294,6 @@ class ActionExecutor:
                                 if not word:
                                     continue
                                 x = ocr_data["left"][i]
-                                # Ignore hits on the right edge (AI dashboard area)
-                                max_x = frame_before.raw_size[0] + frame_before.desktop_offset[0] if frame_before else self.screen_w
-                                if x > max_x - 420:
-                                    continue
                                 entries.append({
                                     "idx": i, "text": word,
                                     "x": x, "y": ocr_data["top"][i],
@@ -242,19 +366,11 @@ class ActionExecutor:
                                 
                                 logger.logger.info(f"Executor OCR: BBox=({x},{y},{w},{h}) center=({cx},{cy}) mon_offset=({mon_left},{mon_top})")
                                 
-                                if frame_before:
-                                    max_x = frame_before.desktop_offset[0] + frame_before.raw_size[0]
-                                    max_y = frame_before.desktop_offset[1] + frame_before.raw_size[1]
-                                else:
-                                    max_x = self.screen_w
-                                    max_y = self.screen_h
+                                jx, jy = self._clamp_point(cx, cy, frame_before)
                                 
-                                jx = max(10, min(max_x - 10, cx + random.randint(-1, 1)))
-                                jy = max(10, min(max_y - 10, cy + random.randint(-1, 1)))
-                                
-                                duration = random.uniform(0.3, 0.5)
+                                duration = random.uniform(0.12, 0.25)
                                 pyautogui.moveTo(jx, jy, duration=duration, tween=pyautogui.easeOutQuad)
-                                time.sleep(random.uniform(0.05, 0.15))
+                                time.sleep(0.05)
                                 pyautogui.click(button=button, clicks=clicks)
                                 logger.logger.info(f"Executor: OCR {button}-click x{clicks} at ({jx},{jy}) for text '{text_to_find}'")
                                 
@@ -383,7 +499,9 @@ class ActionExecutor:
                         # This handles cases where AI says cmd "blender" but blender isn't in PATH
                         app_launch_names = {"blender", "discord", "spotify", "telegram", "slack", "chrome", "firefox", "brave", "notepad", "code", "vscode"}
                         cmd_stripped = cmd_lower.strip().strip("'\"")
-                        if cmd_stripped in app_launch_names or cmd_stripped.startswith("start-process"):
+                        if self._try_launch_detached_command(command):
+                            time.sleep(0.5)
+                        elif cmd_stripped in app_launch_names or cmd_stripped.startswith("start-process"):
                             # Extract app name from Start-Process command
                             app_name = cmd_stripped
                             if "start-process" in cmd_stripped:
@@ -405,7 +523,12 @@ class ActionExecutor:
                             try:
                                 result = subprocess.run(
                                     ["powershell", "-NoProfile", "-Command", command],
-                                    capture_output=True, text=True, timeout=15
+                                    stdin=subprocess.DEVNULL,
+                                    capture_output=True,
+                                    text=True,
+                                    timeout=15,
+                                    creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+                                    close_fds=True,
                                 )
                                 output = (result.stdout or "").strip()
                                 errors = (result.stderr or "").strip()

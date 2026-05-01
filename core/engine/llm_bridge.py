@@ -53,6 +53,7 @@ class LLMBridge:
             return None
         
         self.queue.put(True)
+        queued = True
         try:
             start_time = time.time()
             headers = self._build_headers()
@@ -82,6 +83,8 @@ class LLMBridge:
             
             if not data and retry:
                 logger.logger.warning("JSON parse failed, retrying...")
+                self.queue.get()
+                queued = False
                 return self.generate(prompt + "\n\nIMPORTANT: Return ONLY valid JSON.", retry=False)
             
             duration = int((time.time() - start_time) * 1000)
@@ -94,7 +97,8 @@ class LLMBridge:
             bus.publish("BRAIN_ERROR", {"reason": str(e)})
             return None
         finally:
-            self.queue.get()
+            if queued:
+                self.queue.get()
 
     def generate_with_vision(self, prompt: str, images_b64: List[str], retry=True) -> Optional[Dict[str, Any]]:
         """Send a prompt with screenshot images to the vision-capable LLM."""
@@ -103,6 +107,7 @@ class LLMBridge:
             return None
         
         self.queue.put(True)
+        queued = True
         try:
             start_time = time.time()
             headers = self._build_headers()
@@ -144,6 +149,8 @@ class LLMBridge:
             
             if not data and retry:
                 logger.logger.warning("Vision JSON parse failed, retrying...")
+                self.queue.get()
+                queued = False
                 return self.generate_with_vision(
                     prompt + "\n\nReturn ONLY valid JSON.", images_b64, retry=False
                 )
@@ -158,7 +165,8 @@ class LLMBridge:
             bus.publish("BRAIN_ERROR", {"reason": str(e)})
             return None
         finally:
-            self.queue.get()
+            if queued:
+                self.queue.get()
 
 
 llm_bridge = LLMBridge()
