@@ -252,6 +252,30 @@ Ay-Eye includes a comprehensive test harness that validates the full action pipe
 | Guide/Ask Intents | Non-action responses pass through without execution |
 | Complex Flows | Multi-step plans with cmd + write_file + click chains |
 
+### Running Real-World Scenario Tests
+
+Scenario tests simulate complete user workflows with realistic LLM responses:
+
+```bash
+.venv\Scripts\python scripts/test_real_world_scenarios.py    # 21 real-world scenarios
+```
+
+| Scenario | What It Tests |
+|----------|---------------|
+| Open Notepad + type | Launch app, type content, plan validation |
+| Create project folder | cmd mkdir + write_file with expect contracts |
+| Blender import | App switch + Blender API action with plan |
+| Discord message | Click + type + hotkey chain with plan |
+| Explain topic | Guide intent, no actions, high confidence |
+| Block rm -rf / shutdown / diskpart / reg | Destructive commands caught by safety |
+| Block bank / 1Password / PayPal typing | Sensitive window detection |
+| Allow scroll in bank window | SAFE actions bypass sensitive window checks |
+| click_text fallback | Recovery from OCR failure via short-term memory |
+| Blender RAG rule | RAG-injected guidance applied correctly |
+| Full project setup | 4-action flow with plan + 4 expect contracts |
+| Low confidence | Blocked below threshold |
+| Malformed response | Schema validation rejects non-dict actions |
+
 ### Pipeline Architecture
 
 ```
