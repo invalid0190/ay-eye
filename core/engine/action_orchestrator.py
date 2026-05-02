@@ -5,6 +5,7 @@ from core.config import sys_config
 from core.engine.executor import executor
 from core.engine.action_state import action_state
 from core.engine.action_safety import action_safety
+from core.engine.action_verifier import action_verifier
 from core.utils.logger import logger
 
 class ActionOrchestrator:
@@ -94,8 +95,61 @@ class ActionOrchestrator:
                             pass
                         continue
                     
+                    # ── Capture baseline frame for verification ──
+                    from core.vision.live_perception import live_perception
+                    frame_before = live_perception.get_latest_frame()
+                    
+                    # ── Execute ──
                     executor.execute_single(action)
                     executed_actions.append(action)
+                    
+                    # ── Post-action verification ──
+                    try:
+                        vresult = action_verifier.verify(action, frame_before)
+                        if vresult["success"]:
+                            logger.log_event("ACTION_VERIFIED", {
+                                "type": a_type, "reason": vresult["reason"]
+                            })
+                        else:
+                            logger.log_event("ACTION_VERIFICATION_FAILED", {
+                                "type": a_type,
+                                "reason": vresult["reason"],
+                                "evidence": vresult.get("evidence", {}),
+                            })
+                            bus.publish("ACTION_VERIFY_FAILED", {
+                                "action": a_type,
+                                "reason": vresult["reason"],
+                            })
+                            try:
+                                from core.state.short_term import short_term_memory
+                                short_term_memory.add_system_context(
+                                    f"ACTION_VERIFY_FAILED: {a_type} — {vresult['reason'][:200]}"
+                                )
+                            except Exception:
+                                pass
+                            
+                            # Optional single retry
+                            if (
+                                vresult.get("should_retry")
+                                and sys_config.get("verification_retry_enabled")
+                            ):
+                                max_retries = sys_config.get("max_verification_retries") or 1
+                                for retry_i in range(max_retries):
+                                    logger.logger.info(
+                                        f"Orchestrator: Retrying '{a_type}' (attempt {retry_i + 1}/{max_retries})"
+                                    )
+                                    import time as _time
+                                    _time.sleep(0.4)
+                                    frame_retry = live_perception.get_latest_frame()
+                                    executor.execute_single(action)
+                                    rv = action_verifier.verify(action, frame_retry)
+                                    if rv["success"]:
+                                        logger.log_event("ACTION_VERIFIED", {
+                                            "type": a_type, "reason": f"Retry {retry_i+1} succeeded"
+                                        })
+                                        break
+                    except Exception as _ve:
+                        logger.logger.error(f"Orchestrator: Verification error (non-fatal): {_ve}")
 
                 logger.log_event("ACTION_SEQUENCE_COMPLETED", {
                     "total": len(actions),

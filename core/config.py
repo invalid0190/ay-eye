@@ -18,6 +18,8 @@ class SystemConfig:
             "live_perception_jpeg_quality": 75,
             "click_debug_enabled": True,
             "post_action_verify_enabled": True,
+            "verification_retry_enabled": True,
+            "max_verification_retries": 1,
             "rag_enabled": True,
             "rag_top_k": 6,
             "rag_max_context_chars": 3500,
