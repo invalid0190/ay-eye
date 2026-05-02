@@ -4,6 +4,7 @@ from core.engine.event_bus import bus
 from core.config import sys_config
 from core.engine.executor import executor
 from core.engine.action_state import action_state
+from core.engine.action_safety import action_safety
 from core.utils.logger import logger
 
 class ActionOrchestrator:
@@ -50,6 +51,19 @@ class ActionOrchestrator:
                         return
 
                 actions = data.get("actions", [])
+                confidence = data.get("confidence", 1.0)
+                
+                # Resolve active window/app for safety context
+                try:
+                    from core.state.manager import state_manager
+                    st = state_manager.get_state()
+                    active_window = st.window or ""
+                    active_app = st.app or ""
+                except Exception:
+                    active_window = ""
+                    active_app = ""
+                
+                executed_actions = []
                 for action in actions:
                     a_type = action.get("type")
                     
@@ -57,10 +71,35 @@ class ActionOrchestrator:
                         logger.logger.warning(f"Unknown action type: {a_type}")
                         continue
                     
+                    # ── Safety gate ──
+                    verdict = action_safety.validate(
+                        action,
+                        confidence=confidence,
+                        active_window=active_window,
+                        active_app=active_app,
+                    )
+                    if not verdict["allowed"]:
+                        bus.publish("ACTION_ABORTED", {
+                            "reason": verdict["reason"],
+                            "action": a_type,
+                            "risk": verdict["risk"],
+                        })
+                        # Feed back into LLM memory so it knows why we refused
+                        try:
+                            from core.state.short_term import short_term_memory
+                            short_term_memory.add_system_context(
+                                f"ACTION_BLOCKED [{verdict['risk']}]: {a_type} — {verdict['reason'][:200]}"
+                            )
+                        except Exception:
+                            pass
+                        continue
+                    
                     executor.execute_single(action)
+                    executed_actions.append(action)
 
                 logger.log_event("ACTION_SEQUENCE_COMPLETED", {
-                    "count": len(actions),
+                    "total": len(actions),
+                    "executed": len(executed_actions),
                     "status": data.get("status")
                 })
                     
