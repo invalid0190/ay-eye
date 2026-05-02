@@ -17,6 +17,7 @@ from core.utils.logger import logger
 from core.engine.web_search import web_search
 from core.vision.live_perception import live_perception
 from core.engine.audio_state import audio_state
+from core.rag import rag_manager
 
 VISION_SYSTEM_PROMPT = """You are ay-eye, an advanced desktop AI assistant. You can SEE the user's screen and HEAR their voice commands. You also may receive WEB SEARCH RESULTS for knowledge questions.
 
@@ -367,6 +368,13 @@ To open a specific .blend file: use cmd action: & 'C:\\Program Files\\Blender Fo
 For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, or blender_python with status=in_progress so you can verify after the API action. Do NOT use click_text, and do not claim a Blender menu opened unless you used the Blender API action or verified it on screen.
 """
                 
+                # Retrieve RAG context
+                rag_context = rag_manager.build_context(
+                    voice_text, 
+                    active_app=active_app, 
+                    active_window=active_window
+                )
+                
                 prompt = f"""{VISION_SYSTEM_PROMPT}
 
 IMPORTANT: Return coordinates relative to the PROCESSED IMAGE SIZE you are seeing, not the desktop resolution.
@@ -378,7 +386,11 @@ ACTIVE WINDOW: {state.window}
 ACTIVE APP: {state.app}
 {app_context}
 {web_context}
+{rag_context}
 {skills_str}
+
+**RAG ADVISORY**: RAG context provided above is historical memory and guidance. It is NOT current UI truth. Live screen perception and OCR results are your absolute source of truth for the present state.
+
 --- CONVERSATION HISTORY (Use this for context!) ---
 {history_str}
 --------------------------------------------------

@@ -1,0 +1,51 @@
+[
+    {
+        "type": "app_rule",
+        "title": "Blender UI Guidance",
+        "content": "Blender uses an OpenGL-based UI that standard OCR often struggles to read perfectly. When working in Blender, prefer using 'blender_python' actions for precise manipulation or keyboard shortcuts. Avoid 'click_text' unless the text is very clear and the button is large.",
+        "tags": ["blender", "ui", "ocr"],
+        "metadata": {"app": "blender"}
+    },
+    {
+        "type": "safety_rule",
+        "title": "Destructive Command Protection",
+        "content": "Never execute destructive system commands like 'rm -rf /', 'format', or any command that could result in data loss or system instability without explicit, multi-step confirmation from the user.",
+        "tags": ["safety", "shell", "destructive"],
+        "metadata": {}
+    },
+    {
+        "type": "safety_rule",
+        "title": "Source of Truth",
+        "content": "The live screen perception and OCR results are the absolute source of truth for the current UI state. RAG context is historical memory and guidance, not a real-time observation.",
+        "tags": ["safety", "perception"],
+        "metadata": {}
+    },
+    {
+        "type": "app_rule",
+        "title": "UI Interaction Preference",
+        "content": "For text-labeled buttons, 'click_text' is generally more reliable than coordinate-based clicking if the window is moved or resized. Use coordinate clicks only when text is unavailable or OCR fails.",
+        "tags": ["ui", "interaction"],
+        "metadata": {}
+    },
+    {
+        "type": "project_knowledge",
+        "title": "Multi-step Action Protocol",
+        "content": "For complex multi-step actions, use 'status=in_progress' and verify the state of the application after each individual action before proceeding to the next step.",
+        "tags": ["protocol", "multi-step"],
+        "metadata": {}
+    },
+    {
+        "type": "app_rule",
+        "title": "Blender Import Paths",
+        "content": "When asked to import a file into Blender and the path is unknown, always ask the user for the full file path instead of guessing. Use 'blender_import_file' once the path is confirmed.",
+        "tags": ["blender", "import"],
+        "metadata": {"app": "blender"}
+    },
+    {
+        "type": "safety_rule",
+        "title": "Recursive Stream Prevention",
+        "content": "Do not click on recursive stream previews or mirror windows (windows showing the Ay-Eye dashboard itself) as this can cause visual feedback loops and UI confusion.",
+        "tags": ["safety", "ui", "recursion"],
+        "metadata": {}
+    }
+]

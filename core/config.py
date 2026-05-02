@@ -17,7 +17,11 @@ class SystemConfig:
             "live_perception_max_width": 1920,
             "live_perception_jpeg_quality": 75,
             "click_debug_enabled": True,
-            "post_action_verify_enabled": True
+            "post_action_verify_enabled": True,
+            "rag_enabled": True,
+            "rag_top_k": 6,
+            "rag_max_context_chars": 3500,
+            "rag_persist_path": "data/rag/chroma"
         }
         self.config = self.load()
 

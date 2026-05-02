@@ -52,6 +52,7 @@ Ay-Eye operates on a high-speed continuous loop that combines real-time data ing
 - **🪟 Smart Window Management**: Utilizes the Win32 API to seamlessly switch between running windows or launch new apps via the Windows Registry.
 - **🎯 Precise Automation**: Clicks, types, scrolls, and pastes using `pyautogui` and clipboard manipulation for speed and reliability.
 - **💎 Premium UI**: A glassmorphism-inspired PyQt6 dashboard with real-time status indicators, activity logs, and system health checks.
+- **🧠 RAG Memory Layer**: Uses ChromaDB to store and retrieve app-specific rules, past failures, and project knowledge, helping the AI learn from its own mistakes.
 
 ---
 
@@ -141,6 +142,26 @@ If you choose **not** to use OpenAI or Ollama Cloud, you must set up Ollama loca
 ```bash
 .venv\Scripts\python main.py
 ```
+
+### 5. Ingest RAG Seed Rules
+To initialize the memory with expert rules for apps like Blender and safety guidelines, run:
+```bash
+.venv\Scripts\python scripts/ingest_rag_seed.py
+```
+
+---
+
+## 🧠 RAG (Retrieval-Augmented Generation)
+
+Ay-Eye uses a RAG layer powered by **ChromaDB** to maintain long-term memory and "tribal knowledge" about your apps.
+
+### How it works:
+1. **Automatic Learning**: When an action fails (e.g., OCR misses a button) or a command errors out, Ay-Eye records the failure and the context. Next time you ask for a similar task, it retrieves that memory to avoid the same mistake.
+2. **App-Specific Rules**: Expert rules (like "Avoid clicking in Blender's OpenGL UI") are injected into the prompt based on your active application.
+3. **Safety First**: Destructive command protection and recursive screen mirror detection are enforced through retrieved safety rules.
+
+### Source of Truth Rule:
+**IMPORTANT**: RAG is advisory memory only. Ay-Eye is explicitly instructed that the **Live Screen Perception** and OCR results are the absolute source of truth for the *current* state of the UI. RAG provides guidance on *how* to interact, not *what* is currently there.
 
 ---
 
