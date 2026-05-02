@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QProgressBar, 
-    QPushButton, QFrame, QScrollArea, QGraphicsOpacityEffect
+    QPushButton, QFrame, QScrollArea, QGraphicsOpacityEffect, QLineEdit
 )
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QTimer, QSize
 from PyQt6.QtGui import QPainter, QColor, QBrush, QPen, QFont, QPainterPath
@@ -36,8 +36,9 @@ class DraggableMixin:
 class PillStatusBar(QWidget, DraggableMixin):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        # Paint an actual surface (avoid true transparency for better vision/OCR)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
+        self.setAutoFillBackground(True)
         self.init_draggable()
         
         layout = QHBoxLayout(self)
@@ -83,15 +84,38 @@ class PillStatusBar(QWidget, DraggableMixin):
             background:transparent; border:none;
         """)
         
+        # Panel toggle (manual open/close)
+        self.panel_btn = QPushButton("≡")
+        self.panel_btn.setFixedSize(18, 18)
+        self.panel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.panel_btn.setStyleSheet(f"""
+            QPushButton {{
+                color: {theme.TEXT_DIM.name()};
+                background: rgba(255,255,255,6);
+                border: 1px solid rgba(255,255,255,12);
+                border-radius: 6px;
+                font-family: {theme.FONT_MONO};
+                font-size: 9pt;
+                padding: 0;
+            }}
+            QPushButton:hover {{
+                background: rgba(0,186,255,35);
+                color: {theme.TEXT_COLOR.name()};
+                border-color: rgba(0,186,255,80);
+            }}
+        """)
+        self.panel_btn.clicked.connect(lambda: bus.publish("TOGGLE_COMMAND_PANEL"))
+
         layout.addWidget(self.dot)
         layout.addWidget(self.label)
         layout.addWidget(sep)
         layout.addWidget(self.app_label)
+        layout.addWidget(self.panel_btn)
         layout.addStretch()
         layout.addWidget(self.uptime_label)
         
         self.setStyleSheet(theme.GLASS_STYLE)
-        self.setFixedSize(300, 34)
+        self.setFixedSize(322, 34)
         
         self._start_time = datetime.now()
         self._uptime_timer = QTimer()
@@ -295,6 +319,46 @@ class CommandPanel(QFrame, DraggableMixin):
         
         self.log_scroll.setWidget(self.log_container)
         main_layout.addWidget(self.log_scroll)
+        
+        # ── Typed Input (manual command) ──
+        input_row = QHBoxLayout()
+        input_row.setSpacing(6)
+        
+        self.text_input = QLineEdit()
+        self.text_input.setPlaceholderText("Type a command… (Enter to send)")
+        self.text_input.setClearButtonEnabled(True)
+        self.text_input.setStyleSheet(f"""
+            QLineEdit {{
+                color: {theme.TEXT_COLOR.name()};
+                background-color: rgba(255,255,255,5);
+                border: 1px solid rgba(255,255,255,10);
+                border-radius: 8px;
+                padding: 6px 8px;
+                font-family: {theme.FONT_FAMILY};
+                font-size: 8.5pt;
+            }}
+            QLineEdit:focus {{
+                border-color: rgba(0,186,255,120);
+                background-color: rgba(0,186,255,10);
+            }}
+        """)
+        
+        import threading
+        def _submit_text():
+            text = (self.text_input.text() or "").strip()
+            if not text:
+                return
+            self.text_input.clear()
+            # IMPORTANT: don't block the Qt UI thread; Brain does heavy work.
+            threading.Thread(
+                target=lambda: bus.publish("VOICE_INPUT_RECEIVED", text),
+                daemon=True,
+            ).start()
+        
+        self.text_input.returnPressed.connect(_submit_text)
+        
+        input_row.addWidget(self.text_input, 1)
+        main_layout.addLayout(input_row)
         
         # ── Buttons ──
         btn_row = QHBoxLayout()

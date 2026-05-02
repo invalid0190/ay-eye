@@ -9,6 +9,14 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def _looks_hindi(text: str) -> bool:
+    # Devanagari block: U+0900–U+097F
+    for ch in text or "":
+        o = ord(ch)
+        if 0x0900 <= o <= 0x097F:
+            return True
+    return False
+
 
 class TTSEngine:
     """Text-to-Speech engine. Uses OpenAI TTS if available, falls back to Murf AI."""
@@ -18,6 +26,10 @@ class TTSEngine:
         self.murf_key = os.getenv("MURF_API_KEY")
         self._stop_event = threading.Event()
         self._player_process = None
+        self._last_input_lang = "en"
+        from core.engine.event_bus import bus
+        bus.subscribe("EMERGENCY_STOP", lambda d: self.stop())
+        bus.subscribe("VOICE_INPUT_RECEIVED", self._on_user_text)
 
         if self.openai_key:
             self.provider = "openai"
@@ -25,11 +37,22 @@ class TTSEngine:
             logger.logger.info(f"TTS Engine: Using OpenAI TTS (voice: {self.voice})")
         elif self.murf_key:
             self.provider = "murf"
-            self.voice = "Natalie"
+            # Default English + Hindi voices (override in .env)
+            self.voice_en = (os.getenv("MURF_VOICE_EN") or "Natalie").strip() or "Natalie"
+            self.voice_hi = (os.getenv("MURF_VOICE_HI") or "Ruby").strip() or "Ruby"
+            self.style_hi = (os.getenv("MURF_STYLE_HI") or "Conversational").strip() or "Conversational"
+            self.locale_hi = (os.getenv("MURF_LOCALE_HI") or "hi-IN").strip() or "hi-IN"
+            self.voice = self.voice_en
             logger.logger.info(f"TTS Engine: Using Murf AI (voice: {self.voice})")
         else:
             self.provider = None
             logger.logger.warning("TTS Engine: No API key found, TTS disabled")
+
+    def _on_user_text(self, text):
+        if isinstance(text, str) and _looks_hindi(text):
+            self._last_input_lang = "hi"
+        else:
+            self._last_input_lang = "en"
 
     def speak(self, text):
         if not self.provider:
@@ -92,11 +115,13 @@ class TTSEngine:
             "Content-Type": "application/json",
             "api-key": self.murf_key
         }
-        payload = {
-            "text": text,
-            "voiceId": self.voice,
-            "modelVersion": "GEN2"
-        }
+        is_hi = self._last_input_lang == "hi" and _looks_hindi(text)
+        voice_id = self.voice_hi if is_hi else self.voice_en
+        payload = {"text": text, "voiceId": voice_id, "modelVersion": "GEN2"}
+        # Hindi tuning (per user request / Murf docs); safe if server ignores unknown fields.
+        if is_hi:
+            payload["style"] = self.style_hi
+            payload["locale"] = self.locale_hi
 
         response = requests.post(
             "https://api.murf.ai/v1/speech/generate",
@@ -150,6 +175,8 @@ Remove-Item -Path '{tmp_path}' -Force -ErrorAction SilentlyContinue
                 pass
         audio_state.stop_speaking()
         logger.log_event("TTS_INTERRUPTED")
+        from core.engine.event_bus import bus
+        bus.publish("TTS_FINISHED", {})
 
 
 tts_engine = TTSEngine()

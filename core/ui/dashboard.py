@@ -19,6 +19,8 @@ class ThreadBridge(QObject):
     error = pyqtSignal(str)
     greeting = pyqtSignal(str)
     voice_input = pyqtSignal(str)
+    voice_ignored = pyqtSignal(str)
+    toggle_panel = pyqtSignal()
     suggestion = pyqtSignal(dict)
     action_done = pyqtSignal(str)
     action_start = pyqtSignal(str)
@@ -64,6 +66,8 @@ class AyEyeDashboard:
         self.bridge.error.connect(self._on_error)
         self.bridge.greeting.connect(self._on_greeting)
         self.bridge.voice_input.connect(self._on_voice_input)
+        self.bridge.voice_ignored.connect(self._on_voice_ignored)
+        self.bridge.toggle_panel.connect(self._on_toggle_panel)
         self.bridge.suggestion.connect(self._on_suggestion)
         self.bridge.action_start.connect(self._on_action_start)
         self.bridge.action_done.connect(self._on_action_done)
@@ -104,6 +108,8 @@ class AyEyeDashboard:
         bus.subscribe("WEB_SEARCH_COMPLETED", lambda d: self.bridge.web_search.emit(
             d.get("query", "search") if isinstance(d, dict) else "search"
         ))
+        bus.subscribe("VOICE_IGNORED", self._on_voice_ignored_bus)
+        bus.subscribe("TOGGLE_COMMAND_PANEL", lambda d=None: self.bridge.toggle_panel.emit())
         bus.subscribe("HIGHLIGHT_REQUESTED", self.on_highlight_request)
         
         # Sync timer
@@ -178,6 +184,24 @@ class AyEyeDashboard:
     def _on_recording_stop(self):
         self.update_status("thinking")
         self.audio_level.setVisible(False)
+        # STT runs before BRAIN_THINKING — without this line the last activity stays "Listening..."
+        self.command_panel.add_log("✨", "Transcribing...", theme.THINKING.name())
+
+    def _on_voice_ignored_bus(self, data):
+        reason = ""
+        if isinstance(data, dict):
+            reason = data.get("reason") or ""
+        self.bridge.voice_ignored.emit(reason)
+
+    def _on_voice_ignored(self, reason: str):
+        self.update_status("idle")
+        hints = {
+            "no_audio": "No audio captured — hold Alt+Z while you speak.",
+            "empty_transcript": "No speech detected — speak louder or check the mic.",
+            "transcription_error": "Speech recognition failed — check logs.",
+        }
+        msg = hints.get(reason, "Voice input skipped.")
+        self.command_panel.add_log("💬", msg, theme.WARNING.name())
     
     def _on_error(self, reason):
         self.update_status("idle")
@@ -225,6 +249,15 @@ class AyEyeDashboard:
     def _on_emergency(self):
         self.update_status("idle")
         self.command_panel.add_log("🛑", "EMERGENCY STOP", theme.ERROR.name())
+
+    def _on_toggle_panel(self):
+        now_visible = not self.command_panel.isVisible()
+        self.command_panel.setVisible(now_visible)
+        if now_visible:
+            self._auto_hide_timer.stop()
+            self.command_panel.add_log("☰", "Panel opened", theme.ACCENT_COLOR.name())
+        else:
+            self.command_panel.add_log("☰", "Panel hidden", theme.TEXT_DIM.name())
     
     def _on_web_search(self, query):
         self.command_panel.add_log("🔍", f"Searching: {query[:35]}", theme.ACCENT_COLOR.name())

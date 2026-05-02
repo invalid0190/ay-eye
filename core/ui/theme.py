@@ -36,14 +36,15 @@ class Theme:
     
     # ── Glassmorphism Styles ──
     GLASS_STYLE = """
-        background-color: rgba(12, 12, 14, 225);
-        border: 1px solid rgba(255, 255, 255, 12);
+        /* More-opaque glass so vision/OCR doesn't see through */
+        background-color: rgba(10, 10, 12, 245);
+        border: 1px solid rgba(255, 255, 255, 16);
         border-radius: 14px;
     """
     
     GLASS_STYLE_INNER = """
-        background-color: rgba(22, 22, 28, 180);
-        border: 1px solid rgba(255, 255, 255, 8);
+        background-color: rgba(18, 18, 22, 230);
+        border: 1px solid rgba(255, 255, 255, 10);
         border-radius: 10px;
     """
 
