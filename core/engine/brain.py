@@ -368,12 +368,17 @@ To open a specific .blend file: use cmd action: & 'C:\\Program Files\\Blender Fo
 For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, or blender_python with status=in_progress so you can verify after the API action. Do NOT use click_text, and do not claim a Blender menu opened unless you used the Blender API action or verified it on screen.
 """
                 
-                # Retrieve RAG context
-                rag_context = rag_manager.build_context(
-                    voice_text, 
-                    active_app=active_app, 
-                    active_window=active_window
-                )
+                # Retrieve RAG context (advisory only — never blocks main loop)
+                rag_context = ""
+                try:
+                    rag_context = rag_manager.build_context(
+                        voice_text, 
+                        active_app=active_app, 
+                        active_window=active_window
+                    )
+                except Exception as _rag_err:
+                    logger.logger.error(f"RAG: build_context failed, continuing without RAG: {_rag_err}")
+                    logger.log_event("RAG_SKIPPED", {"reason": str(_rag_err)[:200]})
                 
                 prompt = f"""{VISION_SYSTEM_PROMPT}
 

@@ -388,12 +388,15 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
             time.sleep(random.uniform(0.5, 0.8))
             self.execute_single(action)
             
-        # Record success if entire sequence finished without being force stopped
-        if not self._stop_event.is_set() and actions:
-            from core.state.manager import state_manager
-            st = state_manager.get_state()
-            summary = f"Finished {len(actions)} actions: {', '.join(a.get('type', '?') for a in actions[:3])}..."
-            rag_manager.remember_success("action_sequence", (st.app or "desktop"), (st.window or "desktop"), summary)
+        # Only record success for meaningful multi-step sequences (not single clicks)
+        if not self._stop_event.is_set() and len(actions) >= 2:
+            try:
+                from core.state.manager import state_manager
+                st = state_manager.get_state()
+                summary = f"Finished {len(actions)} actions: {', '.join(a.get('type', '?') for a in actions[:3])}"
+                rag_manager.remember_success("action_sequence", (st.app or "desktop"), (st.window or "desktop"), summary)
+            except Exception:
+                pass  # RAG write failure must never block executor
 
     def execute_single(self, action):
         if self._stop_event.is_set():
@@ -497,8 +500,11 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                         short_term_memory.add_system_context(f"CLICK_TEXT BLOCKED: {reason}")
                         logger.logger.warning("Executor: click_text blocked - Blender active, OCR won't work")
                         
-                        # Record as app rule in RAG
-                        rag_manager.add_app_rule("blender", "Blender uses OpenGL UI and click_text should be avoided. Use Blender API actions or shortcuts.")
+                        # Record as app rule in RAG (deduped by content hash)
+                        try:
+                            rag_manager.add_app_rule("blender", "Blender uses OpenGL UI and click_text should be avoided. Use Blender API actions or shortcuts.")
+                        except Exception:
+                            pass  # RAG write failure must never block executor
                         
                         bus.publish("ACTION_COMPLETED", action)
                         return
@@ -539,9 +545,12 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                         logger.logger.warning(f"Executor: Locator could not find text '{text_to_find}'")
                         
                         # Record failure in RAG
-                        from core.state.manager import state_manager
-                        st = state_manager.get_state()
-                        rag_manager.remember_failure(f"click_text: {text_to_find}", (st.app or "unknown"), (st.window or "unknown"), reason)
+                        try:
+                            from core.state.manager import state_manager
+                            st = state_manager.get_state()
+                            rag_manager.remember_failure(f"click_text: {text_to_find}", (st.app or "unknown"), (st.window or "unknown"), reason)
+                        except Exception:
+                            pass  # RAG write failure must never block executor
 
                     bus.publish("ACTION_COMPLETED", action)
                     return
@@ -696,9 +705,12 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                                     logger.logger.warning(f"Executor: Command failed: {errors[:200]}")
                                     
                                     # Record failure in RAG
-                                    from core.state.manager import state_manager
-                                    st = state_manager.get_state()
-                                    rag_manager.remember_failure(command, (st.app or "powershell"), (st.window or "terminal"), errors[:500])
+                                    try:
+                                        from core.state.manager import state_manager
+                                        st = state_manager.get_state()
+                                        rag_manager.remember_failure(command, (st.app or "powershell"), (st.window or "terminal"), errors[:500])
+                                    except Exception:
+                                        pass  # RAG write failure must never block executor
                                 elif output:
                                     short_term_memory.add_system_context(
                                         f"CMD_RESULT [SUCCESS]:\nCommand: {command}\nOutput: {output[:1000]}"

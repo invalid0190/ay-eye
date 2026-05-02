@@ -153,15 +153,40 @@ To initialize the memory with expert rules for apps like Blender and safety guid
 
 ## 🧠 RAG (Retrieval-Augmented Generation)
 
-Ay-Eye uses a RAG layer powered by **ChromaDB** to maintain long-term memory and "tribal knowledge" about your apps.
+Ay-Eye features a powerful **Long-Term Memory** layer using RAG (Retrieval-Augmented Generation) powered by **ChromaDB**. This allows the agent to learn from its mistakes and retain "expert knowledge" about specific applications like Blender.
 
-### How it works:
-1. **Automatic Learning**: When an action fails (e.g., OCR misses a button) or a command errors out, Ay-Eye records the failure and the context. Next time you ask for a similar task, it retrieves that memory to avoid the same mistake.
-2. **App-Specific Rules**: Expert rules (like "Avoid clicking in Blender's OpenGL UI") are injected into the prompt based on your active application.
-3. **Safety First**: Destructive command protection and recursive screen mirror detection are enforced through retrieved safety rules.
+### 🛠️ How It Works (Technical Overview)
+- **Vector Database**: Uses **ChromaDB** to store high-dimensional embeddings of rules, skills, and past events.
+- **Lazy Initialization**: The RAG layer is modular and initialized lazily, ensuring the app remains stable even if the database is unavailable.
+- **Context Injection**: Before calling the LLM, the `RagManager` searches for context based on your current voice command, the active application, and the window title. Relevant memories are injected directly into the system prompt.
 
-### Source of Truth Rule:
-**IMPORTANT**: RAG is advisory memory only. Ay-Eye is explicitly instructed that the **Live Screen Perception** and OCR results are the absolute source of truth for the *current* state of the UI. RAG provides guidance on *how* to interact, not *what* is currently there.
+### 📚 Memory Collections
+The memory is organized into specialized collections for high-precision retrieval:
+1. **`ayeye_skills`**: Learned workflows and multi-step instructions.
+2. **`ayeye_app_rules`**: Expert guidance for specific apps (e.g., "Blender uses OpenGL UI; avoid OCR clicking").
+3. **`ayeye_past_failures`**: Automatic records of missed clicks, command errors, or OCR failures.
+4. **`ayeye_project_knowledge`**: General information about your local files and project structures.
+5. **`ayeye_user_preferences`**: Your specific habits and preferred ways of working.
+6. **`ayeye_safety_rules`**: Guardrails against destructive commands or recursive UI loops.
+
+### 🔄 Automatic Learning & Self-Correction
+Ay-Eye is proactive. It doesn't just fail—it learns:
+- **Click Failures**: If `click_text` fails to find a button, the executor records the failure and the app state. Next time you ask, the AI will see that memory and choose a more reliable method (like a coordinate click or keyboard shortcut).
+- **Command Errors**: If a PowerShell command returns an error, it is stored as a `past_failure`. The AI will use this history to debug and fix its own commands in future attempts.
+- **Success Summaries**: Successful complex sequences are summarized and stored to reinforce positive behavior.
+
+### 🧪 Getting Started with Expert Rules
+We provide a set of **Seed Rules** to jumpstart Ay-Eye's intelligence. These include critical safety guards and optimized Blender workflows.
+To ingest the seed rules:
+```bash
+.venv\Scripts\python scripts/ingest_rag_seed.py
+```
+
+### ⚠️ The Source of Truth Rule
+While RAG provides invaluable context, it is strictly **advisory**. 
+- **RAG** = Memory & Experience (Guidance).
+- **Live Perception** = Current Reality (Source of Truth).
+Ay-Eye is hardcoded to prioritize what it currently **sees** on your screen over what it remembers from the past.
 
 ---
 
