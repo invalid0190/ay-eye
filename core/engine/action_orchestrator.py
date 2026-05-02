@@ -7,10 +7,11 @@ from core.engine.action_state import action_state
 from core.engine.action_safety import action_safety
 from core.engine.action_verifier import action_verifier
 from core.engine.plan_validator import plan_validator
+from core.engine.response_schema import response_schema
 from core.utils.logger import logger
 
 class ActionOrchestrator:
-    # All known action types — add new ones here, they route to executor automatically
+    # All known action types -- add new ones here, they route to executor automatically
     KNOWN_ACTIONS = {
         "click", "click_text", "drag", "type", "hotkey", "scroll", "switch", "launch",
         "open_url", "cmd", "create_skill", "read_file", "list_dir",
@@ -52,8 +53,34 @@ class ActionOrchestrator:
                         bus.publish("ACTION_ABORTED", {"reason": "Confirmation timeout"})
                         return
 
-                actions = data.get("actions", [])
-                confidence = data.get("confidence", 1.0)
+                # -- Schema validation gate (FIRST in pipeline) --
+                try:
+                    schema_result = response_schema.validate(data)
+                    if not schema_result["valid"]:
+                        logger.log_event("RESPONSE_SCHEMA_INVALID", {
+                            "reason": schema_result["reason"],
+                        })
+                        bus.publish("RESPONSE_SCHEMA_INVALID", {
+                            "reason": schema_result["reason"],
+                        })
+                        try:
+                            from core.state.short_term import short_term_memory
+                            short_term_memory.add_system_context(
+                                f"RESPONSE_SCHEMA_INVALID: {schema_result['reason'][:300]}. "
+                                f"Fix your JSON response format."
+                            )
+                        except Exception:
+                            pass
+                        return
+                    # Use the normalized response from here on
+                    normalized = schema_result["response"]
+                except Exception as _se:
+                    logger.logger.error(f"Orchestrator: Schema validation error (non-fatal): {_se}")
+                    normalized = data  # Fall through with raw data
+
+                actions = normalized.get("actions", [])
+                confidence = normalized.get("confidence", 1.0)
+
                 
                 # Resolve active window/app for safety context
                 try:
@@ -67,7 +94,7 @@ class ActionOrchestrator:
                 
                 # ── Plan validation gate ──
                 try:
-                    plan_result = plan_validator.validate(data)
+                    plan_result = plan_validator.validate(normalized)
                     if not plan_result["valid"]:
                         logger.log_event("PLAN_VALIDATION_FAILED", {
                             "reason": plan_result["reason"],
