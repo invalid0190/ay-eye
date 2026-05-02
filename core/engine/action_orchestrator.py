@@ -6,6 +6,7 @@ from core.engine.executor import executor
 from core.engine.action_state import action_state
 from core.engine.action_safety import action_safety
 from core.engine.action_verifier import action_verifier
+from core.engine.plan_validator import plan_validator
 from core.utils.logger import logger
 
 class ActionOrchestrator:
@@ -64,6 +65,31 @@ class ActionOrchestrator:
                     active_window = ""
                     active_app = ""
                 
+                # ── Plan validation gate ──
+                try:
+                    plan_result = plan_validator.validate(data)
+                    if not plan_result["valid"]:
+                        logger.log_event("PLAN_VALIDATION_FAILED", {
+                            "reason": plan_result["reason"],
+                        })
+                        bus.publish("PLAN_VALIDATION_FAILED", {
+                            "reason": plan_result["reason"],
+                        })
+                        try:
+                            from core.state.short_term import short_term_memory
+                            short_term_memory.add_system_context(
+                                f"PLAN_VALIDATION_FAILED: {plan_result['reason'][:300]}. "
+                                f"Include a 'plan' field listing your steps before actions."
+                            )
+                        except Exception:
+                            pass
+                        return
+                    if plan_result.get("warnings"):
+                        for w in plan_result["warnings"]:
+                            logger.logger.warning(f"PlanValidator: {w}")
+                except Exception as _pv_err:
+                    logger.logger.error(f"Orchestrator: Plan validation error (non-fatal): {_pv_err}")
+
                 executed_actions = []
                 for action in actions:
                     a_type = action.get("type")
