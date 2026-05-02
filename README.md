@@ -221,5 +221,60 @@ Because Ay-Eye relies on computer vision, seeing what the AI sees is critical fo
 
 ---
 
+## 🛡️ Pipeline Safety Tests
+
+Ay-Eye includes a comprehensive test harness that validates the full action pipeline **without** triggering real desktop interactions. No mouse clicks, keyboard input, or subprocess commands are executed.
+
+### Quick Start
+
+```bash
+# Run the full end-to-end pipeline test (27 test cases)
+.venv\Scripts\python scripts/test_agent_pipeline.py
+
+# Run individual component tests
+.venv\Scripts\python scripts/test_response_schema.py    # LLM response validation (30 tests)
+.venv\Scripts\python scripts/test_plan_validator.py      # Plan enforcement (20 tests)
+.venv\Scripts\python scripts/test_action_verifier.py     # Post-action verification (17 tests)
+.venv\Scripts\python scripts/test_expect_contracts.py    # Expect contract evaluation (17 tests)
+.venv\Scripts\python scripts/test_rag_retrieval.py       # RAG retrieval quality
+```
+
+### What the Pipeline Tests Cover
+
+| Test Group | What It Validates |
+|------------|-------------------|
+| Schema Validation | Malformed JSON, missing fields, invalid types, normalization |
+| Plan Enforcement | Multi-action without plan, high-risk without plan, contradictions |
+| Action Safety | Dangerous commands (`rm -rf`, `shutdown`, `format`), sensitive windows (banking, PayPal) |
+| Confidence Gate | Low-confidence actions blocked before execution |
+| Expect Contracts | File existence, command success, app focus, invalid contracts stripped |
+| Mixed Actions | Valid actions survive alongside removed invalid actions |
+| Guide/Ask Intents | Non-action responses pass through without execution |
+| Complex Flows | Multi-step plans with cmd + write_file + click chains |
+
+### Pipeline Architecture
+
+```
+LLM Response
+    |
+    v
+1. Schema Validator      -- Normalize/sanitize, strip invalid actions
+    |
+    v
+2. Plan Validator        -- Require plan for 3+ actions or high-risk
+    |
+    v
+3. Action Safety         -- Block dangerous commands, sensitive windows
+    |
+    v
+4. Executor              -- Run the action (mouse/keyboard/cmd)
+    |
+    v
+5. Action Verifier       -- Check expect contract or screen-change heuristic
+```
+
+---
+
 ## 📄 License
 MIT License - see the [LICENSE](LICENSE) file for details.
+
