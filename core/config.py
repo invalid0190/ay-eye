@@ -23,6 +23,7 @@ class SystemConfig:
             "planner_mode_enabled": True,
             "require_plan_for_multi_action": True,
             "require_plan_for_high_risk": True,
+            "require_expect_for_high_risk_actions": True,
             "rag_enabled": True,
             "rag_top_k": 6,
             "rag_max_context_chars": 3500,

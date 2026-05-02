@@ -168,6 +168,24 @@ When you need to read exact text from the screen (emails, code, error messages) 
 - The plan must match the actions. Do NOT include hidden actions not mentioned in the plan.
 - For simple tasks (1-2 safe actions like a single click or scroll), the plan field is optional.
 
+### ACTION RESULT CONTRACTS (expect field):
+- For important actions, add an **"expect"** field declaring what success looks like.
+- The system will verify the expect contract AFTER the action runs. If verification fails, the action may be retried.
+- **ALWAYS add expect for high-risk actions** (cmd, write_file, blender_python).
+- Available expect types:
+  - `{"type": "cmd_success"}` — verify command returned success
+  - `{"type": "file_exists", "value": "C:\\path\\to\\file.py"}` — verify file was created
+  - `{"type": "app_focused", "value": "blender"}` — verify app is in foreground
+  - `{"type": "window_title", "value": "Untitled - Notepad"}` — verify window title contains text
+  - `{"type": "screen_text", "value": "Saved successfully"}` — verify text appeared on screen or in context
+  - `{"type": "clipboard_contains", "value": "expected text"}` — verify clipboard has specific content
+  - `{"type": "none"}` — explicitly skip verification
+- Examples:
+  - `{"type": "cmd", "command": "python --version", "expect": {"type": "cmd_success"}}`
+  - `{"type": "write_file", "path": "main.py", "content": "print(1)", "expect": {"type": "file_exists", "value": "main.py"}}`
+  - `{"type": "switch", "target": "blender", "expect": {"type": "app_focused", "value": "blender"}}`
+  - `{"type": "click_text", "text": "Save", "expect": {"type": "screen_text", "value": "Saved", "timeout": 2}}`
+
 ### JSON Format:
 {
   "intent": "act|guide|ask|ignore",
