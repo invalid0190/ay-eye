@@ -36,6 +36,8 @@ _NAVIGATION_ACTIONS = {
 
 _INTERMEDIATE_INFO_ACTIONS = _NAVIGATION_ACTIONS | _DATA_CAPTURE_ACTIONS
 
+_BLENDER_CLICK_TYPES = {"click", "click_text", "drag"}
+
 VISION_SYSTEM_PROMPT = """## IDENTITY
 You are ay-eye, an advanced desktop AI assistant. You SEE the user's screen (screenshot with grid overlay) and HEAR their voice commands. You may also receive WEB SEARCH RESULTS.
 You have memory tools: short-term conversation history, RAG guidance, and saved activity memory. If the user asks what you remember, use the provided memory blocks. Do NOT claim you have no memory. If no relevant saved entry is provided, say you do not see a saved record for that time/topic.
@@ -129,7 +131,7 @@ ALWAYS add expect for cmd, write_file, and blender_python actions.
 - When reading files or running commands, set status="in_progress" so you can check the output.
 
 ## APP-SPECIFIC RULES
-Blender: Use Blender API actions, NOT click_text. Shortcuts: Ctrl+O=Open, Ctrl+S=Save, F3=Search, Shift+A=Add, Tab=Edit mode.
+Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete().
 Messaging: Click input field first, then type, then hotkey Enter.
 Renaming files: click_text on name, hotkey F2, type new name, hotkey Enter.
 Streams: NEVER click inside picture-in-picture or recursive stream previews.
@@ -298,6 +300,86 @@ class Brain:
         })
         return response
 
+    @staticmethod
+    def _is_blender_state(state):
+        active_app = (getattr(state, "app", "") or "").lower()
+        active_window = (getattr(state, "window", "") or "").lower()
+        return "blender" in active_app or "blender" in active_window
+
+    def _normalize_blender_task(self, response, original_task, state):
+        """Rewrite common Blender UI tasks away from fragile screen clicks."""
+        if not isinstance(response, dict) or not original_task or not self._is_blender_state(state):
+            return response
+
+        task_text = str(original_task).lower()
+        wants_splash_close = any(term in task_text for term in (
+            "splash", "welcome", "startup screen", "close screen", "close karo", "band karo",
+        ))
+        wants_delete_all = any(term in task_text for term in (
+            "delete", "remove", "clear", "clean", "sab", "everything", "all object", "all objects",
+            "cube", "x se", "x press",
+        ))
+
+        action_types = {
+            a.get("type") for a in (response.get("actions") or []) if isinstance(a, dict)
+        }
+        has_fragile_blender_clicks = bool(action_types & _BLENDER_CLICK_TYPES)
+
+        if not wants_splash_close and not wants_delete_all and not has_fragile_blender_clicks:
+            return response
+        if wants_delete_all and "blender_python" in action_types:
+            return response
+
+        actions = []
+        plan = []
+
+        if wants_splash_close:
+            actions.append({
+                "type": "hotkey",
+                "keys": ["escape"],
+                "expect": {"type": "none"},
+            })
+            plan.append("Close Blender's splash screen with Escape.")
+
+        if wants_delete_all:
+            actions.append({
+                "type": "blender_python",
+                "description": "delete all Blender scene objects",
+                "script": (
+                    "import bpy\n"
+                    "bpy.ops.object.select_all(action='SELECT')\n"
+                    "bpy.ops.object.delete()\n"
+                    "print('AYEYE_SCENE_CLEARED: deleted all objects')"
+                ),
+                "expect": {"type": "none"},
+            })
+            plan.append("Use Blender Python to select and delete all scene objects.")
+
+        if not actions:
+            actions.append({
+                "type": "hotkey",
+                "keys": ["escape"],
+                "expect": {"type": "none"},
+            })
+            plan.append("Avoid fragile Blender UI clicking and use a keyboard/API action instead.")
+
+        normalized = dict(response)
+        normalized["intent"] = "act"
+        normalized["status"] = "in_progress" if wants_delete_all else "complete"
+        normalized["message"] = (
+            "Blender UI clicks are unreliable here, so I'll use Escape and Blender Python instead."
+            if wants_delete_all
+            else "Closing the Blender splash screen with Escape."
+        )
+        normalized["actions"] = actions
+        normalized["plan"] = plan
+        normalized["confidence"] = max(float(normalized.get("confidence", 0.0) or 0.0), 0.9)
+        logger.log_event("BRAIN_BLENDER_ACTION_NORMALIZED", {
+            "original_task": str(original_task)[:160],
+            "actions": [a.get("type") for a in actions],
+        })
+        return normalized
+
     def on_voice_input(self, text):
         self._loop_count = 0  # Reset loop counter on new user input
         logger.log_event("BRAIN_VOICE_INPUT", {"text": text})
@@ -444,6 +526,7 @@ Analyze the screenshot and the conversation history, then respond. If web search
 
         if is_voice and voice_text:
             response = self._scale_coords(response)
+            response = self._normalize_blender_task(response, original_task, state)
             response = self._force_followup_for_unfinished_info_task(response, original_task)
             if original_task:
                 response["source_user_text"] = original_task
