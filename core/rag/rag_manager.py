@@ -7,6 +7,8 @@ adds domain-specific convenience methods for failure/success recording.
 """
 
 import hashlib
+import json
+from datetime import datetime
 from core.rag.ingest import ingestor
 from core.rag.retriever import retriever
 from core.utils.logger import logger
@@ -46,6 +48,10 @@ class RagManager:
         """Build formatted RAG context for injection into the LLM prompt."""
         return retriever.build_context(query, active_app, active_window, max_chars)
 
+    def build_activity_context(self, query, max_chars=1800):
+        """Build date-aware context from saved user/assistant interactions."""
+        return retriever.build_activity_context(query, max_chars)
+
     # ------------------------------------------------------------------
     # Domain helpers
     # ------------------------------------------------------------------
@@ -80,6 +86,46 @@ class RagManager:
         return self.add_document(
             "project_knowledge", title, content,
             tags=[app, "success"], source="auto_success", metadata=metadata,
+        )
+
+    def remember_interaction(self, user_text, response, app, window):
+        """Record an interaction so future recall questions have real evidence."""
+        if not user_text or not isinstance(response, dict):
+            return False
+
+        now = datetime.now()
+        actions = response.get("actions", [])
+        try:
+            actions_text = json.dumps(actions, ensure_ascii=False)[:500]
+        except Exception:
+            actions_text = str(actions)[:500]
+
+        message = str(response.get("message", ""))[:800]
+        content = (
+            f"Date: {now.date().isoformat()}\n"
+            f"Time: {now.strftime('%H:%M:%S')}\n"
+            f"User asked: {str(user_text)[:800]}\n"
+            f"Assistant replied: {message}\n"
+            f"Intent: {response.get('intent', '')}\n"
+            f"Status: {response.get('status', '')}\n"
+            f"Actions: {actions_text}"
+        )
+        title = f"Activity {now.strftime('%Y-%m-%d %H:%M:%S')}"
+        metadata = {
+            "app": str(app or "unknown"),
+            "window": str(window or "unknown")[:300],
+            "date": now.date().isoformat(),
+            "timestamp": now.isoformat(timespec="seconds"),
+            "intent": str(response.get("intent", "")),
+            "status": str(response.get("status", "")),
+        }
+        return self.add_document(
+            "activity",
+            title,
+            content,
+            tags=["activity", str(app or "unknown")],
+            source="interaction",
+            metadata=metadata,
         )
 
     def add_app_rule(self, app, rule, tags=None):

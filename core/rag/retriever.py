@@ -12,6 +12,7 @@ to a configurable character budget so they never blow up the prompt.
 """
 
 import hashlib
+from datetime import datetime, timedelta
 from core.rag.document_store import document_store
 from core.config import sys_config
 from core.utils.logger import logger
@@ -25,6 +26,8 @@ _PRIORITY_COLLECTIONS = [
     "ayeye_project_knowledge",
     "ayeye_user_preferences",
 ]
+
+_ACTIVITY_COLLECTION = "ayeye_activity_log"
 
 # ChromaDB uses L2 distance by default.  Higher = less relevant.
 _DEFAULT_MAX_DISTANCE = 1.5
@@ -175,6 +178,90 @@ class Retriever:
         built = "".join(context_parts)
         logger.log_event("RAG_CONTEXT_BUILT", {"chars": len(built), "docs": len(context_parts) - 2})
         return built
+
+    def build_activity_context(self, query: str, max_chars: int = 1800) -> str:
+        """Return date-aware episodic memory for recall-style questions."""
+        if not sys_config.get("rag_enabled"):
+            return ""
+
+        q = (query or "").lower()
+        recall_terms = (
+            "remember", "recall", "past", "yesterday", "today", "last time",
+            "what did we", "what we did", "kal", "aaj", "pichle", "pehle",
+        )
+        if not any(term in q for term in recall_terms):
+            return ""
+
+        collection = document_store.get_collection(_ACTIVITY_COLLECTION)
+        if collection is None:
+            return ""
+
+        target_date = self._infer_target_date(q)
+        try:
+            count = collection.count()
+        except Exception:
+            count = 0
+        if count == 0:
+            return "--- ACTIVITY MEMORY ---\nNo saved activity entries found yet.\n--- END ACTIVITY MEMORY ---"
+
+        try:
+            if target_date:
+                res = collection.get(
+                    where={"date": target_date},
+                    limit=8,
+                    include=["documents", "metadatas"],
+                )
+            else:
+                res = collection.query(
+                    query_texts=[query],
+                    n_results=min(8, count),
+                    include=["documents", "metadatas", "distances"],
+                )
+        except Exception as e:
+            logger.logger.error(f"RAG: activity context failed: {e}")
+            return ""
+
+        docs, metas = self._extract_docs_and_metas(res)
+        if not docs:
+            date_note = f" for {target_date}" if target_date else ""
+            return f"--- ACTIVITY MEMORY ---\nNo saved activity entries found{date_note}.\n--- END ACTIVITY MEMORY ---"
+
+        entries = []
+        budget = max_chars
+        for doc, meta in zip(docs, metas):
+            stamp = meta.get("timestamp", "")
+            app = meta.get("app", "unknown")
+            block = f"\n[{stamp}] {app}\n{doc[:450]}\n"
+            if len(block) > budget:
+                break
+            entries.append(block)
+            budget -= len(block)
+
+        if not entries:
+            return ""
+
+        context = "--- ACTIVITY MEMORY ---" + "".join(entries) + "\n--- END ACTIVITY MEMORY ---"
+        logger.log_event("RAG_ACTIVITY_CONTEXT_BUILT", {"chars": len(context), "docs": len(entries)})
+        return context
+
+    @staticmethod
+    def _infer_target_date(query_lower: str) -> str | None:
+        today = datetime.now().date()
+        if "yesterday" in query_lower or "kal" in query_lower:
+            return (today - timedelta(days=1)).isoformat()
+        if "today" in query_lower or "aaj" in query_lower:
+            return today.isoformat()
+        return None
+
+    @staticmethod
+    def _extract_docs_and_metas(result: dict) -> tuple[list[str], list[dict]]:
+        docs = result.get("documents") or []
+        metas = result.get("metadatas") or []
+        if docs and isinstance(docs[0], list):
+            docs = docs[0]
+        if metas and isinstance(metas[0], list):
+            metas = metas[0]
+        return docs or [], metas or []
 
 
 retriever = Retriever()

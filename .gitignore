@@ -11,3 +11,7 @@ eng.traineddata
 .vscode/
 /analytics/vision_debug
 /analytics
+/data
+/data
+/data/rag/chroma
+/data/rag

@@ -19,6 +19,7 @@ _COLLECTION_MAP = {
     "project_knowledge": "ayeye_project_knowledge",
     "user_preference": "ayeye_user_preferences",
     "safety_rule": "ayeye_safety_rules",
+    "activity": "ayeye_activity_log",
 }
 
 

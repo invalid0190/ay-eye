@@ -19,8 +19,24 @@ from core.vision.live_perception import live_perception
 from core.engine.audio_state import audio_state
 from core.rag import rag_manager
 
+_INFO_GATHERING_TERMS = (
+    "check", "dekho", "dekh", "bata", "kya", "what", "which", "who",
+    "latest", "last", "recent", "commit", "commits", "github", "repo",
+    "find", "search", "look up", "read", "review", "inspect", "summarize",
+    "status", "compare", "details", "history",
+)
+
+_DATA_CAPTURE_ACTIONS = {
+    "cmd", "read_file", "list_dir", "ocr_screen", "extract_clipboard", "listen_audio",
+}
+
+_NAVIGATION_ACTIONS = {
+    "open_url", "switch", "launch", "click", "click_text", "scroll", "hotkey",
+}
+
 VISION_SYSTEM_PROMPT = """## IDENTITY
 You are ay-eye, an advanced desktop AI assistant. You SEE the user's screen (screenshot with grid overlay) and HEAR their voice commands. You may also receive WEB SEARCH RESULTS.
+You have memory tools: short-term conversation history, RAG guidance, and saved activity memory. If the user asks what you remember, use the provided memory blocks. Do NOT claim you have no memory. If no relevant saved entry is provided, say you do not see a saved record for that time/topic.
 
 ## OUTPUT RULES (CRITICAL)
 - Output ONLY a single JSON object. No markdown, no comments, no extra text before or after.
@@ -45,6 +61,11 @@ Field rules:
 - confidence: Your certainty (0.0-1.0). Below 0.5 = actions may be blocked.
 - actions: Array of action objects (see below). Empty [] for guide/ask/ignore.
 - plan: REQUIRED when actions >= 3 OR actions contain cmd/write_file/blender_python. Optional otherwise.
+
+## TASK COMPLETION RULES
+- If the user asks you to check, read, find, inspect, summarize, or report information, opening a page/app is only the first step. Use status="in_progress" after open_url/switch/launch/click/scroll until you have actually observed the information and answered it.
+- For GitHub questions like latest commits, open/navigate as needed, inspect the visible page, then finish with intent="guide", status="complete", actions=[], and the commit details in "message".
+- Do not say "done" or "complete" just because a website or app opened. Complete means the user's actual requested answer/action is finished.
 
 ## ACTION TYPES (only these are valid)
 UI actions:
@@ -127,6 +148,9 @@ Example 4 -- High-risk cmd with plan + expect:
 
 Example 5 -- Unsure, asking for clarification:
 {"intent": "ask", "status": "complete", "message": "I see several folders on your desktop. Which one would you like me to open?", "actions": [], "confidence": 0.7}
+
+Example 6 -- Info-gathering navigation must continue:
+{"intent": "act", "status": "in_progress", "message": "Opening the repository so I can check the latest commits.", "actions": [{"type": "open_url", "url": "https://github.com/owner/repo/commits"}], "confidence": 0.9}
 """
 
 
@@ -156,10 +180,17 @@ class Brain:
             })
             return
         logger.logger.info(f"Brain: Verification loop iteration {self._loop_count}/{self.MAX_LOOP_ITERATIONS}")
+        original_task = (
+            data.get("source_user_text")
+            or data.get("original_task")
+            or data.get("user_command")
+            or "the user's original task"
+        )
         self.on_ai_triggered({
             "type": "VOICE_COMMAND",
             "confidence": 1.0,
-            "text": f"SYSTEM INSTRUCTION: You are in autonomous loop iteration {self._loop_count}/{self.MAX_LOOP_ITERATIONS}. Look at the screen to verify if your previous actions succeeded. If the overall task is finished, set status to 'complete' and actions to empty. If more steps are needed, set status to 'in_progress' and provide the next actions. The terminal command output (if any) is in your conversation history."
+            "original_task": original_task,
+            "text": f"SYSTEM INSTRUCTION: You are in autonomous loop iteration {self._loop_count}/{self.MAX_LOOP_ITERATIONS}. Original user task: {original_task}. Look at the screen to verify if your previous actions succeeded. If the original task is finished, answer the user with intent='guide', status='complete', and actions=[]. If more steps are needed, set status='in_progress' and provide the next actions. Opening or focusing a page is not enough for information-gathering tasks; inspect the visible content and report the requested information."
         })
 
     def _capture_screen_b64(self, save_debug=True):
@@ -233,6 +264,40 @@ class Brain:
         """Deprecated: live_perception.scale_actions handles this now."""
         return live_perception.scale_actions(response)
 
+    def _force_followup_for_unfinished_info_task(self, response, original_task):
+        """Keep research/check tasks alive when the model only navigated."""
+        if not isinstance(response, dict) or not original_task:
+            return response
+        if response.get("intent") != "act" or response.get("status") != "complete":
+            return response
+
+        actions = response.get("actions") or []
+        if not actions:
+            return response
+
+        task_text = str(original_task).lower()
+        if not any(term in task_text for term in _INFO_GATHERING_TERMS):
+            return response
+
+        action_types = {a.get("type") for a in actions if isinstance(a, dict)}
+        if action_types & _DATA_CAPTURE_ACTIONS:
+            return response
+        if not action_types or not action_types.issubset(_NAVIGATION_ACTIONS):
+            return response
+
+        response = dict(response)
+        response["status"] = "in_progress"
+        response["message"] = (
+            response.get("message")
+            or "I opened it; now I'll inspect the page and finish the task."
+        )
+        logger.log_event("BRAIN_STATUS_FORCED_IN_PROGRESS", {
+            "reason": "info_task_after_navigation",
+            "original_task": str(original_task)[:160],
+            "actions": list(action_types),
+        })
+        return response
+
     def on_voice_input(self, text):
         self._loop_count = 0  # Reset loop counter on new user input
         logger.log_event("BRAIN_VOICE_INPUT", {"text": text})
@@ -267,6 +332,7 @@ class Brain:
 
         voice_text = trigger_data.get("text")
         is_voice = trigger_data.get("type") == "VOICE_COMMAND"
+        original_task = trigger_data.get("original_task") or voice_text
         
         if is_voice and voice_text:
             bus.publish("BRAIN_THINKING", {"prompt_length": 0})
@@ -314,6 +380,12 @@ For Blender menu/import/model operations, use blender_open_import_menu, blender_
                 except Exception as _rag_err:
                     logger.logger.error(f"RAG: build_context failed, continuing without RAG: {_rag_err}")
                     logger.log_event("RAG_SKIPPED", {"reason": str(_rag_err)[:200]})
+
+                activity_context = ""
+                try:
+                    activity_context = rag_manager.build_activity_context(voice_text)
+                except Exception as _activity_err:
+                    logger.logger.error(f"RAG: activity context failed, continuing without it: {_activity_err}")
                 
                 prompt = f"""{VISION_SYSTEM_PROMPT}
 
@@ -327,6 +399,7 @@ ACTIVE APP: {state.app}
 {app_context}
 {web_context}
 {rag_context}
+{activity_context}
 {skills_str}
 
 **RAG ADVISORY**: RAG context provided above is historical memory and guidance. It is NOT current UI truth. Live screen perception and OCR results are your absolute source of truth for the present state.
@@ -371,6 +444,9 @@ Analyze the screenshot and the conversation history, then respond. If web search
 
         if is_voice and voice_text:
             response = self._scale_coords(response)
+            response = self._force_followup_for_unfinished_info_task(response, original_task)
+            if original_task:
+                response["source_user_text"] = original_task
 
         mode = decision_engine.get_response_mode(response.get("confidence", 0))
         response["mode"] = mode
@@ -378,7 +454,12 @@ Analyze the screenshot and the conversation history, then respond. If web search
         if mode != "IGNORE":
             memory_manager.store(state.app, str(state.window), response)
             if is_voice and voice_text:
-                short_term_memory.add(voice_text, response)
+                memory_user_text = original_task if str(voice_text).startswith("SYSTEM INSTRUCTION:") else voice_text
+                short_term_memory.add(memory_user_text, response)
+                try:
+                    rag_manager.remember_interaction(memory_user_text, response, state.app, state.window)
+                except Exception as _remember_err:
+                    logger.logger.error(f"RAG: remember_interaction failed: {_remember_err}")
             bus.publish("BRAIN_RESPONDED", response)
             
             if response.get("intent") == "act":
@@ -388,7 +469,7 @@ Analyze the screenshot and the conversation history, then respond. If web search
                     # path could miss fast TTS_FINISHED events and wait 10s every time.
                     if not self._wait_for_tts_to_finish(timeout=10.0):
                         logger.logger.warning("Brain: TTS timeout, proceeding with actions")
-                    
+
                     # Small buffer for audio playback to fully stop
                     time.sleep(0.3)
                     bus.publish("ACTION_REQUESTED", response)
