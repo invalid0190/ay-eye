@@ -21,7 +21,7 @@ from core.rag import rag_manager
 
 _INFO_GATHERING_TERMS = (
     "check", "dekho", "dekh", "bata", "kya", "what", "which", "who",
-    "latest", "last", "recent", "commit", "commits", "github", "repo",
+    "latest", "last", "recent",
     "find", "search", "look up", "read", "review", "inspect", "summarize",
     "status", "compare", "details", "history",
 )
@@ -33,6 +33,8 @@ _DATA_CAPTURE_ACTIONS = {
 _NAVIGATION_ACTIONS = {
     "open_url", "switch", "launch", "click", "click_text", "scroll", "hotkey",
 }
+
+_INTERMEDIATE_INFO_ACTIONS = _NAVIGATION_ACTIONS | _DATA_CAPTURE_ACTIONS
 
 VISION_SYSTEM_PROMPT = """## IDENTITY
 You are ay-eye, an advanced desktop AI assistant. You SEE the user's screen (screenshot with grid overlay) and HEAR their voice commands. You may also receive WEB SEARCH RESULTS.
@@ -280,9 +282,7 @@ class Brain:
             return response
 
         action_types = {a.get("type") for a in actions if isinstance(a, dict)}
-        if action_types & _DATA_CAPTURE_ACTIONS:
-            return response
-        if not action_types or not action_types.issubset(_NAVIGATION_ACTIONS):
+        if not action_types or not action_types.issubset(_INTERMEDIATE_INFO_ACTIONS):
             return response
 
         response = dict(response)
