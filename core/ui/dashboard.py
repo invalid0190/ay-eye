@@ -31,6 +31,8 @@ class ThreadBridge(QObject):
     health_tts = pyqtSignal(bool)
     health_stt = pyqtSignal(bool)
     web_search = pyqtSignal(str)
+    dry_run = pyqtSignal(str)
+    trace_exported = pyqtSignal(str)
 
 
 class AyEyeDashboard:
@@ -78,6 +80,8 @@ class AyEyeDashboard:
         self.bridge.health_tts.connect(lambda ok: self.health_bar.set_status("TTS", ok))
         self.bridge.health_stt.connect(lambda ok: self.health_bar.set_status("STT", ok))
         self.bridge.web_search.connect(self._on_web_search)
+        self.bridge.dry_run.connect(self._on_dry_run)
+        self.bridge.trace_exported.connect(self._on_trace_exported)
         
         # ── Subscribe event bus → emit signals (thread-safe) ──
         bus.subscribe("BRAIN_THINKING", lambda d: self.bridge.thinking.emit())
@@ -109,6 +113,12 @@ class AyEyeDashboard:
             d.get("query", "search") if isinstance(d, dict) else "search"
         ))
         bus.subscribe("VOICE_IGNORED", self._on_voice_ignored_bus)
+        bus.subscribe("DRY_RUN_ACTION", lambda d: self.bridge.dry_run.emit(
+            d.get("type", "action") if isinstance(d, dict) else "action"
+        ))
+        bus.subscribe("TRACE_EXPORTED", lambda d: self.bridge.trace_exported.emit(
+            d.get("filename", "trace.json") if isinstance(d, dict) else "trace.json"
+        ))
         bus.subscribe("TOGGLE_COMMAND_PANEL", lambda d=None: self.bridge.toggle_panel.emit())
         bus.subscribe("HIGHLIGHT_REQUESTED", self.on_highlight_request)
         
@@ -206,6 +216,12 @@ class AyEyeDashboard:
     def _on_error(self, reason):
         self.update_status("idle")
         self.command_panel.add_log("⚠️", reason[:60], theme.ERROR.name())
+    
+    def _on_dry_run(self, action_type):
+        self.command_panel.add_log("🚧", f"DRY RUN: {action_type}", "#FFB74D")
+    
+    def _on_trace_exported(self, filename):
+        self.command_panel.add_log("📄", f"Trace: {filename}", theme.SUCCESS.name())
     
     def _on_greeting(self, text):
         self.command_panel.add_log("👋", "System online", theme.SUCCESS.name())

@@ -1,5 +1,8 @@
 import time
 import threading
+import json
+import os
+from datetime import datetime
 from core.engine.event_bus import bus
 from core.config import sys_config
 from core.engine.executor import executor
@@ -53,10 +56,57 @@ class ActionOrchestrator:
                         bus.publish("ACTION_ABORTED", {"reason": "Confirmation timeout"})
                         return
 
+                # Resolve active window/app for safety context
+                try:
+                    from core.state.manager import state_manager
+                    st = state_manager.get_state()
+                    active_window = st.window or ""
+                    active_app = st.app or ""
+                except Exception:
+                    active_window = ""
+                    active_app = ""
+
+                # ── Trace Collection ──
+                trace_data = {
+                    "timestamp": datetime.now().isoformat(),
+                    "user_command": "",
+                    "active_app": active_app,
+                    "active_window": active_window,
+                    "rag_context_titles": [],
+                    "llm_response": {},
+                    "schema_result": {},
+                    "plan_result": {},
+                    "safety_results": [],
+                    "dry_run_actions": [],
+                    "would_execute_count": 0,
+                    "blocked_actions": [],
+                    "final_status": "in_progress"
+                }
+
+                # Try to get user command and RAG titles
+                try:
+                    from core.state.short_term import short_term_memory
+                    history = short_term_memory.get_history()
+                    if history:
+                        trace_data["user_command"] = history[-1].get("command", "")
+                    
+                    # Truncate large llm message in trace
+                    msg = data.get("message", "")
+                    trace_data["llm_response"] = {**data, "message": msg[:200] + "..." if len(msg) > 200 else msg}
+                except Exception:
+                    pass
+
                 # -- Schema validation gate (FIRST in pipeline) --
                 try:
                     schema_result = response_schema.validate(data)
+                    trace_data["schema_result"] = {
+                        "valid": schema_result["valid"],
+                        "reason": schema_result["reason"],
+                        "removed_actions": schema_result["removed_actions"]
+                    }
                     if not schema_result["valid"]:
+                        trace_data["final_status"] = "failed"
+                        self._export_trace(trace_data)
                         logger.log_event("RESPONSE_SCHEMA_INVALID", {
                             "reason": schema_result["reason"],
                         })
@@ -81,21 +131,16 @@ class ActionOrchestrator:
                 actions = normalized.get("actions", [])
                 confidence = normalized.get("confidence", 1.0)
 
-                
-                # Resolve active window/app for safety context
-                try:
-                    from core.state.manager import state_manager
-                    st = state_manager.get_state()
-                    active_window = st.window or ""
-                    active_app = st.app or ""
-                except Exception:
-                    active_window = ""
-                    active_app = ""
-                
                 # ── Plan validation gate ──
                 try:
                     plan_result = plan_validator.validate(normalized)
+                    trace_data["plan_result"] = {
+                        "valid": plan_result["valid"],
+                        "reason": plan_result["reason"]
+                    }
                     if not plan_result["valid"]:
+                        trace_data["final_status"] = "failed"
+                        self._export_trace(trace_data)
                         logger.log_event("PLAN_VALIDATION_FAILED", {
                             "reason": plan_result["reason"],
                         })
@@ -132,7 +177,15 @@ class ActionOrchestrator:
                         active_window=active_window,
                         active_app=active_app,
                     )
+                    trace_data["safety_results"].append({
+                        "type": a_type,
+                        "allowed": verdict["allowed"],
+                        "risk": verdict["risk"],
+                        "reason": verdict["reason"]
+                    })
+
                     if not verdict["allowed"]:
+                        trace_data["blocked_actions"].append({"type": a_type, "reason": verdict["reason"]})
                         bus.publish("ACTION_ABORTED", {
                             "reason": verdict["reason"],
                             "action": a_type,
@@ -152,6 +205,33 @@ class ActionOrchestrator:
                     from core.vision.live_perception import live_perception
                     frame_before = live_perception.get_latest_frame()
                     
+                    # ── Dry Run Logic ──
+                    if sys_config.get("dry_run_enabled"):
+                        logger.logger.info(f"DRY RUN: Would execute {a_type}: {action}")
+                        logger.log_event("DRY_RUN_ACTION", {"type": a_type, "action": action})
+                        bus.publish("DRY_RUN_ACTION", {"type": a_type, "action": action})
+                        
+                        trace_data["dry_run_actions"].append(action)
+                        trace_data["would_execute_count"] += 1
+
+                        # Feed back into memory
+                        try:
+                            from core.state.short_term import short_term_memory
+                            short_term_memory.add_system_context(
+                                f"DRY_RUN: Action {a_type} would have been executed."
+                            )
+                        except Exception:
+                            pass
+                            
+                        # Show highlight if it's a UI action with coordinates or target
+                        if sys_config.get("dry_run_show_overlay"):
+                            if a_type in ["click", "click_text", "drag"]:
+                                bus.publish("HIGHLIGHT_REQUESTED", action)
+                        
+                        executed_actions.append(action)
+                        # Skip execution and verification
+                        continue
+
                     # ── Execute ──
                     executor.execute_single(action)
                     executed_actions.append(action)
@@ -204,6 +284,14 @@ class ActionOrchestrator:
                     except Exception as _ve:
                         logger.logger.error(f"Orchestrator: Verification error (non-fatal): {_ve}")
 
+                # Finalize Trace
+                if sys_config.get("dry_run_enabled"):
+                    if trace_data["blocked_actions"]:
+                        trace_data["final_status"] = "blocked"
+                    else:
+                        trace_data["final_status"] = "simulated"
+                    self._export_trace(trace_data)
+
                 logger.log_event("ACTION_SEQUENCE_COMPLETED", {
                     "total": len(actions),
                     "executed": len(executed_actions),
@@ -220,5 +308,25 @@ class ActionOrchestrator:
                 bus.publish("AUTONOMOUS_LOOP_TRIGGER", data)
 
         threading.Thread(target=_run, daemon=True).start()
+
+    def _export_trace(self, trace_data):
+        if not sys_config.get("dry_run_trace_enabled"):
+            return
+            
+        try:
+            trace_dir = os.path.join("data", "traces")
+            if not os.path.exists(trace_dir):
+                os.makedirs(trace_dir, exist_ok=True)
+                
+            filename = f"trace_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            filepath = os.path.join(trace_dir, filename)
+            
+            with open(filepath, 'w') as f:
+                json.dump(trace_data, f, indent=2)
+                
+            logger.logger.info(f"Dry-run trace exported: {filepath}")
+            bus.publish("TRACE_EXPORTED", {"path": filepath, "filename": filename})
+        except Exception as e:
+            logger.logger.error(f"Failed to export dry-run trace: {e}")
 
 action_orchestrator = ActionOrchestrator()

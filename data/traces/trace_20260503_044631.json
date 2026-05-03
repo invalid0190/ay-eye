@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-05-03T04:46:31.665287",
+  "user_command": "",
+  "active_app": "",
+  "active_window": "",
+  "rag_context_titles": [],
+  "llm_response": {},
+  "schema_result": {
+    "valid": true,
+    "reason": "",
+    "removed_actions": 0
+  },
+  "plan_result": {
+    "valid": true,
+    "reason": "Plan validated"
+  },
+  "safety_results": [
+    {
+      "type": "click",
+      "allowed": true,
+      "risk": "LOW",
+      "reason": ""
+    }
+  ],
+  "dry_run_actions": [
+    {
+      "type": "click",
+      "x": 100,
+      "y": 200,
+      "target": "Test Button"
+    }
+  ],
+  "would_execute_count": 1,
+  "blocked_actions": [],
+  "final_status": "simulated"
+}

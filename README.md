@@ -276,6 +276,54 @@ Scenario tests simulate complete user workflows with realistic LLM responses:
 | Low confidence | Blocked below threshold |
 | Malformed response | Schema validation rejects non-dict actions |
 
+### Live Dry-Run Mode
+
+Ay-Eye includes a **Live Dry-Run Mode** that allows you to see what the agent *would* do without actually performing any clicks, typing, or command execution.
+
+#### How to Enable
+
+In `config.json`:
+```json
+{
+  "dry_run_enabled": true,
+  "dry_run_show_overlay": true
+}
+```
+
+#### What happens in Dry-Run Mode:
+1. **Full Validation**: The agent still runs Schema, Plan, and Safety validation.
+2. **Visual Feedback**: A `DRY RUN` badge appears on the status bar.
+3. **Action Preview**: UI action targets (like buttons) are highlighted on your real screen.
+4. **Logging**: All intended actions are logged to the command panel and `ay-eye-analytics.jsonl`.
+5. **Memory Update**: The agent's short-term memory is updated as if the action was attempted, allowing for multi-step reasoning tests.
+
+> [!IMPORTANT]
+> Always test new skills or complex workflows in **Dry-Run Mode** first to verify the agent's intent before allowing real execution.
+
+#### Running Dry-Run Tests
+To verify the dry-run plumbing itself:
+```bash
+.venv\Scripts\python scripts/test_dry_run_mode.py
+```
+
+### Reading Dry-Run Traces
+
+When `dry_run_trace_enabled` is true, every simulated sequence generates a JSON trace in `data/traces/`. This is the ultimate debugging tool for understanding the agent's internal state.
+
+**Trace Structure:**
+- `timestamp`: When the sequence occurred.
+- `user_command`: The original request (from short-term memory).
+- `llm_response`: The raw (truncated) JSON from the LLM.
+- `schema_result`: Whether the JSON was valid and what was normalized.
+- `plan_result`: If the plan was accepted or why it was rejected.
+- `safety_results`: A per-action risk assessment (SAFE/LOW/MEDIUM/HIGH/BLOCKED).
+- `final_status`: `simulated` (success), `blocked` (safety refusal), or `failed` (validation error).
+
+**Why use traces?**
+- **Debug Refusals**: See exactly which safety rule or sensitive window triggered a block.
+- **Audit Logic**: Verify that the agent is creating a plan for high-risk actions.
+- **Improve Prompts**: Analyze `schema_result` to see if the LLM is consistently outputting invalid JSON.
+
 ### Pipeline Architecture
 
 ```

@@ -84,6 +84,20 @@ class PillStatusBar(QWidget, DraggableMixin):
             background:transparent; border:none;
         """)
         
+        # Dry Run Badge
+        self.dry_run_label = QLabel("DRY RUN")
+        self.dry_run_label.setStyleSheet(f"""
+            color: #FFB74D;
+            background: rgba(255, 183, 77, 15);
+            border: 1px solid rgba(255, 183, 77, 30);
+            border-radius: 4px;
+            font-family: {theme.FONT_MONO};
+            font-size: 6pt;
+            font-weight: bold;
+            padding: 1px 4px;
+        """)
+        self.dry_run_label.setVisible(False)
+        
         # Panel toggle (manual open/close)
         self.panel_btn = QPushButton("≡")
         self.panel_btn.setFixedSize(18, 18)
@@ -108,11 +122,12 @@ class PillStatusBar(QWidget, DraggableMixin):
 
         layout.addWidget(self.dot)
         layout.addWidget(self.label)
+        layout.addWidget(self.dry_run_label)
         layout.addWidget(sep)
         layout.addWidget(self.app_label)
-        layout.addWidget(self.panel_btn)
         layout.addStretch()
         layout.addWidget(self.uptime_label)
+        layout.addWidget(self.panel_btn)
         
         self.setStyleSheet(theme.GLASS_STYLE)
         self.setFixedSize(322, 34)
@@ -141,6 +156,9 @@ class PillStatusBar(QWidget, DraggableMixin):
     def update_status(self, status, app_name=""):
         self.label.setText(status.upper())
         self.app_label.setText(app_name[:18].upper() if app_name else "SYSTEM")
+        
+        from core.config import sys_config
+        self.dry_run_label.setVisible(sys_config.get("dry_run_enabled"))
         
         colors = {"idle": theme.IDLE, "thinking": theme.THINKING, "recording": theme.RECORDING, "acting": theme.ACTING}
         color = colors.get(status, theme.IDLE)

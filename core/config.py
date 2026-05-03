@@ -27,7 +27,10 @@ class SystemConfig:
             "rag_enabled": True,
             "rag_top_k": 6,
             "rag_max_context_chars": 3500,
-            "rag_persist_path": "data/rag/chroma"
+            "rag_persist_path": "data/rag/chroma",
+            "dry_run_enabled": True,
+            "dry_run_show_overlay": True,
+            "dry_run_trace_enabled": True
         }
         self.config = self.load()
 
