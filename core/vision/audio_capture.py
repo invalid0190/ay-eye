@@ -21,6 +21,8 @@ class AudioCapture:
         bus.subscribe("HOTKEY_RELEASED", self.stop_recording)
 
     def start_recording(self, data=None):
+        if self.recording:
+            return
         self.recording = True
         self.buffer = []
         threading.Thread(target=self._record_loop, daemon=True).start()
@@ -36,6 +38,7 @@ class AudioCapture:
             
             start_time = time.time()
             silence_start = None
+            heard_audio = False
             
             while self.recording and (time.time() - start_time < self.max_recording_time):
                 try:
@@ -47,23 +50,29 @@ class AudioCapture:
                 
                 self.buffer.append(data)
                 
-                # Silence detection (0.6s)
-                if audio_processor.is_silent(data):
+                # For push-to-talk, don't end recording before the user has actually spoken.
+                is_silent = audio_processor.is_silent(data)
+                if not is_silent:
+                    heard_audio = True
+                    silence_start = None
+                elif heard_audio:
                     if silence_start is None:
                         silence_start = time.time()
                     elif time.time() - silence_start > 1.5:
                         break
-                else:
-                    silence_start = None
             
-            if self.buffer:
+            if self.buffer and heard_audio:
                 full_audio = b"".join(self.buffer)
                 normalized = audio_processor.normalize(full_audio)
                 bus.publish("AUDIO_SEGMENT_COMPLETED", normalized)
                 logger.log_event("AUDIO_CAPTURED", {"duration_sec": time.time() - start_time})
+            else:
+                bus.publish("VOICE_IGNORED", {"reason": "no_audio"})
+                logger.log_event("AUDIO_CAPTURE_EMPTY", {"duration_sec": time.time() - start_time})
                 
         except Exception as e:
             logger.logger.error(f"Audio capture error: {e}")
+            bus.publish("VOICE_IGNORED", {"reason": "capture_error"})
         finally:
             if self.stream:
                 self.stream.stop_stream()
