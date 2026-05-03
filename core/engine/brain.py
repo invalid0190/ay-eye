@@ -64,7 +64,7 @@ Field rules:
 - status: "in_progress" if awaiting feedback (cmd output, file read, screen check). "complete" if done. "failed" if unable.
 - confidence: Your certainty (0.0-1.0). Below 0.5 = actions may be blocked.
 - actions: Array of action objects (see below). Empty [] for guide/ask/ignore.
-- plan: REQUIRED when actions >= 3 OR actions contain cmd/write_file/blender_python. Optional otherwise.
+- plan: REQUIRED when actions >= 3 OR actions contain cmd/write_file/blender_python/blender_create_scene. Optional otherwise.
 
 ## TASK COMPLETION RULES
 - If the user asks you to check, read, find, inspect, summarize, or report information, opening a page/app is only the first step. Use status="in_progress" after open_url/switch/launch/click/scroll until you have actually observed the information and answered it.
@@ -97,6 +97,7 @@ Blender actions (use instead of clicking Blender menus -- Blender OCR is unrelia
 - blender_open_import_menu: {"type": "blender_open_import_menu"}
 - blender_import_file: {"type": "blender_import_file", "path": "C:\\\\path\\\\model.fbx"}
 - blender_python: {"type": "blender_python", "script": "import bpy; bpy.ops..."}
+- blender_create_scene: {"type": "blender_create_scene", "description": "detailed scene/model request", "reference_summary": "what is visible in the reference image"}
 
 ## CLICK RULES
 - **ALWAYS use click_text** when the target has visible text (buttons, menus, file names, tabs, links).
@@ -108,7 +109,7 @@ Blender actions (use instead of clicking Blender menus -- Blender OCR is unrelia
 - If click_text fails (you'll see "CLICK_TEXT: Could not find" in history), fall back to coordinate click.
 
 ## PLANNING RULES
-- Include a "plan" field when: (a) 3+ actions, OR (b) any cmd/write_file/blender_python action.
+- Include a "plan" field when: (a) 3+ actions, OR (b) any cmd/write_file/blender_python/blender_create_scene action.
 - Plan = short list of 1-5 concrete steps. Each step = one sentence.
 - High-risk actions MUST be explained in the plan.
 - Plan must match actions. No hidden actions outside the plan.
@@ -122,7 +123,7 @@ For important actions, add an "expect" field declaring what success looks like:
 - {"type": "window_title", "value": "text"} -- window title contains text
 - {"type": "screen_text", "value": "text"} -- text appeared on screen
 - {"type": "none"} -- skip verification
-ALWAYS add expect for cmd, write_file, and blender_python actions.
+ALWAYS add expect for cmd, write_file, blender_python, and blender_create_scene actions.
 
 ## SAFETY RULES
 - Dangerous commands (format, shutdown, rm -rf, registry edits) are blocked. Find safe alternatives.
@@ -131,7 +132,7 @@ ALWAYS add expect for cmd, write_file, and blender_python actions.
 - When reading files or running commands, set status="in_progress" so you can check the output.
 
 ## APP-SPECIFIC RULES
-Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete().
+Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(). For "create/model/build/recreate/design something like this/image/reference" requests, do not ask for exact dimensions first; summarize what you see, make reasonable assumptions, and use blender_create_scene with status="in_progress".
 Messaging: Click input field first, then type, then hotkey Enter.
 Renaming files: click_text on name, hotkey F2, type new name, hotkey Enter.
 Streams: NEVER click inside picture-in-picture or recursive stream previews.
@@ -319,11 +320,84 @@ class Brain:
             "delete", "remove", "clear", "clean", "sab", "everything", "all object", "all objects",
             "cube", "x se", "x press",
         ))
+        response_text = str(response.get("message") or "").lower()
+        wants_scene_create = (
+            any(term in task_text for term in (
+                "create", "make", "model", "build", "design", "recreate", "generate",
+                "bana", "banao", "banado", "jaisa", "aisi", "aisa", "like this",
+                "something like", "somthing like",
+            ))
+            and any(term in f"{task_text} {response_text}" for term in (
+                "image", "picture", "photo", "reference", "visible", "this", "ye", "iss",
+                "container", "cafe", "coffee", "shop", "building", "scene", "model",
+            ))
+        )
 
-        action_types = {
-            a.get("type") for a in (response.get("actions") or []) if isinstance(a, dict)
-        }
+        existing_actions = response.get("actions") or []
+        action_types = {a.get("type") for a in existing_actions if isinstance(a, dict)}
         has_fragile_blender_clicks = bool(action_types & _BLENDER_CLICK_TYPES)
+
+        if wants_scene_create:
+            scene_description = (
+                f"{original_task}. Create a detailed Blender scene inspired by the visible reference. "
+                "If it is a container cafe, include a corrugated shipping-container body, "
+                "large service window, wooden counter, awning, signage, outdoor seating, "
+                "planters, warm cafe lights, patio, camera, and scene lighting."
+            )
+            reference_summary = " ".join(
+                part for part in (str(response.get("message") or ""), str(original_task)) if part
+            )[:500]
+
+            if "blender_create_scene" in action_types:
+                normalized = dict(response)
+                normalized_actions = []
+                for action in existing_actions:
+                    if isinstance(action, dict) and action.get("type") == "blender_create_scene":
+                        action = dict(action)
+                        action.setdefault("description", scene_description)
+                        action.setdefault("reference_summary", reference_summary)
+                        action.setdefault("expect", {"type": "none"})
+                    normalized_actions.append(action)
+                normalized["actions"] = normalized_actions
+                normalized["intent"] = "act"
+                normalized["status"] = "in_progress"
+                normalized["plan"] = normalized.get("plan") or [
+                    "Close any Blender splash or modal if it blocks the viewport.",
+                    "Use Blender scene creation to build a procedural model from the visible reference.",
+                ]
+                normalized["confidence"] = max(float(normalized.get("confidence", 0.0) or 0.0), 0.9)
+                return normalized
+
+            if "blender_python" not in action_types:
+                normalized = dict(response)
+                normalized["intent"] = "act"
+                normalized["status"] = "in_progress"
+                normalized["message"] = (
+                    "I'll create a first-pass Blender scene from the visible reference instead of asking for more specs."
+                )
+                normalized["actions"] = [
+                    {
+                        "type": "hotkey",
+                        "keys": ["escape"],
+                        "expect": {"type": "none"},
+                    },
+                    {
+                        "type": "blender_create_scene",
+                        "description": scene_description,
+                        "reference_summary": reference_summary,
+                        "expect": {"type": "none"},
+                    },
+                ]
+                normalized["plan"] = [
+                    "Close any Blender splash or modal with Escape.",
+                    "Use Blender scene creation to generate the reference-inspired model with materials, lights, camera, and details.",
+                ]
+                normalized["confidence"] = max(float(normalized.get("confidence", 0.0) or 0.0), 0.9)
+                logger.log_event("BRAIN_BLENDER_SCENE_NORMALIZED", {
+                    "original_task": str(original_task)[:160],
+                    "actions": ["hotkey", "blender_create_scene"],
+                })
+                return normalized
 
         if not wants_splash_close and not wants_delete_all and not has_fragile_blender_clicks:
             return response
@@ -448,7 +522,7 @@ BLENDER DOES NOT USE Alt+key MENUS. Use these correct shortcuts:
 - F3 = Search any command by name (type 'Open Recent' to find it)
 - Shift+A = Add menu, N = N-panel, Tab = Edit/Object mode
 To open a specific .blend file: use cmd action: & 'C:\\\\Program Files\\\\Blender Foundation\\\\Blender 4.2\\\\blender.exe' 'C:\\\\path\\\\to\\\\file.blend'
-For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, or blender_python with status=in_progress so you can verify after the API action. Do NOT use click_text, and do not claim a Blender menu opened unless you used the Blender API action or verified it on screen.
+For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, blender_create_scene, or blender_python with status=in_progress so you can verify after the API action. For reference image creative requests, use blender_create_scene and describe the visible object/scene; do not ask the user to provide exact specs first. Do NOT use click_text, and do not claim a Blender menu opened unless you used the Blender API action or verified it on screen.
 """
                 
                 # Retrieve RAG context (advisory only -- never blocks main loop)

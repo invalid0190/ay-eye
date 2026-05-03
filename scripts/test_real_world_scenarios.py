@@ -204,7 +204,7 @@ def scenario(
 
     # No unsafe commands executed without plan
     if expect_no_unsafe_exec and r.schema_ok and r.plan_ok:
-        unsafe_types = {"cmd", "write_file", "blender_python"}
+        unsafe_types = {"cmd", "write_file", "blender_python", "blender_create_scene"}
         unsafe_executed = [a for a in r.executed if a.get("type") in unsafe_types]
         if unsafe_executed:
             # If high-risk actions were executed, they must have had a plan

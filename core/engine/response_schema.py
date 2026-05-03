@@ -36,7 +36,7 @@ _VALID_ACTION_TYPES = {
     "click", "click_text", "drag", "type", "hotkey", "scroll", "switch", "launch",
     "open_url", "cmd", "create_skill", "read_file", "list_dir",
     "write_file", "extract_clipboard", "listen_audio", "ocr_screen",
-    "blender_python", "blender_open_import_menu", "blender_import_file",
+    "blender_python", "blender_create_scene", "blender_open_import_menu", "blender_import_file",
 }
 
 # Per-action-type required fields (at least ONE of these must be present)
@@ -52,6 +52,7 @@ _ACTION_REQUIRED_FIELDS: dict[str, list[str]] = {
     "switch": ["target"],
     "launch": ["target"],
     "blender_python": ["script"],
+    "blender_create_scene": ["description"],
     "blender_import_file": ["path"],
     "create_skill": ["name", "instruction"],
     "read_file": ["path"],

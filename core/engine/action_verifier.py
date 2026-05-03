@@ -42,7 +42,7 @@ from core.vision.live_perception import live_perception
 
 # ── High-risk types requiring expect contracts ───────────────────────
 
-_HIGH_RISK_TYPES = {"cmd", "write_file", "blender_python"}
+_HIGH_RISK_TYPES = {"cmd", "write_file", "blender_python", "blender_create_scene"}
 
 # ── Valid expect types ───────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ class ActionVerifier:
     # Action types where screen-change is meaningful evidence
     _SCREEN_CHANGE_TYPES = {"click", "click_text", "drag", "scroll", "hotkey"}
     # Action types where we check short_term_memory for executor feedback
-    _MEMORY_CHECK_TYPES = {"cmd", "blender_python", "blender_open_import_menu", "blender_import_file"}
+    _MEMORY_CHECK_TYPES = {"cmd", "blender_python", "blender_create_scene", "blender_open_import_menu", "blender_import_file"}
 
     def verify(self, action: dict, frame_before=None) -> dict:
         """Verify a single action. Returns a verdict dict.
@@ -387,6 +387,7 @@ class ActionVerifier:
         "launch": _verify_switch,
         "open_url": _verify_open_url,
         "blender_python": _verify_blender,
+        "blender_create_scene": _verify_blender,
         "blender_open_import_menu": _verify_blender,
         "blender_import_file": _verify_blender,
     }

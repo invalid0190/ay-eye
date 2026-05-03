@@ -91,6 +91,11 @@ test("blender_python without plan",
          {"type": "blender_python", "script": "import bpy"},
      ]},
      expect_valid=False)
+test("blender_create_scene without plan",
+     {"intent": "act", "actions": [
+         {"type": "blender_create_scene", "description": "container cafe"},
+     ]},
+     expect_valid=False)
 
 # ------------------------------------------------------------------
 # Group 5: Valid plans (should PASS)
@@ -118,6 +123,11 @@ test("write_file with plan",
      {"intent": "act",
       "plan": ["Write a Python hello-world file to disk"],
       "actions": [{"type": "write_file", "path": "hello.py", "content": "print('hi')"}]},
+     expect_valid=True)
+test("blender_create_scene with plan",
+     {"intent": "act",
+      "plan": ["Create a Blender reference scene from the image"],
+      "actions": [{"type": "blender_create_scene", "description": "container cafe"}]},
      expect_valid=True)
 
 # ------------------------------------------------------------------

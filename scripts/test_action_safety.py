@@ -40,6 +40,7 @@ print("\n[Group 4] HIGH actions (allowed in normal context)")
 test("cmd mkdir",            {"type": "cmd", "command": "mkdir test_folder"})
 test("write_file",           {"type": "write_file", "path": "x.py", "content": "print(1)"})
 test("blender python",       {"type": "blender_python", "script": "import bpy"})
+test("blender create scene", {"type": "blender_create_scene", "description": "container cafe"})
 
 # --- BLOCKED commands ---
 print("\n[Group 5] BLOCKED commands (always refused)")

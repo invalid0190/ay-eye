@@ -29,7 +29,7 @@ from core.config import sys_config
 from core.utils.logger import logger
 
 # Action types considered high-risk (must appear in plan rationale)
-_HIGH_RISK_TYPES = {"cmd", "write_file", "blender_python"}
+_HIGH_RISK_TYPES = {"cmd", "write_file", "blender_python", "blender_create_scene"}
 
 # Action types that can appear without a plan (trivial / informational)
 _TRIVIAL_TYPES = {
@@ -180,6 +180,7 @@ _RISK_KEYWORDS: dict[str, list[str]] = {
     "cmd": ["cmd", "command", "terminal", "powershell", "shell", "run", "execute", "mkdir", "install"],
     "write_file": ["write", "file", "create file", "save", "output"],
     "blender_python": ["blender", "python", "script", "bpy"],
+    "blender_create_scene": ["blender", "scene", "model", "create", "reference"],
 }
 
 plan_validator = PlanValidator()

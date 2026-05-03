@@ -12,6 +12,7 @@ from core.utils.logger import logger
 from core.vision.live_perception import live_perception
 from core.vision.screen_locator import screen_locator
 from core.rag import rag_manager
+from core.engine.blender_scene_builder import build_scene_script
 
 class ActionExecutor:
     _DIRECT_EXE_RE = re.compile(
@@ -496,7 +497,7 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                     
                     if "blender" in active_title:
                         from core.state.short_term import short_term_memory
-                        reason = "Blender is active. OCR cannot read Blender's OpenGL fonts. Use blender_import_file, blender_open_import_menu, blender_python, or keyboard shortcuts instead."
+                        reason = "Blender is active. OCR cannot read Blender's OpenGL fonts. Use blender_import_file, blender_open_import_menu, blender_create_scene, blender_python, or keyboard shortcuts instead."
                         short_term_memory.add_system_context(f"CLICK_TEXT BLOCKED: {reason}")
                         logger.logger.warning("Executor: click_text blocked - Blender active, OCR won't work")
                         
@@ -735,6 +736,20 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                 success = self._send_python_to_blender_console(script, description, restore_layout)
                 if not success:
                     bus.publish("ACTION_ABORTED", {"reason": f"Blender API action failed: {description}"})
+                    return
+
+            elif a_type == "blender_create_scene":
+                description = action.get("description") or action.get("prompt") or ""
+                reference_summary = action.get("reference_summary") or ""
+                script = build_scene_script(description, reference_summary)
+                label = description[:90] or "reference scene"
+                success = self._send_python_to_blender_console(
+                    script,
+                    f"create Blender scene: {label}",
+                    restore_layout=True,
+                )
+                if not success:
+                    bus.publish("ACTION_ABORTED", {"reason": f"Blender scene creation failed: {label}"})
                     return
 
             elif a_type == "blender_open_import_menu":
