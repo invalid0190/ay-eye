@@ -2,6 +2,7 @@ import os
 import pyautogui
 import re
 import subprocess
+import tempfile
 import time
 import random
 import threading
@@ -12,6 +13,7 @@ from core.utils.logger import logger
 from core.vision.live_perception import live_perception
 from core.vision.screen_locator import screen_locator
 from core.rag import rag_manager
+from core.engine.blender_bridge import BlenderBridgeClient, build_bootstrap_script
 from core.engine.blender_scene_builder import build_scene_script
 
 class ActionExecutor:
@@ -269,8 +271,125 @@ class ActionExecutor:
     def _indent_script(script):
         return "\n".join(f"    {line}" if line.strip() else "" for line in script.splitlines())
 
-    def _send_python_to_blender_console(self, script, description="Blender script", restore_layout=True):
-        """Run bpy code in the active Blender process using the Python console."""
+    @staticmethod
+    def _scene_count(result):
+        after = result.get("after") if isinstance(result, dict) else {}
+        if not isinstance(after, dict):
+            return -1
+        try:
+            return int(after.get("object_count", -1))
+        except Exception:
+            return -1
+
+    @staticmethod
+    def _scene_names(result):
+        after = result.get("after") if isinstance(result, dict) else {}
+        if not isinstance(after, dict):
+            return ""
+        names = after.get("object_names") or []
+        if not isinstance(names, list):
+            return ""
+        return ", ".join(str(name) for name in names[:12])
+
+    def _record_blender_result(self, status, description, result=None, reason=""):
+        try:
+            from core.state.short_term import short_term_memory
+            if status == "SUCCESS":
+                object_count = self._scene_count(result or {})
+                names = self._scene_names(result or {})
+                stdout = ((result or {}).get("stdout") or "").strip()
+                short_term_memory.add_system_context(
+                    f"BLENDER_API_RESULT [SUCCESS]: {description}. "
+                    f"object_count={object_count}. object_names={names}. stdout={stdout[:1000]}"
+                )
+            else:
+                error = reason or ((result or {}).get("error") or "unknown Blender bridge error")
+                object_count = self._scene_count(result or {})
+                stdout = ((result or {}).get("stdout") or "").strip()
+                short_term_memory.add_system_context(
+                    f"BLENDER_API_RESULT [FAILED]: {description}. "
+                    f"object_count={object_count}. error={str(error)[:1200]}. stdout={stdout[:1000]}"
+                )
+        except Exception:
+            pass
+
+    def _ensure_blender_bridge(self):
+        """Start or verify the local in-Blender execution bridge."""
+        client = BlenderBridgeClient()
+        if client.ping():
+            return client
+
+        bootstrap = build_bootstrap_script()
+        if not self._send_python_to_blender_console_raw(
+            bootstrap,
+            "start Ay-Eye Blender bridge",
+            restore_layout=True,
+        ):
+            self._record_blender_result(
+                "FAILED",
+                "start Ay-Eye Blender bridge",
+                reason="Could not paste bootstrap script into Blender's Python console.",
+            )
+            return None
+
+        deadline = time.time() + 6.0
+        while time.time() < deadline:
+            time.sleep(0.25)
+            if client.ping(timeout=0.5):
+                try:
+                    from core.state.short_term import short_term_memory
+                    short_term_memory.add_system_context("BLENDER_BRIDGE_RESULT [READY]: Ay-Eye Blender bridge is connected.")
+                except Exception:
+                    pass
+                return client
+
+        self._record_blender_result(
+            "FAILED",
+            "start Ay-Eye Blender bridge",
+            reason="Bridge did not answer on localhost after bootstrap.",
+        )
+        return None
+
+    def _send_python_to_blender_console(self, script, description="Blender script", restore_layout=True, timeout=60, min_objects=0):
+        """Run bpy code in Blender and require a structured bridge result."""
+        if not script or not script.strip():
+            logger.logger.warning("Executor: Empty Blender Python script")
+            return False
+
+        client = self._ensure_blender_bridge()
+        if not client:
+            return False
+
+        try:
+            result = client.execute(script, description=description, timeout=timeout)
+        except Exception as exc:
+            self._record_blender_result("FAILED", description, reason=f"Bridge request failed: {exc}")
+            logger.logger.error(f"Executor: Blender bridge request failed: {exc}")
+            return False
+
+        object_count = self._scene_count(result)
+        if not result.get("ok"):
+            self._record_blender_result("FAILED", description, result=result)
+            logger.logger.warning(f"Executor: Blender bridge action failed: {description}")
+            return False
+        if min_objects and object_count < min_objects:
+            self._record_blender_result(
+                "FAILED",
+                description,
+                result=result,
+                reason=f"Script completed but scene has only {object_count} object(s).",
+            )
+            logger.logger.warning(
+                f"Executor: Blender scene action produced too few objects ({object_count})"
+            )
+            return False
+
+        self._record_blender_result("SUCCESS", description, result=result)
+        logger.logger.info(f"Executor: Blender bridge action succeeded: {description}")
+        return True
+
+    def _send_python_to_blender_console_raw(self, script, description="Blender script", restore_layout=True):
+        """Paste bootstrap code into Blender's Python console without claiming action success."""
         if not script or not script.strip():
             logger.logger.warning("Executor: Empty Blender Python script")
             return False
@@ -283,9 +402,10 @@ class ActionExecutor:
             switched = window_manager.switch_to("blender")
 
         if not switched:
-            from core.state.short_term import short_term_memory
-            short_term_memory.add_system_context(
-                f"BLENDER_API_RESULT [FAILED]: Could not focus or launch Blender for {description}."
+            self._record_blender_result(
+                "FAILED",
+                description,
+                reason=f"Could not focus or launch Blender for {description}.",
             )
             return False
 
@@ -310,22 +430,47 @@ class ActionExecutor:
             pass
 
         try:
-            pyperclip.copy(f"exec({wrapped!r})")
+            if len(wrapped) > 1800:
+                safe_name = re.sub(r"[^a-zA-Z0-9_.-]+", "_", description)[:60] or "blender_script"
+                script_path = os.path.join(tempfile.gettempdir(), f"ayeye_{safe_name}.py")
+                with open(script_path, "w", encoding="utf-8") as f:
+                    f.write(wrapped)
+                console_command = (
+                    "exec(compile(open("
+                    f"{script_path!r}, 'r', encoding='utf-8'"
+                    f").read(), {script_path!r}, 'exec'))"
+                )
+            else:
+                console_command = f"exec({wrapped!r})"
+
+            pyperclip.copy(console_command)
             time.sleep(0.1)
+            # A harmless click in the main viewport makes sure Blender, not the
+            # Ay-Eye overlay or terminal, owns keyboard focus before Shift+F4.
+            try:
+                pyautogui.click(self.screen_w // 2, self.screen_h // 2)
+                time.sleep(0.15)
+            except Exception:
+                pass
             pyautogui.hotkey("shift", "f4")
-            time.sleep(0.6)
+            time.sleep(0.9)
             pyautogui.hotkey("ctrl", "v")
             time.sleep(0.1)
+            pyautogui.press("enter")
+            time.sleep(0.2)
             pyautogui.press("enter")
             time.sleep(0.8)
             if restore_layout:
                 pyautogui.hotkey("shift", "f5")
 
-            from core.state.short_term import short_term_memory
-            short_term_memory.add_system_context(
-                f"BLENDER_API_RESULT [SENT]: {description}. Watch for AYEYE_BLENDER_ACTION_DONE in Blender console."
-            )
-            logger.logger.info(f"Executor: Sent Blender Python action: {description}")
+            try:
+                from core.state.short_term import short_term_memory
+                short_term_memory.add_system_context(
+                    f"BLENDER_BRIDGE_BOOTSTRAP [SENT]: {description}. Waiting for localhost bridge."
+                )
+            except Exception:
+                pass
+            logger.logger.info(f"Executor: Sent Blender bootstrap script: {description}")
             return True
         finally:
             try:
@@ -747,6 +892,8 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                     script,
                     f"create Blender scene: {label}",
                     restore_layout=True,
+                    timeout=90,
+                    min_objects=1,
                 )
                 if not success:
                     bus.publish("ACTION_ABORTED", {"reason": f"Blender scene creation failed: {label}"})

@@ -91,6 +91,33 @@ except Exception as e:
 # ------------------------------------------------------------------
 # 5. switch/launch — foreground window check (may not match)
 # ------------------------------------------------------------------
+print("\n[Group 4b] Blender verification (via short_term_memory)")
+try:
+    from core.state.short_term import short_term_memory
+
+    short_term_memory.history.clear()
+    short_term_memory.add_system_context(
+        "BLENDER_API_RESULT [SUCCESS]: create Blender scene. object_count=42. object_names=container, table"
+    )
+    test("blender_create_scene after SUCCESS with objects",
+         action_verifier.verify({"type": "blender_create_scene", "description": "container cafe"}))
+
+    short_term_memory.history.clear()
+    short_term_memory.add_system_context(
+        "BLENDER_API_RESULT [SUCCESS]: create Blender scene. object_count=0. object_names="
+    )
+    test("blender_create_scene after SUCCESS with zero objects",
+         action_verifier.verify({"type": "blender_create_scene", "description": "empty scene"}))
+
+    short_term_memory.history.clear()
+    short_term_memory.add_system_context(
+        "BLENDER_API_RESULT [FAILED]: create Blender scene. object_count=0. error=boom"
+    )
+    test("blender_create_scene after FAILED",
+         action_verifier.verify({"type": "blender_create_scene", "description": "bad scene"}))
+except Exception as e:
+    print(f"  [SKIP] Could not test Blender verification: {e}")
+
 print("\n[Group 5] switch/launch verification (live window check)")
 test("switch to current foreground window",
      action_verifier.verify({"type": "switch", "target": ""}))

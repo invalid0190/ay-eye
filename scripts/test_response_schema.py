@@ -164,6 +164,13 @@ test("valid expect", {
     "confidence": 0.9,
 })
 
+test("valid blender_scene_objects expect", {
+    "intent": "act", "status": "in_progress", "message": "creating",
+    "actions": [{"type": "blender_create_scene", "description": "container cafe",
+                 "expect": {"type": "blender_scene_objects"}}],
+    "confidence": 0.9,
+})
+
 test("expect with invalid type -> stripped", {
     "intent": "act", "status": "in_progress", "message": "hi",
     "actions": [{"type": "cmd", "command": "echo hi",

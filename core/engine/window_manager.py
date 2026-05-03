@@ -177,9 +177,30 @@ class WindowManager:
 
             if results:
                 hwnd, title = results[0]
-                # Bring window to foreground
-                ctypes.windll.user32.ShowWindow(hwnd, 9)  # SW_RESTORE
-                ctypes.windll.user32.SetForegroundWindow(hwnd)
+                # Bring window to foreground. Windows can reject a plain
+                # SetForegroundWindow call from a background process, so attach
+                # input queues briefly and use the standard Alt-key unlock.
+                user32 = ctypes.windll.user32
+                kernel32 = ctypes.windll.kernel32
+                current_hwnd = user32.GetForegroundWindow()
+                current_thread = user32.GetWindowThreadProcessId(current_hwnd, None) if current_hwnd else 0
+                target_thread = user32.GetWindowThreadProcessId(hwnd, None)
+                this_thread = kernel32.GetCurrentThreadId()
+                try:
+                    pyautogui.press("alt")
+                    if current_thread:
+                        user32.AttachThreadInput(this_thread, current_thread, True)
+                    if target_thread:
+                        user32.AttachThreadInput(this_thread, target_thread, True)
+                    user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+                    user32.BringWindowToTop(hwnd)
+                    user32.SetForegroundWindow(hwnd)
+                    user32.SetFocus(hwnd)
+                finally:
+                    if target_thread:
+                        user32.AttachThreadInput(this_thread, target_thread, False)
+                    if current_thread:
+                        user32.AttachThreadInput(this_thread, current_thread, False)
                 logger.logger.info(f"WindowManager: Switched to '{title}'")
                 return True
             else:

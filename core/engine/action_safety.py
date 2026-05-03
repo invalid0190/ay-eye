@@ -10,7 +10,7 @@ Risk levels (ascending severity):
   SAFE     → read-only / harmless  (scroll, read_file, list_dir, ocr)
   LOW      → reversible UI actions (click, click_text, drag, hotkey, switch)
   MEDIUM   → data-input / external (type, open_url, launch, extract_clipboard)
-  HIGH     → system-mutating        (cmd, write_file, blender_python, create_skill)
+  HIGH     → system-mutating        (cmd, write_file, blender_python, blender_create_scene, create_skill)
   BLOCKED  → never allowed          (destructive system commands)
 
 Design constraints:

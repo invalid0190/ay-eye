@@ -32,6 +32,7 @@ Design constraints:
 from __future__ import annotations
 
 import os
+import re
 import time
 import ctypes
 import ctypes.wintypes
@@ -48,7 +49,8 @@ _HIGH_RISK_TYPES = {"cmd", "write_file", "blender_python", "blender_create_scene
 
 _VALID_EXPECT_TYPES = {
     "screen_text", "file_exists", "window_title",
-    "cmd_success", "app_focused", "clipboard_contains", "none",
+    "cmd_success", "app_focused", "clipboard_contains",
+    "blender_scene_objects", "none",
 }
 
 
@@ -262,6 +264,10 @@ class ActionVerifier:
         except Exception:
             return _ok("clipboard_contains check skipped")
 
+    def _expect_blender_scene_objects(self, action: dict, expect: dict, frame_before) -> dict:
+        """Require a successful Blender bridge result with at least one scene object."""
+        return self._verify_blender(action, frame_before)
+
     # ── Expect handler dispatch ──────────────────────────────────────
 
     _EXPECT_HANDLERS: dict[str, callable] = {
@@ -271,6 +277,7 @@ class ActionVerifier:
         "window_title": _expect_window_title,
         "screen_text": _expect_screen_text,
         "clipboard_contains": _expect_clipboard_contains,
+        "blender_scene_objects": _expect_blender_scene_objects,
     }
 
     # ── Heuristic type-specific handlers (unchanged) ─────────────────
@@ -337,12 +344,28 @@ class ActionVerifier:
             from core.state.short_term import short_term_memory
             history = short_term_memory.get_history_string()
 
-            if "BLENDER_API_RESULT [SENT]" in history:
-                return _ok("Blender API command sent", {"action": action.get("type")})
-            if "BLENDER_API_RESULT [FAILED]" in history:
+            matches = re.findall(r"BLENDER_API_RESULT \[(SUCCESS|FAILED)\]:(.*)", history)
+            if not matches:
+                return _fail("No successful Blender API result recorded yet", {
+                    "action": action.get("type"),
+                }, should_retry=True)
+
+            status, line = matches[-1]
+            if status == "FAILED":
                 return _fail("Blender API action failed", {"action": action.get("type")}, should_retry=True)
 
-            return _ok("Blender action submitted")
+            if action.get("type") == "blender_create_scene":
+                counts = re.findall(r"object_count=(-?\d+)", line)
+                if counts and int(counts[-1]) > 0:
+                    return _ok("Blender scene contains objects", {
+                        "action": action.get("type"),
+                        "object_count": int(counts[-1]),
+                    })
+                return _fail("Blender scene creation did not report any objects", {
+                    "action": action.get("type"),
+                }, should_retry=True)
+
+            return _ok("Blender API command succeeded", {"action": action.get("type")})
         except Exception:
             return _ok("Blender verification skipped")
 

@@ -122,8 +122,9 @@ For important actions, add an "expect" field declaring what success looks like:
 - {"type": "app_focused", "value": "appname"} -- app is in foreground
 - {"type": "window_title", "value": "text"} -- window title contains text
 - {"type": "screen_text", "value": "text"} -- text appeared on screen
+- {"type": "blender_scene_objects"} -- Blender bridge reported created scene objects
 - {"type": "none"} -- skip verification
-ALWAYS add expect for cmd, write_file, blender_python, and blender_create_scene actions.
+ALWAYS add expect for cmd, write_file, blender_python, and blender_create_scene actions. Use blender_scene_objects for blender_create_scene.
 
 ## SAFETY RULES
 - Dangerous commands (format, shutdown, rm -rf, registry edits) are blocked. Find safe alternatives.
@@ -132,7 +133,7 @@ ALWAYS add expect for cmd, write_file, blender_python, and blender_create_scene 
 - When reading files or running commands, set status="in_progress" so you can check the output.
 
 ## APP-SPECIFIC RULES
-Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(). For "create/model/build/recreate/design something like this/image/reference" requests, do not ask for exact dimensions first; summarize what you see, make reasonable assumptions, and use blender_create_scene with status="in_progress".
+Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(). For "create/model/build/recreate/design something like this/image/reference" requests, do not ask for exact dimensions first; summarize what you see, make reasonable assumptions, and use blender_create_scene with status="in_progress". Do not claim a Blender model is created unless the Blender API result reports success and scene objects.
 Messaging: Click input field first, then type, then hotkey Enter.
 Renaming files: click_text on name, hotkey F2, type new name, hotkey Enter.
 Streams: NEVER click inside picture-in-picture or recursive stream previews.
@@ -356,7 +357,8 @@ class Brain:
                         action = dict(action)
                         action.setdefault("description", scene_description)
                         action.setdefault("reference_summary", reference_summary)
-                        action.setdefault("expect", {"type": "none"})
+                        if (action.get("expect") or {}).get("type") in (None, "none"):
+                            action["expect"] = {"type": "blender_scene_objects"}
                     normalized_actions.append(action)
                 normalized["actions"] = normalized_actions
                 normalized["intent"] = "act"
@@ -368,36 +370,35 @@ class Brain:
                 normalized["confidence"] = max(float(normalized.get("confidence", 0.0) or 0.0), 0.9)
                 return normalized
 
-            if "blender_python" not in action_types:
-                normalized = dict(response)
-                normalized["intent"] = "act"
-                normalized["status"] = "in_progress"
-                normalized["message"] = (
-                    "I'll create a first-pass Blender scene from the visible reference instead of asking for more specs."
-                )
-                normalized["actions"] = [
-                    {
-                        "type": "hotkey",
-                        "keys": ["escape"],
-                        "expect": {"type": "none"},
-                    },
-                    {
-                        "type": "blender_create_scene",
-                        "description": scene_description,
-                        "reference_summary": reference_summary,
-                        "expect": {"type": "none"},
-                    },
-                ]
-                normalized["plan"] = [
-                    "Close any Blender splash or modal with Escape.",
-                    "Use Blender scene creation to generate the reference-inspired model with materials, lights, camera, and details.",
-                ]
-                normalized["confidence"] = max(float(normalized.get("confidence", 0.0) or 0.0), 0.9)
-                logger.log_event("BRAIN_BLENDER_SCENE_NORMALIZED", {
-                    "original_task": str(original_task)[:160],
-                    "actions": ["hotkey", "blender_create_scene"],
-                })
-                return normalized
+            normalized = dict(response)
+            normalized["intent"] = "act"
+            normalized["status"] = "in_progress"
+            normalized["message"] = (
+                "I'll create a first-pass Blender scene from the visible reference instead of asking for more specs."
+            )
+            normalized["actions"] = [
+                {
+                    "type": "hotkey",
+                    "keys": ["escape"],
+                    "expect": {"type": "none"},
+                },
+                {
+                    "type": "blender_create_scene",
+                    "description": scene_description,
+                    "reference_summary": reference_summary,
+                    "expect": {"type": "blender_scene_objects"},
+                },
+            ]
+            normalized["plan"] = [
+                "Close any Blender splash or modal with Escape.",
+                "Use Blender scene creation to generate the reference-inspired model with materials, lights, camera, and details.",
+            ]
+            normalized["confidence"] = max(float(normalized.get("confidence", 0.0) or 0.0), 0.9)
+            logger.log_event("BRAIN_BLENDER_SCENE_NORMALIZED", {
+                "original_task": str(original_task)[:160],
+                "actions": ["hotkey", "blender_create_scene"],
+            })
+            return normalized
 
         if not wants_splash_close and not wants_delete_all and not has_fragile_blender_clicks:
             return response
@@ -522,7 +523,7 @@ BLENDER DOES NOT USE Alt+key MENUS. Use these correct shortcuts:
 - F3 = Search any command by name (type 'Open Recent' to find it)
 - Shift+A = Add menu, N = N-panel, Tab = Edit/Object mode
 To open a specific .blend file: use cmd action: & 'C:\\\\Program Files\\\\Blender Foundation\\\\Blender 4.2\\\\blender.exe' 'C:\\\\path\\\\to\\\\file.blend'
-For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, blender_create_scene, or blender_python with status=in_progress so you can verify after the API action. For reference image creative requests, use blender_create_scene and describe the visible object/scene; do not ask the user to provide exact specs first. Do NOT use click_text, and do not claim a Blender menu opened unless you used the Blender API action or verified it on screen.
+For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, blender_create_scene, or blender_python with status=in_progress so you can verify after the API action. For reference image creative requests, use blender_create_scene and describe the visible object/scene; do not ask the user to provide exact specs first. Do NOT use click_text, and do not claim a Blender model/menu was created/opened unless the Blender API result reports success with scene objects or you verified it on screen.
 """
                 
                 # Retrieve RAG context (advisory only -- never blocks main loop)

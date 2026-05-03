@@ -61,7 +61,8 @@ _ACTION_REQUIRED_FIELDS: dict[str, list[str]] = {
 
 _VALID_EXPECT_TYPES = {
     "screen_text", "file_exists", "window_title",
-    "cmd_success", "app_focused", "clipboard_contains", "none",
+    "cmd_success", "app_focused", "clipboard_contains",
+    "blender_scene_objects", "none",
 }
 
 _EXPECT_VALUE_REQUIRED = {

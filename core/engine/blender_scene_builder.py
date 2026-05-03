@@ -29,16 +29,27 @@ def _container_cafe_script(description: str, reference_summary: str) -> str:
 import bpy
 import math
 
-bpy.ops.object.select_all(action='SELECT')
-bpy.ops.object.delete()
+SCENE_TAG = 'ayeye_container_cafe'
+for existing in list(bpy.data.objects):
+    if existing.get('ayeye_generated_scene') == SCENE_TAG:
+        bpy.data.objects.remove(existing, do_unlink=True)
+
+def mark(ob):
+    ob['ayeye_generated_scene'] = SCENE_TAG
+    return ob
 
 def mat(name, color, roughness=0.55, metallic=0.0):
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     bsdf = m.node_tree.nodes.get('Principled BSDF')
-    bsdf.inputs['Base Color'].default_value = color
-    bsdf.inputs['Roughness'].default_value = roughness
-    bsdf.inputs['Metallic'].default_value = metallic
+    if bsdf:
+        for socket_name, value in (
+            ('Base Color', color),
+            ('Roughness', roughness),
+            ('Metallic', metallic),
+        ):
+            if socket_name in bsdf.inputs:
+                bsdf.inputs[socket_name].default_value = value
     return m
 
 steel = mat('warm dark corrugated steel', (0.12, 0.13, 0.12, 1), 0.72, 0.25)
@@ -58,7 +69,7 @@ def cube(name, loc, scale, material):
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     if material:
         ob.data.materials.append(material)
-    return ob
+    return mark(ob)
 
 def cyl(name, loc, radius, depth, material, vertices=32):
     bpy.ops.mesh.primitive_cylinder_add(vertices=vertices, radius=radius, depth=depth, location=loc)
@@ -66,7 +77,7 @@ def cyl(name, loc, radius, depth, material, vertices=32):
     ob.name = name
     if material:
         ob.data.materials.append(material)
-    return ob
+    return mark(ob)
 
 def add_bevel(ob, amount=0.04, segments=2):
     bevel = ob.modifiers.new('soft bevels', 'BEVEL')
@@ -115,6 +126,7 @@ txt.data.align_y = 'CENTER'
 txt.data.size = 0.26
 txt.data.extrude = 0.015
 txt.data.materials.append(trim)
+mark(txt)
 
 interior = cube('warm lit interior rectangle', (-1.15, -1.33, 1.65), (3.05, 0.05, 0.95), lightmat)
 
@@ -149,6 +161,7 @@ for i in range(9):
     l.data.energy = 80
     l.data.color = (1.0, 0.63, 0.32)
     l.data.shadow_soft_size = 1.5
+    mark(l)
 
 # Area lighting and camera.
 bpy.ops.object.light_add(type='AREA', location=(0, -4.5, 6.5))
@@ -156,19 +169,35 @@ area = bpy.context.object
 area.name = 'large soft evening key light'
 area.data.energy = 450
 area.data.size = 5
+mark(area)
 
 bpy.ops.object.camera_add(location=(6.5, -7.5, 4.3), rotation=(math.radians(62), 0, math.radians(41)))
 bpy.context.scene.camera = bpy.context.object
+mark(bpy.context.object)
 
-bpy.context.scene.render.engine = 'CYCLES'
-bpy.context.scene.cycles.samples = 80
-bpy.context.scene.view_settings.view_transform = 'Filmic'
-bpy.context.scene.view_settings.look = 'Medium High Contrast'
+try:
+    bpy.context.scene.render.engine = 'CYCLES'
+    if hasattr(bpy.context.scene, 'cycles'):
+        bpy.context.scene.cycles.samples = 80
+    bpy.context.scene.view_settings.view_transform = 'Filmic'
+    bpy.context.scene.view_settings.look = 'Medium High Contrast'
+except Exception as render_settings_error:
+    print('AYEYE_RENDER_SETTINGS_WARNING:', render_settings_error)
 
 for ob in bpy.context.scene.objects:
     ob.select_set(False)
 
-bpy.ops.wm.save_as_mainfile(filepath=bpy.path.abspath('//ayeye_container_cafe_reference_scene.blend'))
+screen = getattr(bpy.context, 'screen', None)
+if screen:
+    try:
+        for area in screen.areas:
+            if area.type == 'VIEW_3D':
+                region_3d = area.spaces.active.region_3d
+                region_3d.view_location = (0, 0, 1.2)
+                region_3d.view_distance = 9
+    except Exception as view_error:
+        print('AYEYE_VIEW_WARNING:', view_error)
+
 print('AYEYE_SCENE_CREATED: container cafe reference scene from task: {title}')
 """
 
@@ -179,15 +208,24 @@ def _generic_reference_scene_script(description: str, reference_summary: str) ->
 import bpy
 import math
 
-bpy.ops.object.select_all(action='SELECT')
-bpy.ops.object.delete()
+SCENE_TAG = 'ayeye_reference_scene'
+for existing in list(bpy.data.objects):
+    if existing.get('ayeye_generated_scene') == SCENE_TAG:
+        bpy.data.objects.remove(existing, do_unlink=True)
+
+def mark(ob):
+    ob['ayeye_generated_scene'] = SCENE_TAG
+    return ob
 
 def mat(name, color):
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     bsdf = m.node_tree.nodes.get('Principled BSDF')
-    bsdf.inputs['Base Color'].default_value = color
-    bsdf.inputs['Roughness'].default_value = 0.55
+    if bsdf:
+        if 'Base Color' in bsdf.inputs:
+            bsdf.inputs['Base Color'].default_value = color
+        if 'Roughness' in bsdf.inputs:
+            bsdf.inputs['Roughness'].default_value = 0.55
     return m
 
 primary = mat('primary reference color', (0.20, 0.34, 0.48, 1))
@@ -206,7 +244,7 @@ def cube(name, loc, scale, material):
     bevel.width = 0.04
     bevel.segments = 2
     ob.modifiers.new('weighted normals', 'WEIGHTED_NORMAL')
-    return ob
+    return mark(ob)
 
 cube('large base platform', (0, 0, -0.08), (8, 6, 0.16), floor_mat)
 cube('main reference mass', (0, 0, 1.1), (3.8, 1.8, 2.2), primary)
@@ -222,17 +260,35 @@ txt.data.body = '{title}'
 txt.data.size = 0.28
 txt.data.align_x = 'LEFT'
 txt.data.materials.append(accent)
+mark(txt)
 
 bpy.ops.object.light_add(type='AREA', location=(0, -4, 5.5))
 light = bpy.context.object
 light.name = 'large soft reference light'
 light.data.energy = 450
 light.data.size = 5
+mark(light)
 
 bpy.ops.object.camera_add(location=(5.0, -6.0, 3.5), rotation=(math.radians(60), 0, math.radians(39)))
 bpy.context.scene.camera = bpy.context.object
-bpy.context.scene.render.engine = 'CYCLES'
-bpy.context.scene.cycles.samples = 64
+mark(bpy.context.object)
+try:
+    bpy.context.scene.render.engine = 'CYCLES'
+    if hasattr(bpy.context.scene, 'cycles'):
+        bpy.context.scene.cycles.samples = 64
+except Exception as render_settings_error:
+    print('AYEYE_RENDER_SETTINGS_WARNING:', render_settings_error)
+
+screen = getattr(bpy.context, 'screen', None)
+if screen:
+    try:
+        for area in screen.areas:
+            if area.type == 'VIEW_3D':
+                region_3d = area.spaces.active.region_3d
+                region_3d.view_location = (0, 0, 1.0)
+                region_3d.view_distance = 7
+    except Exception as view_error:
+        print('AYEYE_VIEW_WARNING:', view_error)
 
 print('AYEYE_SCENE_CREATED: generic reference scene from task: {title}')
 """
