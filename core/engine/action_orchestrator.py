@@ -201,10 +201,6 @@ class ActionOrchestrator:
                             pass
                         continue
                     
-                    # ── Capture baseline frame for verification ──
-                    from core.vision.live_perception import live_perception
-                    frame_before = live_perception.get_latest_frame()
-                    
                     # ── Dry Run Logic ──
                     if sys_config.get("dry_run_enabled"):
                         logger.logger.info(f"DRY RUN: Would execute {a_type}: {action}")
@@ -231,6 +227,10 @@ class ActionOrchestrator:
                         executed_actions.append(action)
                         # Skip execution and verification
                         continue
+
+                    # ── Capture baseline frame for verification ──
+                    from core.vision.live_perception import live_perception
+                    frame_before = live_perception.get_latest_frame()
 
                     # ── Execute ──
                     executor.execute_single(action)

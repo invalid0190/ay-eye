@@ -14,6 +14,7 @@ Usage:
 import os, sys, time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import core.engine.action_orchestrator as orchestrator_mod
 from core.engine.action_orchestrator import action_orchestrator
 from core.engine.event_bus import bus
 from core.config import sys_config
@@ -28,10 +29,9 @@ class MockExecutor:
     def execute_single(self, action):
         self.called_actions.append(action)
 
-import core.engine.executor as executor_mod
-original_executor = executor_mod.executor
+original_executor = orchestrator_mod.executor
 mock_executor = MockExecutor()
-executor_mod.executor = mock_executor
+orchestrator_mod.executor = mock_executor
 
 def test_dry_run():
     print("\n" + "="*50)
@@ -39,8 +39,12 @@ def test_dry_run():
     print("="*50)
     
     # Enable Dry-Run
+    original_dry_run = sys_config.get("dry_run_enabled")
+    original_overlay = sys_config.get("dry_run_show_overlay")
+    original_trace = sys_config.get("dry_run_trace_enabled")
     sys_config.set("dry_run_enabled", True)
     sys_config.set("dry_run_show_overlay", True)
+    sys_config.set("dry_run_trace_enabled", False)
     
     # Capture events
     events = []
@@ -104,8 +108,10 @@ def test_dry_run():
         print("  [~] SKIP | Could not verify short-term memory.")
 
     # Cleanup
-    executor_mod.executor = original_executor
-    sys_config.set("dry_run_enabled", False)
+    orchestrator_mod.executor = original_executor
+    sys_config.set("dry_run_enabled", original_dry_run)
+    sys_config.set("dry_run_show_overlay", original_overlay)
+    sys_config.set("dry_run_trace_enabled", original_trace)
     
     print("="*50)
     if passed:
