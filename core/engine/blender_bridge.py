@@ -228,7 +228,7 @@ class BlenderMCPClient:
         self.host = host
         self.port = int(port)
 
-    def ping(self, timeout: float = 0.5) -> dict[str, Any] | None:
+    def ping(self, timeout: float = 1.2) -> dict[str, Any] | None:
         code = (
             "import bpy\n"
             f"{_scene_summary_code()}\n"

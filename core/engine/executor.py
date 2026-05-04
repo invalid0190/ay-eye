@@ -175,7 +175,12 @@ class ActionExecutor:
 
     def _check_blender_bridge_status(self):
         mcp_client = BlenderMCPClient()
-        mcp_result = mcp_client.ping(timeout=0.6)
+        mcp_result = None
+        for _attempt in range(3):
+            mcp_result = mcp_client.ping(timeout=1.2)
+            if mcp_result and mcp_result.get("ok"):
+                break
+            time.sleep(0.2)
         bridge_client = BlenderBridgeClient()
         bridge_result = bridge_client.ping(timeout=0.6)
         try:
