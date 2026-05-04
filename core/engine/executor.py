@@ -13,7 +13,7 @@ from core.utils.logger import logger
 from core.vision.live_perception import live_perception
 from core.vision.screen_locator import screen_locator
 from core.rag import rag_manager
-from core.engine.blender_bridge import BlenderBridgeClient, build_bootstrap_script
+from core.engine.blender_bridge import BlenderBridgeClient, BlenderMCPClient, build_bootstrap_script
 from core.engine.blender_scene_builder import build_scene_script
 
 _BLENDER_CREATIVE_TERMS = (
@@ -174,39 +174,67 @@ class ActionExecutor:
         )
 
     def _check_blender_bridge_status(self):
-        client = BlenderBridgeClient()
-        result = client.ping(timeout=0.6)
+        mcp_client = BlenderMCPClient()
+        mcp_result = mcp_client.ping(timeout=0.6)
+        bridge_client = BlenderBridgeClient()
+        bridge_result = bridge_client.ping(timeout=0.6)
         try:
             from core.state.short_term import short_term_memory
-            if result and result.get("ok"):
-                scene = result.get("scene") or {}
+            if mcp_result and mcp_result.get("ok"):
+                scene = mcp_result.get("scene") or {}
+                object_count = scene.get("object_count", -1)
+                mesh_count = scene.get("mesh_count", -1)
+                names = ", ".join(str(name) for name in (scene.get("object_names") or [])[:12])
+                ayeye_state = "connected" if bridge_result and bridge_result.get("ok") else "not_connected"
+                short_term_memory.add_system_context(
+                    "BLENDER_BRIDGE_STATUS [CONNECTED]: "
+                    f"blender_mcp=connected host={mcp_client.host} port={mcp_client.port} "
+                    f"object_count={object_count} mesh_count={mesh_count} object_names={names}. "
+                    f"ayeye_bridge={ayeye_state} host={bridge_client.host} port={bridge_client.port}"
+                )
+                logger.log_event("BLENDER_BRIDGE_STATUS", {
+                    "status": "CONNECTED",
+                    "server": "blender_mcp",
+                    "host": mcp_client.host,
+                    "port": mcp_client.port,
+                    "object_count": object_count,
+                    "mesh_count": mesh_count,
+                    "ayeye_bridge": ayeye_state,
+                })
+                return True
+
+            if bridge_result and bridge_result.get("ok"):
+                scene = bridge_result.get("scene") or {}
                 object_count = scene.get("object_count", -1)
                 mesh_count = scene.get("mesh_count", -1)
                 names = ", ".join(str(name) for name in (scene.get("object_names") or [])[:12])
                 short_term_memory.add_system_context(
                     "BLENDER_BRIDGE_STATUS [CONNECTED]: "
-                    f"host={client.host} port={client.port} object_count={object_count} "
-                    f"mesh_count={mesh_count} object_names={names}"
+                    f"blender_mcp=not_connected host={mcp_client.host} port={mcp_client.port}. "
+                    f"ayeye_bridge=connected host={bridge_client.host} port={bridge_client.port} "
+                    f"object_count={object_count} mesh_count={mesh_count} object_names={names}"
                 )
                 logger.log_event("BLENDER_BRIDGE_STATUS", {
                     "status": "CONNECTED",
-                    "host": client.host,
-                    "port": client.port,
+                    "server": "ayeye_bridge",
+                    "host": bridge_client.host,
+                    "port": bridge_client.port,
                     "object_count": object_count,
                     "mesh_count": mesh_count,
                 })
                 return True
 
-            error = (result or {}).get("error") if isinstance(result, dict) else "no response"
             short_term_memory.add_system_context(
                 "BLENDER_BRIDGE_STATUS [NOT_CONNECTED]: "
-                f"host={client.host} port={client.port} error={error or 'no response'}"
+                f"blender_mcp=not_connected host={mcp_client.host} port={mcp_client.port}. "
+                f"ayeye_bridge=not_connected host={bridge_client.host} port={bridge_client.port}"
             )
             logger.log_event("BLENDER_BRIDGE_STATUS", {
                 "status": "NOT_CONNECTED",
-                "host": client.host,
-                "port": client.port,
-                "error": str(error or "no response")[:300],
+                "mcp_host": mcp_client.host,
+                "mcp_port": mcp_client.port,
+                "bridge_host": bridge_client.host,
+                "bridge_port": bridge_client.port,
             })
             return True
         except Exception as exc:
@@ -460,6 +488,30 @@ class ActionExecutor:
         if not script or not script.strip():
             logger.logger.warning("Executor: Empty Blender Python script")
             return False
+
+        mcp_client = BlenderMCPClient()
+        mcp_result = mcp_client.execute(script, description=description, timeout=timeout)
+        if mcp_result is not None:
+            object_count = self._scene_count(mcp_result)
+            if not mcp_result.get("ok"):
+                self._record_blender_result("FAILED", description, result=mcp_result)
+                logger.logger.warning(f"Executor: Blender MCP action failed: {description}")
+                return False
+            if min_objects and object_count < min_objects:
+                self._record_blender_result(
+                    "FAILED",
+                    description,
+                    result=mcp_result,
+                    reason=f"Script completed through Blender MCP but scene has only {object_count} object(s).",
+                )
+                logger.logger.warning(
+                    f"Executor: Blender MCP scene action produced too few objects ({object_count})"
+                )
+                return False
+
+            self._record_blender_result("SUCCESS", f"{description} via Blender MCP", result=mcp_result)
+            logger.logger.info(f"Executor: Blender MCP action succeeded: {description}")
+            return True
 
         client = self._ensure_blender_bridge()
         if not client:

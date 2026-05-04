@@ -15,6 +15,23 @@ from typing import Any
 
 HOST = "127.0.0.1"
 PORT = 8765
+MCP_HOST = "localhost"
+MCP_PORT = 9876
+
+
+def _scene_summary_code() -> str:
+    return """
+def _ayeye_scene_summary():
+    try:
+        objects = list(bpy.context.scene.objects)
+        return {
+            'object_count': len(objects),
+            'mesh_count': len([ob for ob in objects if getattr(ob, 'type', '') == 'MESH']),
+            'object_names': [ob.name for ob in objects[:40]],
+        }
+    except Exception as exc:
+        return {'object_count': -1, 'mesh_count': -1, 'object_names': [], 'summary_error': str(exc)}
+"""
 
 
 def build_bootstrap_script(host: str = HOST, port: int = PORT) -> str:
@@ -202,3 +219,133 @@ class BlenderBridgeClient:
         if not raw:
             return {"ok": False, "error": "empty response from Blender bridge"}
         return json.loads(raw.decode("utf-8"))
+
+
+class BlenderMCPClient:
+    """Client for Blender's built-in MCP socket bridge add-on."""
+
+    def __init__(self, host: str = MCP_HOST, port: int = MCP_PORT):
+        self.host = host
+        self.port = int(port)
+
+    def ping(self, timeout: float = 0.5) -> dict[str, Any] | None:
+        code = (
+            "import bpy\n"
+            f"{_scene_summary_code()}\n"
+            "result = {'ready': True, 'scene': _ayeye_scene_summary()}\n"
+        )
+        try:
+            response = self._execute_code(code, strict_json=True, timeout=timeout)
+        except OSError:
+            return None
+        except Exception:
+            return None
+
+        if response.get("status") != "ok" or not isinstance(response.get("result"), dict):
+            return None
+        result = response["result"]
+        return {
+            "ok": True,
+            "ready": bool(result.get("ready")),
+            "scene": result.get("scene") or {},
+            "host": self.host,
+            "port": self.port,
+            "server": "blender_mcp",
+        }
+
+    def execute(self, code: str, description: str, timeout: float = 60) -> dict[str, Any] | None:
+        wrapped = self._wrap_execution_code(code, description)
+        try:
+            response = self._execute_code(wrapped, strict_json=True, timeout=timeout + 5)
+        except OSError:
+            return None
+        except Exception as exc:
+            return {
+                "ok": False,
+                "description": description,
+                "error": f"Blender MCP request failed: {exc}",
+                "before": {},
+                "after": {},
+            }
+
+        stdout = response.get("stdout") or ""
+        stderr = response.get("stderr") or ""
+        if response.get("status") != "ok":
+            return {
+                "ok": False,
+                "description": description,
+                "stdout": stdout,
+                "stderr": stderr,
+                "error": response.get("message") or "Blender MCP execution failed",
+                "before": {},
+                "after": {},
+            }
+
+        result = response.get("result")
+        if not isinstance(result, dict):
+            return {
+                "ok": False,
+                "description": description,
+                "stdout": stdout,
+                "stderr": stderr,
+                "error": "Blender MCP returned a non-dict result",
+                "before": {},
+                "after": {},
+            }
+
+        result = dict(result)
+        result["stdout"] = stdout
+        if stderr:
+            result["stderr"] = stderr
+        result.setdefault("description", description)
+        return result
+
+    def _execute_code(self, code: str, strict_json: bool, timeout: float) -> dict[str, Any]:
+        return self._request(
+            {
+                "type": "execute",
+                "code": code,
+                "strict_json": bool(strict_json),
+            },
+            timeout=timeout,
+        )
+
+    def _request(self, payload: dict[str, Any], timeout: float) -> dict[str, Any]:
+        with socket.create_connection((self.host, self.port), timeout=timeout) as sock:
+            sock.settimeout(timeout)
+            sock.sendall((json.dumps(payload, ensure_ascii=False) + "\0").encode("utf-8"))
+            raw = b""
+            while b"\0" not in raw:
+                chunk = sock.recv(65536)
+                if not chunk:
+                    break
+                raw += chunk
+        if not raw:
+            return {"status": "error", "message": "empty response from Blender MCP server"}
+        raw = raw[:raw.index(b"\0")] if b"\0" in raw else raw
+        return json.loads(raw.decode("utf-8"))
+
+    @staticmethod
+    def _wrap_execution_code(code: str, description: str) -> str:
+        return (
+            "import bpy\n"
+            "import traceback\n"
+            f"{_scene_summary_code()}\n"
+            f"_ayeye_code = {code!r}\n"
+            f"_ayeye_description = {description!r}\n"
+            "before = _ayeye_scene_summary()\n"
+            "try:\n"
+            "    scope = {'bpy': bpy, '__name__': '__ayeye_blender_exec__'}\n"
+            "    exec(_ayeye_code, scope, scope)\n"
+            "    after = _ayeye_scene_summary()\n"
+            "    result = {'ok': True, 'description': _ayeye_description, 'before': before, 'after': after}\n"
+            "except Exception:\n"
+            "    after = _ayeye_scene_summary()\n"
+            "    result = {\n"
+            "        'ok': False,\n"
+            "        'description': _ayeye_description,\n"
+            "        'error': traceback.format_exc()[-8000:],\n"
+            "        'before': before,\n"
+            "        'after': after,\n"
+            "    }\n"
+        )

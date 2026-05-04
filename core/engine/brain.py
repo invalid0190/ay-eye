@@ -3,6 +3,7 @@ import io
 import json
 import mss
 import os
+import re
 import time
 import threading
 from PIL import Image
@@ -120,7 +121,7 @@ System actions:
 Blender actions (use instead of clicking Blender menus -- Blender OCR is unreliable):
 - blender_open_import_menu: {"type": "blender_open_import_menu"}
 - blender_import_file: {"type": "blender_import_file", "path": "C:\\\\path\\\\model.fbx"}
-- blender_bridge_status: {"type": "blender_bridge_status"} -- Ping Ay-Eye's local MCP-style Blender bridge at 127.0.0.1:8765 and report if it is connected.
+- blender_bridge_status: {"type": "blender_bridge_status"} -- Ping Blender's MCP add-on bridge at localhost:9876 and Ay-Eye's fallback bridge at 127.0.0.1:8765.
 - blender_python: {"type": "blender_python", "script": "import bpy; bpy.ops..."}
 - blender_create_scene: {"type": "blender_create_scene", "description": "detailed scene/model request", "reference_summary": "what is visible in the reference image"}
 
@@ -158,7 +159,7 @@ ALWAYS add expect for cmd, write_file, blender_python, and blender_create_scene 
 - When reading files or running commands, set status="in_progress" so you can check the output.
 
 ## APP-SPECIFIC RULES
-Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen or open menu: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(). For "create/model/build/recreate/design something like this/image/reference" requests, do not ask for exact dimensions first; summarize what you see, make reasonable assumptions, and use blender_create_scene with status="in_progress". For "MCP server", "bridge", or "is Blender connected" questions, use blender_bridge_status with status="in_progress"; Ay-Eye has a local MCP-style bridge, not a generic external MCP connector. Do not use Sollumz/GTA/MLO workflows unless the user explicitly says Sollumz, FiveM, GTA, MLO, CodeWalker, YDR/YDD/YBN/YTYP/YMAP, collision, room, or portal. Do not claim a Blender model is created unless the Blender API result reports success and scene objects.
+Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen or open menu: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(). For "create/model/build/recreate/design something like this/image/reference" requests, do not ask for exact dimensions first; summarize what you see, make reasonable assumptions, and use blender_create_scene with status="in_progress". For "MCP server", "bridge", or "is Blender connected" questions, use blender_bridge_status with status="in_progress"; Blender's MCP add-on normally runs on localhost:9876, and Ay-Eye also has a fallback bridge on 127.0.0.1:8765. Do not use Sollumz/GTA/MLO workflows unless the user explicitly says Sollumz, FiveM, GTA, MLO, CodeWalker, YDR/YDD/YBN/YTYP/YMAP, collision, room, or portal. Do not claim a Blender model is created unless the Blender API result reports success and scene objects.
 Messaging: Click input field first, then type, then hotkey Enter.
 Renaming files: click_text on name, hotkey F2, type new name, hotkey Enter.
 Streams: NEVER click inside picture-in-picture or recursive stream previews.
@@ -197,7 +198,42 @@ class Brain:
         if not os.path.exists(self.debug_dir):
             os.makedirs(self.debug_dir, exist_ok=True)
 
+    def _answer_blender_bridge_status_from_memory(self, original_task):
+        task_text = str(original_task or "").lower()
+        if "blender" not in task_text or not any(term in task_text for term in ("mcp", "bridge", "server", "connected", "connection")):
+            return False
+
+        history = short_term_memory.get_history_string()
+        matches = re.findall(r"BLENDER_BRIDGE_STATUS \[(CONNECTED|NOT_CONNECTED)\]:(.*)", history)
+        if not matches:
+            return False
+
+        status, detail = matches[-1]
+        self._loop_count = 0
+        message = (
+            f"Blender MCP check complete: {detail.strip()}"
+            if status == "CONNECTED"
+            else f"Blender bridge check complete: not connected. {detail.strip()}"
+        )
+        bus.publish("BRAIN_RESPONDED", {
+            "intent": "guide",
+            "status": "complete" if status == "CONNECTED" else "failed",
+            "message": message[:500],
+            "actions": [],
+            "confidence": 1.0,
+        })
+        return True
+
     def on_verification_loop(self, data):
+        original_task = (
+            data.get("source_user_text")
+            or data.get("original_task")
+            or data.get("user_command")
+            or "the user's original task"
+        )
+        if self._answer_blender_bridge_status_from_memory(original_task):
+            return
+
         self._loop_count += 1
         if self._loop_count > self.MAX_LOOP_ITERATIONS:
             logger.logger.warning(f"Brain: Loop limit reached ({self.MAX_LOOP_ITERATIONS}). Stopping.")
@@ -211,12 +247,6 @@ class Brain:
             })
             return
         logger.logger.info(f"Brain: Verification loop iteration {self._loop_count}/{self.MAX_LOOP_ITERATIONS}")
-        original_task = (
-            data.get("source_user_text")
-            or data.get("original_task")
-            or data.get("user_command")
-            or "the user's original task"
-        )
         self.on_ai_triggered({
             "type": "VOICE_COMMAND",
             "confidence": 1.0,
@@ -602,7 +632,7 @@ BLENDER DOES NOT USE Alt+key MENUS. Use these correct shortcuts:
 - F3 = Search any command by name (type 'Open Recent' to find it)
 - Shift+A = Add menu, N = N-panel, Tab = Edit/Object mode
 To open a specific .blend file: use cmd action: & 'C:\\\\Program Files\\\\Blender Foundation\\\\Blender 4.2\\\\blender.exe' 'C:\\\\path\\\\to\\\\file.blend'
-For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, blender_create_scene, or blender_python with status=in_progress so you can verify after the API action. For reference image creative requests, use blender_create_scene and describe the visible object/scene; do not ask the user to provide exact specs first. For MCP/server/bridge connection questions, use blender_bridge_status; Ay-Eye's Blender integration is a local MCP-style bridge on 127.0.0.1:8765, not a generic external MCP connector. Do NOT use Sollumz/GTA/MLO workflows unless the user explicitly asks for them. Do NOT use click_text, and do not claim a Blender model/menu was created/opened unless the Blender API result reports success with scene objects or you verified it on screen.
+For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, blender_create_scene, or blender_python with status=in_progress so you can verify after the API action. For reference image creative requests, use blender_create_scene and describe the visible object/scene; do not ask the user to provide exact specs first. For MCP/server/bridge connection questions, use blender_bridge_status; Blender's MCP add-on runs on localhost:9876 when enabled, and Ay-Eye has a fallback bridge on 127.0.0.1:8765. Do NOT use Sollumz/GTA/MLO workflows unless the user explicitly asks for them. Do NOT use click_text, and do not claim a Blender model/menu was created/opened unless the Blender API result reports success with scene objects or you verified it on screen.
 """
                 
                 # Retrieve RAG context (advisory only -- never blocks main loop)
