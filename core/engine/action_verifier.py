@@ -88,7 +88,10 @@ class ActionVerifier:
     # Action types where screen-change is meaningful evidence
     _SCREEN_CHANGE_TYPES = {"click", "click_text", "drag", "scroll", "hotkey"}
     # Action types where we check short_term_memory for executor feedback
-    _MEMORY_CHECK_TYPES = {"cmd", "blender_python", "blender_create_scene", "blender_open_import_menu", "blender_import_file"}
+    _MEMORY_CHECK_TYPES = {
+        "cmd", "blender_python", "blender_create_scene", "blender_bridge_status",
+        "blender_open_import_menu", "blender_import_file",
+    }
 
     def verify(self, action: dict, frame_before=None) -> dict:
         """Verify a single action. Returns a verdict dict.
@@ -344,6 +347,19 @@ class ActionVerifier:
             from core.state.short_term import short_term_memory
             history = short_term_memory.get_history_string()
 
+            if action.get("type") == "blender_bridge_status":
+                matches = re.findall(r"BLENDER_BRIDGE_STATUS \[(CONNECTED|NOT_CONNECTED)\]:(.*)", history)
+                if not matches:
+                    return _fail("No Blender bridge status check recorded yet", {
+                        "action": action.get("type"),
+                    }, should_retry=True)
+                status, line = matches[-1]
+                return _ok("Blender bridge status was checked", {
+                    "action": action.get("type"),
+                    "status": status,
+                    "detail": line[:200],
+                })
+
             matches = re.findall(r"BLENDER_API_RESULT \[(SUCCESS|FAILED)\]:(.*)", history)
             if not matches:
                 return _fail("No successful Blender API result recorded yet", {
@@ -409,6 +425,7 @@ class ActionVerifier:
         "switch": _verify_switch,
         "launch": _verify_switch,
         "open_url": _verify_open_url,
+        "blender_bridge_status": _verify_blender,
         "blender_python": _verify_blender,
         "blender_create_scene": _verify_blender,
         "blender_open_import_menu": _verify_blender,

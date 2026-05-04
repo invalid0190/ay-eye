@@ -16,6 +16,22 @@ from core.rag import rag_manager
 from core.engine.blender_bridge import BlenderBridgeClient, build_bootstrap_script
 from core.engine.blender_scene_builder import build_scene_script
 
+_BLENDER_CREATIVE_TERMS = (
+    "create", "make", "model", "build", "design", "recreate", "generate",
+    "bana", "banao", "banado", "like this", "something like", "somthing like",
+    "set up", "setup", "setting up",
+)
+
+_BLENDER_SCENE_TERMS = (
+    "blender", "scene", "model", "reference", "image", "picture", "photo",
+    "container", "cafe", "coffee", "shop", "building", "object",
+)
+
+_SOLLUMZ_EXPLICIT_TERMS = (
+    "sollumz", "fivem", "gta", "mlo", "codewalker", "ydr", "ydd", "ybn",
+    "ytyp", "ymap", "drawable", "archetype", "collision mesh", "portal",
+)
+
 class ActionExecutor:
     _DIRECT_EXE_RE = re.compile(
         r"^\s*(?:&\s*)?(?P<quote>['\"])(?P<exe>[A-Za-z]:\\[^'\"]+\.exe)(?P=quote)(?P<args>.*)$",
@@ -107,6 +123,95 @@ class ActionExecutor:
     @staticmethod
     def _clean_label(value):
         return "".join(ch for ch in (value or "").lower() if ch.isalnum())
+
+    @staticmethod
+    def _contains_any(text, terms):
+        return any(term in text for term in terms)
+
+    def _should_redirect_blender_python_to_scene(self, action):
+        """Route creative Blender bpy scripts through the verified scene builder."""
+        script = str(action.get("script") or "")
+        description = str(action.get("description") or "")
+        source_text = str(action.get("source_user_text") or "")
+        combined = f"{source_text} {description} {script}".lower()
+        explicit_sollumz = self._contains_any(source_text.lower(), _SOLLUMZ_EXPLICIT_TERMS)
+
+        if explicit_sollumz:
+            return False
+
+        mentions_unwanted_sollumz = (
+            self._contains_any(f"{description} {script}".lower(), _SOLLUMZ_EXPLICIT_TERMS)
+            and self._contains_any(combined, _BLENDER_SCENE_TERMS)
+        )
+        looks_like_scene_creation = (
+            self._contains_any(combined, _BLENDER_CREATIVE_TERMS)
+            and self._contains_any(combined, _BLENDER_SCENE_TERMS)
+        )
+
+        if not (mentions_unwanted_sollumz or looks_like_scene_creation):
+            return False
+
+        # Keep precise utility scripts like "delete all objects" on the bpy path.
+        utility_terms = ("delete all", "clear scene", "select_all", "object.delete", "import_file")
+        return not self._contains_any(combined, utility_terms)
+
+    def _run_blender_create_scene(self, description, reference_summary=""):
+        try:
+            window_manager.switch_to("blender")
+            pyautogui.press("escape")
+            time.sleep(0.1)
+        except Exception:
+            pass
+
+        script = build_scene_script(description, reference_summary)
+        label = description[:90] or "reference scene"
+        return self._send_python_to_blender_console(
+            script,
+            f"create Blender scene: {label}",
+            restore_layout=True,
+            timeout=90,
+            min_objects=1,
+        )
+
+    def _check_blender_bridge_status(self):
+        client = BlenderBridgeClient()
+        result = client.ping(timeout=0.6)
+        try:
+            from core.state.short_term import short_term_memory
+            if result and result.get("ok"):
+                scene = result.get("scene") or {}
+                object_count = scene.get("object_count", -1)
+                mesh_count = scene.get("mesh_count", -1)
+                names = ", ".join(str(name) for name in (scene.get("object_names") or [])[:12])
+                short_term_memory.add_system_context(
+                    "BLENDER_BRIDGE_STATUS [CONNECTED]: "
+                    f"host={client.host} port={client.port} object_count={object_count} "
+                    f"mesh_count={mesh_count} object_names={names}"
+                )
+                logger.log_event("BLENDER_BRIDGE_STATUS", {
+                    "status": "CONNECTED",
+                    "host": client.host,
+                    "port": client.port,
+                    "object_count": object_count,
+                    "mesh_count": mesh_count,
+                })
+                return True
+
+            error = (result or {}).get("error") if isinstance(result, dict) else "no response"
+            short_term_memory.add_system_context(
+                "BLENDER_BRIDGE_STATUS [NOT_CONNECTED]: "
+                f"host={client.host} port={client.port} error={error or 'no response'}"
+            )
+            logger.log_event("BLENDER_BRIDGE_STATUS", {
+                "status": "NOT_CONNECTED",
+                "host": client.host,
+                "port": client.port,
+                "error": str(error or "no response")[:300],
+            })
+            return True
+        except Exception as exc:
+            logger.logger.error(f"Executor: Blender bridge status check failed: {exc}")
+            return False
 
     def _resolve_target_point(
         self,
@@ -450,6 +555,8 @@ class ActionExecutor:
             try:
                 pyautogui.click(self.screen_w // 2, self.screen_h // 2)
                 time.sleep(0.15)
+                pyautogui.press("escape")
+                time.sleep(0.1)
             except Exception:
                 pass
             pyautogui.hotkey("shift", "f4")
@@ -878,7 +985,31 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                 script = action.get("script", "")
                 description = action.get("description", "custom Blender Python")
                 restore_layout = action.get("restore_layout", True)
-                success = self._send_python_to_blender_console(script, description, restore_layout)
+                if self._should_redirect_blender_python_to_scene(action):
+                    source_text = action.get("source_user_text") or description
+                    scene_description = (
+                        f"{source_text}. Create a detailed Blender scene from the user's request. "
+                        "If this is a container cafe, include a corrugated shipping-container body, "
+                        "service window, counter, awning, signage, outdoor seating, planters, "
+                        "warm lights, camera, and scene lighting."
+                    )
+                    reference_summary = " ".join(
+                        part for part in (str(action.get("description") or ""), str(source_text or "")) if part
+                    )[:500]
+                    logger.log_event("BLENDER_PYTHON_REDIRECTED_TO_SCENE", {
+                        "description": description[:160],
+                        "source_user_text": str(source_text)[:160],
+                    })
+                    try:
+                        from core.state.short_term import short_term_memory
+                        short_term_memory.add_system_context(
+                            "BLENDER_ACTION_REDIRECTED: blender_python -> blender_create_scene because this is a creative scene request."
+                        )
+                    except Exception:
+                        pass
+                    success = self._run_blender_create_scene(scene_description, reference_summary)
+                else:
+                    success = self._send_python_to_blender_console(script, description, restore_layout)
                 if not success:
                     bus.publish("ACTION_ABORTED", {"reason": f"Blender API action failed: {description}"})
                     return
@@ -886,17 +1017,16 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
             elif a_type == "blender_create_scene":
                 description = action.get("description") or action.get("prompt") or ""
                 reference_summary = action.get("reference_summary") or ""
-                script = build_scene_script(description, reference_summary)
                 label = description[:90] or "reference scene"
-                success = self._send_python_to_blender_console(
-                    script,
-                    f"create Blender scene: {label}",
-                    restore_layout=True,
-                    timeout=90,
-                    min_objects=1,
-                )
+                success = self._run_blender_create_scene(description, reference_summary)
                 if not success:
                     bus.publish("ACTION_ABORTED", {"reason": f"Blender scene creation failed: {label}"})
+                    return
+
+            elif a_type == "blender_bridge_status":
+                success = self._check_blender_bridge_status()
+                if not success:
+                    bus.publish("ACTION_ABORTED", {"reason": "Could not check Blender bridge status"})
                     return
 
             elif a_type == "blender_open_import_menu":

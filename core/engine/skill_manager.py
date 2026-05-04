@@ -7,9 +7,24 @@ class SkillManager:
         self.skills_dir = os.path.join(os.getcwd(), "core", "skills")
         if not os.path.exists(self.skills_dir):
             os.makedirs(self.skills_dir, exist_ok=True)
-            
-    def get_all_skills_context(self) -> str:
-        """Returns a formatted string of all learned skills to inject into the prompt."""
+
+    _SOLLUMZ_TRIGGER_TERMS = (
+        "sollumz", "fivem", "gta", "mlo", "codewalker", "ydr", "ydd", "ybn",
+        "ytyp", "ymap", "drawable", "archetype", "collision mesh", "portal",
+    )
+
+    def _should_include_skill(self, name: str, query_text: str = "", active_app: str = "", active_window: str = "") -> bool:
+        """Keep narrow workflow skills out of unrelated prompts."""
+        skill_name = (name or "").lower()
+        context = f"{query_text or ''} {active_app or ''} {active_window or ''}".lower()
+
+        if skill_name == "blender_sollumz":
+            return any(term in context for term in self._SOLLUMZ_TRIGGER_TERMS)
+
+        return True
+
+    def get_all_skills_context(self, query_text: str = "", active_app: str = "", active_window: str = "") -> str:
+        """Returns a formatted string of learned skills relevant to the current prompt."""
         if not os.path.exists(self.skills_dir):
             return ""
             
@@ -22,6 +37,8 @@ class SkillManager:
                         skill = json.load(f)
                         name = skill.get("name", filename)
                         instruction = skill.get("instruction", "")
+                        if not self._should_include_skill(name, query_text, active_app, active_window):
+                            continue
                         skills_text.append(f"Skill [{name}]: {instruction}")
         except Exception as e:
             logger.logger.error(f"Failed to load skills: {e}")

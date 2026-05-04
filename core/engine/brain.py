@@ -1,5 +1,6 @@
 import base64
 import io
+import json
 import mss
 import os
 import time
@@ -37,6 +38,29 @@ _NAVIGATION_ACTIONS = {
 _INTERMEDIATE_INFO_ACTIONS = _NAVIGATION_ACTIONS | _DATA_CAPTURE_ACTIONS
 
 _BLENDER_CLICK_TYPES = {"click", "click_text", "drag"}
+
+_BLENDER_CONTEXT_TERMS = (
+    "blender", "bpy", "blend", "viewport", "sollumz", "fivem", "gta", "mlo",
+    "codewalker", "ydr", "ydd", "ybn", "ytyp", "ymap", "mcp", "bridge",
+    "server", "localhost",
+)
+
+_BLENDER_CREATIVE_TERMS = (
+    "create", "make", "model", "build", "design", "recreate", "generate",
+    "bana", "banao", "banado", "jaisa", "aisi", "aisa", "like this",
+    "something like", "somthing like", "set up", "setup", "setting up",
+)
+
+_BLENDER_REFERENCE_TERMS = (
+    "image", "picture", "photo", "reference", "visible", "this", "ye", "iss",
+    "container", "cafe", "coffee", "shop", "building", "scene", "model",
+    "object", "interior", "exterior",
+)
+
+_SOLLUMZ_EXPLICIT_TERMS = (
+    "sollumz", "fivem", "gta", "mlo", "codewalker", "ydr", "ydd", "ybn",
+    "ytyp", "ymap", "drawable", "archetype", "collision mesh", "portal",
+)
 
 VISION_SYSTEM_PROMPT = """## IDENTITY
 You are ay-eye, an advanced desktop AI assistant. You SEE the user's screen (screenshot with grid overlay) and HEAR their voice commands. You may also receive WEB SEARCH RESULTS.
@@ -96,6 +120,7 @@ System actions:
 Blender actions (use instead of clicking Blender menus -- Blender OCR is unreliable):
 - blender_open_import_menu: {"type": "blender_open_import_menu"}
 - blender_import_file: {"type": "blender_import_file", "path": "C:\\\\path\\\\model.fbx"}
+- blender_bridge_status: {"type": "blender_bridge_status"} -- Ping Ay-Eye's local MCP-style Blender bridge at 127.0.0.1:8765 and report if it is connected.
 - blender_python: {"type": "blender_python", "script": "import bpy; bpy.ops..."}
 - blender_create_scene: {"type": "blender_create_scene", "description": "detailed scene/model request", "reference_summary": "what is visible in the reference image"}
 
@@ -133,7 +158,7 @@ ALWAYS add expect for cmd, write_file, blender_python, and blender_create_scene 
 - When reading files or running commands, set status="in_progress" so you can check the output.
 
 ## APP-SPECIFIC RULES
-Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(). For "create/model/build/recreate/design something like this/image/reference" requests, do not ask for exact dimensions first; summarize what you see, make reasonable assumptions, and use blender_create_scene with status="in_progress". Do not claim a Blender model is created unless the Blender API result reports success and scene objects.
+Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen or open menu: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(). For "create/model/build/recreate/design something like this/image/reference" requests, do not ask for exact dimensions first; summarize what you see, make reasonable assumptions, and use blender_create_scene with status="in_progress". For "MCP server", "bridge", or "is Blender connected" questions, use blender_bridge_status with status="in_progress"; Ay-Eye has a local MCP-style bridge, not a generic external MCP connector. Do not use Sollumz/GTA/MLO workflows unless the user explicitly says Sollumz, FiveM, GTA, MLO, CodeWalker, YDR/YDD/YBN/YTYP/YMAP, collision, room, or portal. Do not claim a Blender model is created unless the Blender API result reports success and scene objects.
 Messaging: Click input field first, then type, then hotkey Enter.
 Renaming files: click_text on name, hotkey F2, type new name, hotkey Enter.
 Streams: NEVER click inside picture-in-picture or recursive stream previews.
@@ -308,12 +333,44 @@ class Brain:
         active_window = (getattr(state, "window", "") or "").lower()
         return "blender" in active_app or "blender" in active_window
 
+    @staticmethod
+    def _contains_any(text, terms):
+        return any(term in text for term in terms)
+
+    def _looks_like_blender_task(self, response, original_task, state):
+        if self._is_blender_state(state):
+            return True
+
+        try:
+            action_text = json.dumps(response.get("actions") or [], ensure_ascii=False)
+        except Exception:
+            action_text = str(response.get("actions") or "")
+
+        combined = f"{original_task or ''} {response.get('message') or ''} {action_text}".lower()
+        return self._contains_any(combined, _BLENDER_CONTEXT_TERMS)
+
     def _normalize_blender_task(self, response, original_task, state):
         """Rewrite common Blender UI tasks away from fragile screen clicks."""
-        if not isinstance(response, dict) or not original_task or not self._is_blender_state(state):
+        if not isinstance(response, dict) or not original_task:
+            return response
+        if not self._looks_like_blender_task(response, original_task, state):
             return response
 
         task_text = str(original_task).lower()
+        response_text = str(response.get("message") or "").lower()
+        existing_actions = response.get("actions") or []
+        try:
+            action_text = json.dumps(existing_actions, ensure_ascii=False).lower()
+        except Exception:
+            action_text = str(existing_actions).lower()
+        combined_text = f"{task_text} {response_text} {action_text}"
+        action_types = {a.get("type") for a in existing_actions if isinstance(a, dict)}
+        explicit_sollumz = self._contains_any(task_text, _SOLLUMZ_EXPLICIT_TERMS)
+        unwanted_sollumz_plan = (
+            not explicit_sollumz
+            and self._contains_any(f"{response_text} {action_text}", _SOLLUMZ_EXPLICIT_TERMS)
+            and self._contains_any(combined_text, ("container", "cafe", "coffee", "shop", "building", "scene", "model"))
+        )
         wants_splash_close = any(term in task_text for term in (
             "splash", "welcome", "startup screen", "close screen", "close karo", "band karo",
         ))
@@ -321,22 +378,40 @@ class Brain:
             "delete", "remove", "clear", "clean", "sab", "everything", "all object", "all objects",
             "cube", "x se", "x press",
         ))
-        response_text = str(response.get("message") or "").lower()
-        wants_scene_create = (
-            any(term in task_text for term in (
-                "create", "make", "model", "build", "design", "recreate", "generate",
-                "bana", "banao", "banado", "jaisa", "aisi", "aisa", "like this",
-                "something like", "somthing like",
-            ))
-            and any(term in f"{task_text} {response_text}" for term in (
-                "image", "picture", "photo", "reference", "visible", "this", "ye", "iss",
-                "container", "cafe", "coffee", "shop", "building", "scene", "model",
-            ))
+        wants_bridge_status = (
+            "blender" in combined_text
+            and self._contains_any(combined_text, ("mcp", "bridge", "server", "connected", "connection", "opened through"))
+            and not self._contains_any(combined_text, _BLENDER_CREATIVE_TERMS)
         )
-
-        existing_actions = response.get("actions") or []
-        action_types = {a.get("type") for a in existing_actions if isinstance(a, dict)}
+        wants_scene_create = (
+            not explicit_sollumz
+            and (
+                (
+                    self._contains_any(combined_text, _BLENDER_CREATIVE_TERMS)
+                    and self._contains_any(combined_text, _BLENDER_REFERENCE_TERMS)
+                )
+                or unwanted_sollumz_plan
+            )
+        )
         has_fragile_blender_clicks = bool(action_types & _BLENDER_CLICK_TYPES)
+
+        if wants_bridge_status:
+            normalized = dict(response)
+            normalized["intent"] = "act"
+            normalized["status"] = "in_progress"
+            normalized["message"] = "I'll check Ay-Eye's local Blender bridge connection directly."
+            normalized["actions"] = [{
+                "type": "blender_bridge_status",
+                "expect": {"type": "none"},
+            }]
+            normalized["plan"] = [
+                "Ping the local MCP-style Blender bridge and read the returned scene summary.",
+            ]
+            normalized["confidence"] = max(float(normalized.get("confidence", 0.0) or 0.0), 0.9)
+            logger.log_event("BRAIN_BLENDER_BRIDGE_STATUS_NORMALIZED", {
+                "original_task": str(original_task)[:160],
+            })
+            return normalized
 
         if wants_scene_create:
             scene_description = (
@@ -507,12 +582,16 @@ class Brain:
             
             if screen_b64 and frame:
                 history_str = short_term_memory.get_history_string()
-                skills_str = skill_manager.get_all_skills_context()
                 
                 # App-aware context injection
                 app_context = ""
                 active_app = (state.app or "").lower()
                 active_window = (state.window or "").lower()
+                skills_str = skill_manager.get_all_skills_context(
+                    voice_text,
+                    active_app=active_app,
+                    active_window=active_window,
+                )
                 if "blender" in active_app or "blender" in active_window:
                     app_context = """
 BLENDER IS ACTIVE. Blender uses OpenGL custom fonts -- click_text WILL FAIL on Blender UI elements.
@@ -523,7 +602,7 @@ BLENDER DOES NOT USE Alt+key MENUS. Use these correct shortcuts:
 - F3 = Search any command by name (type 'Open Recent' to find it)
 - Shift+A = Add menu, N = N-panel, Tab = Edit/Object mode
 To open a specific .blend file: use cmd action: & 'C:\\\\Program Files\\\\Blender Foundation\\\\Blender 4.2\\\\blender.exe' 'C:\\\\path\\\\to\\\\file.blend'
-For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, blender_create_scene, or blender_python with status=in_progress so you can verify after the API action. For reference image creative requests, use blender_create_scene and describe the visible object/scene; do not ask the user to provide exact specs first. Do NOT use click_text, and do not claim a Blender model/menu was created/opened unless the Blender API result reports success with scene objects or you verified it on screen.
+For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, blender_create_scene, or blender_python with status=in_progress so you can verify after the API action. For reference image creative requests, use blender_create_scene and describe the visible object/scene; do not ask the user to provide exact specs first. For MCP/server/bridge connection questions, use blender_bridge_status; Ay-Eye's Blender integration is a local MCP-style bridge on 127.0.0.1:8765, not a generic external MCP connector. Do NOT use Sollumz/GTA/MLO workflows unless the user explicitly asks for them. Do NOT use click_text, and do not claim a Blender model/menu was created/opened unless the Blender API result reports success with scene objects or you verified it on screen.
 """
                 
                 # Retrieve RAG context (advisory only -- never blocks main loop)
@@ -605,6 +684,10 @@ Analyze the screenshot and the conversation history, then respond. If web search
             response = self._force_followup_for_unfinished_info_task(response, original_task)
             if original_task:
                 response["source_user_text"] = original_task
+                if isinstance(response.get("actions"), list):
+                    for action in response["actions"]:
+                        if isinstance(action, dict):
+                            action.setdefault("source_user_text", original_task)
 
         mode = decision_engine.get_response_mode(response.get("confidence", 0))
         response["mode"] = mode

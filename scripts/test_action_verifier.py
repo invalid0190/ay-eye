@@ -115,6 +115,12 @@ try:
     )
     test("blender_create_scene after FAILED",
          action_verifier.verify({"type": "blender_create_scene", "description": "bad scene"}))
+
+    short_term_memory.add_system_context(
+        "BLENDER_BRIDGE_STATUS [CONNECTED]: host=127.0.0.1 port=8765 object_count=42 mesh_count=40 object_names=container"
+    )
+    test("blender_bridge_status after CONNECTED",
+         action_verifier.verify({"type": "blender_bridge_status"}))
 except Exception as e:
     print(f"  [SKIP] Could not test Blender verification: {e}")
 

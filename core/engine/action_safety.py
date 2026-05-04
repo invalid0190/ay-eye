@@ -41,6 +41,7 @@ _ACTION_RISK: dict[str, str] = {
     "ocr_screen": SAFE,
     "listen_audio": SAFE,
     "extract_clipboard": SAFE,
+    "blender_bridge_status": SAFE,
     # LOW — reversible UI interaction
     "click": LOW,
     "click_text": LOW,

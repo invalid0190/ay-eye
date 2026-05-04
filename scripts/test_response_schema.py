@@ -247,6 +247,10 @@ test("blender_open_import_menu (no required fields)", {
     "intent": "act", "status": "complete", "message": "opening",
     "actions": [{"type": "blender_open_import_menu"}], "confidence": 0.9,
 })
+test("blender_bridge_status (no required fields)", {
+    "intent": "act", "status": "in_progress", "message": "checking",
+    "actions": [{"type": "blender_bridge_status"}], "confidence": 0.9,
+})
 test("blender_create_scene", {
     "intent": "act", "status": "in_progress", "message": "creating",
     "actions": [{"type": "blender_create_scene", "description": "container cafe reference"}],

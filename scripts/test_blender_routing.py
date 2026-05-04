@@ -1,0 +1,128 @@
+from types import SimpleNamespace
+
+from core.engine.brain import Brain
+from core.engine.skill_manager import skill_manager
+
+
+def assert_equal(actual, expected, label):
+    if actual != expected:
+        raise AssertionError(f"{label}: expected {expected!r}, got {actual!r}")
+    print(f"[PASS] {label}")
+
+
+def assert_true(value, label):
+    if not value:
+        raise AssertionError(label)
+    print(f"[PASS] {label}")
+
+
+def main():
+    brain = Brain()
+    overlay_state = SimpleNamespace(app="AY-EYE", window="AY-EYE overlay")
+
+    bad_sollumz_response = {
+        "intent": "act",
+        "status": "in_progress",
+        "message": "I'm setting up the Blender scene with the Sollumz property for the cafe container.",
+        "confidence": 0.95,
+        "actions": [
+            {
+                "type": "blender_python",
+                "description": "set Sollumz property for the cafe container",
+                "script": "import bpy\nbpy.context.scene.sollumz_type = 'DRAWABLE'",
+                "expect": {"type": "none"},
+            }
+        ],
+        "plan": ["Use Blender Python to create the cafe container."],
+    }
+    normalized = brain._normalize_blender_task(
+        bad_sollumz_response,
+        "create something like this cafe container",
+        overlay_state,
+    )
+    assert_equal(
+        [a.get("type") for a in normalized["actions"]],
+        ["hotkey", "blender_create_scene"],
+        "generic cafe creation redirects away from Sollumz blender_python",
+    )
+    assert_equal(
+        normalized["actions"][1]["expect"]["type"],
+        "blender_scene_objects",
+        "scene creation requires Blender object verification",
+    )
+
+    explicit_sollumz_response = {
+        "intent": "act",
+        "status": "in_progress",
+        "message": "I'll set up the Sollumz MLO properties.",
+        "confidence": 0.95,
+        "actions": [
+            {
+                "type": "blender_python",
+                "description": "set Sollumz MLO room and portal properties",
+                "script": "import bpy\nprint('sollumz setup')",
+                "expect": {"type": "none"},
+            }
+        ],
+        "plan": ["Use Blender Python for Sollumz MLO metadata."],
+    }
+    explicit = brain._normalize_blender_task(
+        explicit_sollumz_response,
+        "create a FiveM MLO room with Sollumz portals",
+        overlay_state,
+    )
+    assert_equal(
+        [a.get("type") for a in explicit["actions"]],
+        ["blender_python"],
+        "explicit Sollumz request keeps the Sollumz workflow",
+    )
+
+    bad_status_response = {
+        "intent": "guide",
+        "status": "complete",
+        "message": "I can't see any information indicating Blender is open through the MCP server.",
+        "confidence": 0.9,
+        "actions": [],
+        "plan": [],
+    }
+    status_check = brain._normalize_blender_task(
+        bad_status_response,
+        "Can you see Blender is opened through MCP Server?",
+        overlay_state,
+    )
+    assert_equal(
+        [a.get("type") for a in status_check["actions"]],
+        ["blender_bridge_status"],
+        "MCP/bridge status questions check the local bridge instead of guessing",
+    )
+    assert_equal(
+        status_check["status"],
+        "in_progress",
+        "bridge status check waits for executor evidence",
+    )
+
+    generic_skills = skill_manager.get_all_skills_context(
+        "create a container cafe in Blender",
+        active_app="blender",
+        active_window="Blender",
+    )
+    assert_true(
+        "blender_sollumz" not in generic_skills,
+        "generic Blender prompts do not inject the Sollumz skill",
+    )
+
+    sollumz_skills = skill_manager.get_all_skills_context(
+        "create a FiveM MLO with Sollumz ymap collision",
+        active_app="blender",
+        active_window="Blender",
+    )
+    assert_true(
+        "blender_sollumz" in sollumz_skills,
+        "explicit Sollumz prompts inject the Sollumz skill",
+    )
+
+    print("\n=== Blender routing tests passed ===")
+
+
+if __name__ == "__main__":
+    main()
