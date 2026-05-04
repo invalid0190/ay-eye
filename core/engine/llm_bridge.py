@@ -25,17 +25,39 @@ class LLMBridge:
     )
 
     def __init__(self):
+        preferred_provider = (os.getenv("LLM_PROVIDER") or "").strip().lower()
         self.openai_key = os.getenv("OPENAI_API_KEY")
+        self.moonshot_key = os.getenv("MOONSHOT_API_KEY") or os.getenv("KIMI_API_KEY")
         self.agent_router_key = os.getenv("AGENT_ROUTER_API_KEY")
         self.ollama_key = os.getenv("OLLAMA_API_KEY")
 
-        # Priority: OpenAI (Native) > AgentRouter > Ollama Cloud > Local Ollama
-        if self.openai_key:
+        use_openai = self.openai_key and (
+            preferred_provider in ("", "openai")
+            or (preferred_provider not in ("moonshot", "kimi", "agentrouter", "ollama"))
+        )
+        use_moonshot = self.moonshot_key and preferred_provider in ("moonshot", "kimi")
+        use_agentrouter = self.agent_router_key and preferred_provider == "agentrouter"
+        use_ollama_cloud = self.ollama_key and preferred_provider == "ollama"
+
+        if not any((use_openai, use_moonshot, use_agentrouter, use_ollama_cloud)):
+            use_openai = bool(self.openai_key)
+            use_moonshot = bool(self.moonshot_key) and not use_openai
+            use_agentrouter = bool(self.agent_router_key) and not (use_openai or use_moonshot)
+            use_ollama_cloud = bool(self.ollama_key) and not (use_openai or use_moonshot or use_agentrouter)
+
+        # Priority: explicit LLM_PROVIDER > OpenAI > Moonshot/Kimi > AgentRouter > Ollama Cloud > Local Ollama
+        if use_openai:
             self.provider = "openai"
-            self.model = "gpt-4o"
+            self.model = os.getenv("OPENAI_MODEL", "gpt-4o")
             self.url = "https://api.openai.com/v1/chat/completions"
             logger.logger.info(f"LLM Bridge: Using OpenAI {self.model}")
-        elif self.agent_router_key:
+        elif use_moonshot:
+            self.provider = "moonshot"
+            self.model = os.getenv("MOONSHOT_MODEL") or os.getenv("KIMI_MODEL") or "kimi-k2.6"
+            base_url = os.getenv("MOONSHOT_BASE_URL", "https://api.moonshot.ai/v1")
+            self.url = f"{base_url.rstrip('/')}/chat/completions"
+            logger.logger.info(f"LLM Bridge: Using Moonshot/Kimi {self.model}")
+        elif use_agentrouter:
             self.provider = "agentrouter"
             # Dashboard IDs: deepseek-r1-0528, deepseek-v3.1, deepseek-v3.2, glm-4.5, glm-4.6, glm-5.1
             self.primary_model = os.getenv(
@@ -54,7 +76,7 @@ class LLMBridge:
             logger.logger.info(
                 f"LLM Bridge: Using AgentRouter {self.model} (Secondary: {sec_log})"
             )
-        elif self.ollama_key:
+        elif use_ollama_cloud:
             self.provider = "ollama"
             self.model = "gemma4:e2b"
             self.url = "https://ollama.com/api/generate"
@@ -130,6 +152,8 @@ class LLMBridge:
         headers = {"Content-Type": "application/json"}
         if self.provider == "openai":
             headers["Authorization"] = f"Bearer {self.openai_key}"
+        elif self.provider == "moonshot":
+            headers["Authorization"] = f"Bearer {self.moonshot_key}"
         elif self.provider == "agentrouter":
             headers["Authorization"] = f"Bearer {self.agent_router_key}"
             headers["Originator"] = "codex_cli_rs"
@@ -156,7 +180,7 @@ class LLMBridge:
         start_time = time.time()
         headers = self._build_headers()
 
-        if self.provider in ["openai", "agentrouter"]:
+        if self.provider in ["openai", "moonshot", "agentrouter"]:
             payload = {
                 "model": self.model,
                 "messages": [{"role": "user", "content": prompt}],
@@ -233,7 +257,7 @@ class LLMBridge:
             start_time = time.time()
             headers = self._build_headers()
 
-            if self.provider in ["openai", "agentrouter"]:
+            if self.provider in ["openai", "moonshot", "agentrouter"]:
                 content = [{"type": "text", "text": prompt}]
                 for img_b64 in images_b64:
                     content.append({

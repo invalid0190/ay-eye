@@ -24,12 +24,15 @@ _BLENDER_CREATIVE_TERMS = (
 
 _BLENDER_SCENE_TERMS = (
     "blender", "scene", "model", "reference", "image", "picture", "photo",
-    "container", "cafe", "coffee", "shop", "building", "object",
+    "container", "cafe", "coffee", "shop", "building", "object", "mlo",
+    "interior", "garage", "house", "home", "restaurant", "office",
+    "warehouse", "store", "retail", "club", "bar", "motel", "apartment",
+    "room", "portal", "collision",
 )
 
 _SOLLUMZ_EXPLICIT_TERMS = (
-    "sollumz", "fivem", "gta", "mlo", "codewalker", "ydr", "ydd", "ybn",
-    "ytyp", "ymap", "drawable", "archetype", "collision mesh", "portal",
+    "sollumz property", "sollumz properties", "codewalker", "ydr", "ydd",
+    "ybn", "ytyp", "ymap", "drawable", "archetype", "export", "final export",
 )
 
 class ActionExecutor:
@@ -1048,7 +1051,9 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                         f"{source_text}. Create a detailed Blender scene from the user's request. "
                         "If this is a container cafe, include a corrugated shipping-container body, "
                         "service window, counter, awning, signage, outdoor seating, planters, "
-                        "warm lights, camera, and scene lighting."
+                        "warm lights, camera, and scene lighting. If this is an MLO request, "
+                        "include room volume guides, portal guides, collision proxy guides, "
+                        "template-specific interior props, labels, lighting, and camera."
                     )
                     reference_summary = " ".join(
                         part for part in (str(action.get("description") or ""), str(source_text or "")) if part

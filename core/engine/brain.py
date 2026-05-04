@@ -55,12 +55,19 @@ _BLENDER_CREATIVE_TERMS = (
 _BLENDER_REFERENCE_TERMS = (
     "image", "picture", "photo", "reference", "visible", "this", "ye", "iss",
     "container", "cafe", "coffee", "shop", "building", "scene", "model",
-    "object", "interior", "exterior",
+    "object", "interior", "exterior", "mlo", "garage", "house", "home",
+    "restaurant", "office", "warehouse", "store", "retail", "club", "bar",
+    "motel", "apartment", "room", "portal", "collision",
 )
 
 _SOLLUMZ_EXPLICIT_TERMS = (
     "sollumz", "fivem", "gta", "mlo", "codewalker", "ydr", "ydd", "ybn",
     "ytyp", "ymap", "drawable", "archetype", "collision mesh", "portal",
+)
+
+_SOLLUMZ_EXPORT_TERMS = (
+    "sollumz property", "sollumz properties", "codewalker", "ydr", "ydd",
+    "ybn", "ytyp", "ymap", "drawable", "archetype", "export", "final export",
 )
 
 VISION_SYSTEM_PROMPT = """## IDENTITY
@@ -159,7 +166,7 @@ ALWAYS add expect for cmd, write_file, blender_python, and blender_create_scene 
 - When reading files or running commands, set status="in_progress" so you can check the output.
 
 ## APP-SPECIFIC RULES
-Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen or open menu: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(). For "create/model/build/recreate/design something like this/image/reference" requests, do not ask for exact dimensions first; summarize what you see, make reasonable assumptions, and use blender_create_scene with status="in_progress". For "MCP server", "bridge", or "is Blender connected" questions, use blender_bridge_status with status="in_progress"; Blender's MCP add-on normally runs on localhost:9876, and Ay-Eye also has a fallback bridge on 127.0.0.1:8765. Do not use Sollumz/GTA/MLO workflows unless the user explicitly says Sollumz, FiveM, GTA, MLO, CodeWalker, YDR/YDD/YBN/YTYP/YMAP, collision, room, or portal. Do not claim a Blender model is created unless the Blender API result reports success and scene objects.
+Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen or open menu: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(). For "create/model/build/recreate/design something like this/image/reference" requests, do not ask for exact dimensions first; describe the visible reference in reference_summary with shape, materials, colors, openings, signage, room layout, major props, and style cues, then use blender_create_scene with status="in_progress". For MLO blockout requests, use blender_create_scene; it can generate template rooms, portals, collision helpers, and interior props. Only use raw Sollumz/export operations when the user explicitly asks for final YMAP/YTYP/YBN/YDR export or Sollumz property editing. For "MCP server", "bridge", or "is Blender connected" questions, use blender_bridge_status with status="in_progress"; Blender's MCP add-on normally runs on localhost:9876, and Ay-Eye also has a fallback bridge on 127.0.0.1:8765. Do not claim a Blender model is created unless the Blender API result reports success and scene objects.
 Messaging: Click input field first, then type, then hotkey Enter.
 Renaming files: click_text on name, hotkey F2, type new name, hotkey Enter.
 Streams: NEVER click inside picture-in-picture or recursive stream previews.
@@ -395,7 +402,7 @@ class Brain:
             action_text = str(existing_actions).lower()
         combined_text = f"{task_text} {response_text} {action_text}"
         action_types = {a.get("type") for a in existing_actions if isinstance(a, dict)}
-        explicit_sollumz = self._contains_any(task_text, _SOLLUMZ_EXPLICIT_TERMS)
+        explicit_sollumz = self._contains_any(task_text, _SOLLUMZ_EXPORT_TERMS)
         unwanted_sollumz_plan = (
             not explicit_sollumz
             and self._contains_any(f"{response_text} {action_text}", _SOLLUMZ_EXPLICIT_TERMS)
@@ -448,7 +455,9 @@ class Brain:
                 f"{original_task}. Create a detailed Blender scene inspired by the visible reference. "
                 "If it is a container cafe, include a corrugated shipping-container body, "
                 "large service window, wooden counter, awning, signage, outdoor seating, "
-                "planters, warm cafe lights, patio, camera, and scene lighting."
+                "planters, warm cafe lights, patio, camera, and scene lighting. "
+                "If it is an MLO request, build the appropriate room layout with room volume guides, "
+                "portal guides, collision proxy guides, template-specific interior props, labels, lighting, and camera."
             )
             reference_summary = " ".join(
                 part for part in (str(response.get("message") or ""), str(original_task)) if part
@@ -632,7 +641,7 @@ BLENDER DOES NOT USE Alt+key MENUS. Use these correct shortcuts:
 - F3 = Search any command by name (type 'Open Recent' to find it)
 - Shift+A = Add menu, N = N-panel, Tab = Edit/Object mode
 To open a specific .blend file: use cmd action: & 'C:\\\\Program Files\\\\Blender Foundation\\\\Blender 4.2\\\\blender.exe' 'C:\\\\path\\\\to\\\\file.blend'
-For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, blender_create_scene, or blender_python with status=in_progress so you can verify after the API action. For reference image creative requests, use blender_create_scene and describe the visible object/scene; do not ask the user to provide exact specs first. For MCP/server/bridge connection questions, use blender_bridge_status; Blender's MCP add-on runs on localhost:9876 when enabled, and Ay-Eye has a fallback bridge on 127.0.0.1:8765. Do NOT use Sollumz/GTA/MLO workflows unless the user explicitly asks for them. Do NOT use click_text, and do not claim a Blender model/menu was created/opened unless the Blender API result reports success with scene objects or you verified it on screen.
+For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, blender_create_scene, or blender_python with status=in_progress so you can verify after the API action. For reference image creative requests, use blender_create_scene and put a dense visual analysis in reference_summary: object type, silhouette, materials, colors, openings, signage/text, room layout, props, style, and visible proportions. For MLO blockouts, use blender_create_scene for room/portal/collision helper generation; reserve raw Sollumz/export scripts for final export or explicit property-editing requests. For MCP/server/bridge connection questions, use blender_bridge_status; Blender's MCP add-on runs on localhost:9876 when enabled, and Ay-Eye has a fallback bridge on 127.0.0.1:8765. Do NOT use click_text, and do not claim a Blender model/menu was created/opened unless the Blender API result reports success with scene objects or you verified it on screen.
 """
                 
                 # Retrieve RAG context (advisory only -- never blocks main loop)

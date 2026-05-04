@@ -106,6 +106,14 @@ Ay-Eye operates using a cascading fallback system. It attempts to use the best a
 # 🥇 PRIMARY: OpenAI (Highly Recommended)
 # Gives you GPT-4o Vision and ultra-fast OpenAI TTS.
 OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4o
+
+# Optional: Kimi / Moonshot API (OpenAI-compatible)
+# Keep OpenAI as default, or set LLM_PROVIDER=moonshot to use Kimi for LLM+vision.
+LLM_PROVIDER=openai
+MOONSHOT_API_KEY=your_moonshot_or_kimi_key_here
+MOONSHOT_MODEL=kimi-k2.6
+MOONSHOT_BASE_URL=https://api.moonshot.ai/v1
 
 # 🥈 FALLBACK 1: Ollama Cloud + Murf AI
 # Uses hosted Gemma 3 Vision and Murf AI TTS.
@@ -349,4 +357,3 @@ LLM Response
 
 ## 📄 License
 MIT License - see the [LICENSE](LICENSE) file for details.
-

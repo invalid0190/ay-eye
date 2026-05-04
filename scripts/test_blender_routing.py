@@ -51,7 +51,7 @@ def main():
         "scene creation requires Blender object verification",
     )
 
-    explicit_sollumz_response = {
+    mlo_blockout_response = {
         "intent": "act",
         "status": "in_progress",
         "message": "I'll set up the Sollumz MLO properties.",
@@ -66,15 +66,41 @@ def main():
         ],
         "plan": ["Use Blender Python for Sollumz MLO metadata."],
     }
-    explicit = brain._normalize_blender_task(
-        explicit_sollumz_response,
+    mlo_blockout = brain._normalize_blender_task(
+        mlo_blockout_response,
         "create a FiveM MLO room with Sollumz portals",
         overlay_state,
     )
     assert_equal(
-        [a.get("type") for a in explicit["actions"]],
+        [a.get("type") for a in mlo_blockout["actions"]],
+        ["hotkey", "blender_create_scene"],
+        "creative MLO requests use the scene builder with guide objects",
+    )
+
+    export_response = {
+        "intent": "act",
+        "status": "in_progress",
+        "message": "I'll set up the Sollumz export properties.",
+        "confidence": 0.95,
+        "actions": [
+            {
+                "type": "blender_python",
+                "description": "set Sollumz YMAP export properties",
+                "script": "import bpy\nprint('sollumz export setup')",
+                "expect": {"type": "none"},
+            }
+        ],
+        "plan": ["Use Blender Python for explicit export metadata."],
+    }
+    export = brain._normalize_blender_task(
+        export_response,
+        "set Sollumz YMAP export properties for this MLO",
+        overlay_state,
+    )
+    assert_equal(
+        [a.get("type") for a in export["actions"]],
         ["blender_python"],
-        "explicit Sollumz request keeps the Sollumz workflow",
+        "explicit export/property request keeps the Sollumz workflow",
     )
 
     bad_status_response = {
