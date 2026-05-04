@@ -77,6 +77,37 @@ def main():
         "creative MLO requests use the scene builder with guide objects",
     )
 
+    detail_response = {
+        "intent": "act",
+        "status": "in_progress",
+        "message": "I'll run Blender Python to add more details.",
+        "confidence": 0.95,
+        "actions": [
+            {
+                "type": "blender_python",
+                "description": "add detail objects to current MLO scene",
+                "script": "import bpy\nprint('detail pass')",
+                "expect": {"type": "none"},
+            }
+        ],
+        "plan": ["Use Blender Python for scene details."],
+    }
+    enhanced = brain._normalize_blender_task(
+        detail_response,
+        "make this MLO professional and add more details",
+        overlay_state,
+    )
+    assert_equal(
+        [a.get("type") for a in enhanced["actions"]],
+        ["hotkey", "blender_enhance_scene"],
+        "existing-scene detail requests use the non-destructive enhancer",
+    )
+    assert_equal(
+        enhanced["actions"][1]["expect"]["type"],
+        "blender_scene_objects",
+        "enhancement requires Blender object verification",
+    )
+
     export_response = {
         "intent": "act",
         "status": "in_progress",

@@ -171,6 +171,13 @@ test("valid blender_scene_objects expect", {
     "confidence": 0.9,
 })
 
+test("valid blender_enhance_scene expect", {
+    "intent": "act", "status": "in_progress", "message": "enhancing",
+    "actions": [{"type": "blender_enhance_scene", "description": "add professional details",
+                 "expect": {"type": "blender_scene_objects"}}],
+    "confidence": 0.9,
+})
+
 test("expect with invalid type -> stripped", {
     "intent": "act", "status": "in_progress", "message": "hi",
     "actions": [{"type": "cmd", "command": "echo hi",
@@ -254,6 +261,11 @@ test("blender_bridge_status (no required fields)", {
 test("blender_create_scene", {
     "intent": "act", "status": "in_progress", "message": "creating",
     "actions": [{"type": "blender_create_scene", "description": "container cafe reference"}],
+    "confidence": 0.9,
+})
+test("blender_enhance_scene", {
+    "intent": "act", "status": "in_progress", "message": "enhancing",
+    "actions": [{"type": "blender_enhance_scene", "description": "make this MLO professional"}],
     "confidence": 0.9,
 })
 

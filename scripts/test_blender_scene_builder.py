@@ -1,4 +1,4 @@
-from core.engine.blender_scene_builder import build_scene_script
+from core.engine.blender_scene_builder import build_enhance_script, build_scene_script
 
 
 def test_case(name, description, expected_terms):
@@ -31,6 +31,23 @@ def main():
         "create a warehouse loading bay MLO",
         ["AYEYE_MLO_SCENE_CREATED", "pallet rack", "truck loading bay portal"],
     )
+    enhance_code = build_enhance_script(
+        "make the existing container cafe MLO professional with more details",
+        "preserve scene, add details, verify room portals collision",
+    )
+    compile(enhance_code, "<enhance existing MLO>", "exec")
+    missing = [
+        term for term in (
+            "AYEYE_ENHANCEMENT_RESULT",
+            "enhanced MLO fallback room volume guide",
+            "portal lintel frame",
+            "Ay-Eye enhancement checklist board",
+        )
+        if term not in enhance_code
+    ]
+    if missing:
+        raise AssertionError(f"enhance existing MLO: missing {missing}")
+    print(f"[PASS] enhance existing MLO: {len(enhance_code)} chars")
 
     print("\n=== Blender scene builder tests passed ===")
 

@@ -52,6 +52,12 @@ _BLENDER_CREATIVE_TERMS = (
     "something like", "somthing like", "set up", "setup", "setting up",
 )
 
+_BLENDER_ENHANCE_TERMS = (
+    "enhance", "improve", "detail", "details", "detailing", "professional",
+    "polish", "upgrade", "fix detail", "make better", "more detail",
+    "aur detail", "aur details", "theek", "quality", "complete",
+)
+
 _BLENDER_REFERENCE_TERMS = (
     "image", "picture", "photo", "reference", "visible", "this", "ye", "iss",
     "container", "cafe", "coffee", "shop", "building", "scene", "model",
@@ -96,7 +102,7 @@ Field rules:
 - status: "in_progress" if awaiting feedback (cmd output, file read, screen check). "complete" if done. "failed" if unable.
 - confidence: Your certainty (0.0-1.0). Below 0.5 = actions may be blocked.
 - actions: Array of action objects (see below). Empty [] for guide/ask/ignore.
-- plan: REQUIRED when actions >= 3 OR actions contain cmd/write_file/blender_python/blender_create_scene. Optional otherwise.
+- plan: REQUIRED when actions >= 3 OR actions contain cmd/write_file/blender_python/blender_create_scene/blender_enhance_scene. Optional otherwise.
 
 ## TASK COMPLETION RULES
 - If the user asks you to check, read, find, inspect, summarize, or report information, opening a page/app is only the first step. Use status="in_progress" after open_url/switch/launch/click/scroll until you have actually observed the information and answered it.
@@ -131,6 +137,7 @@ Blender actions (use instead of clicking Blender menus -- Blender OCR is unrelia
 - blender_bridge_status: {"type": "blender_bridge_status"} -- Ping Blender's MCP add-on bridge at localhost:9876 and Ay-Eye's fallback bridge at 127.0.0.1:8765.
 - blender_python: {"type": "blender_python", "script": "import bpy; bpy.ops..."}
 - blender_create_scene: {"type": "blender_create_scene", "description": "detailed scene/model request", "reference_summary": "what is visible in the reference image"}
+- blender_enhance_scene: {"type": "blender_enhance_scene", "description": "professional detail/refinement request", "reference_summary": "what needs to be improved or matched from the reference"}
 
 ## CLICK RULES
 - **ALWAYS use click_text** when the target has visible text (buttons, menus, file names, tabs, links).
@@ -142,7 +149,7 @@ Blender actions (use instead of clicking Blender menus -- Blender OCR is unrelia
 - If click_text fails (you'll see "CLICK_TEXT: Could not find" in history), fall back to coordinate click.
 
 ## PLANNING RULES
-- Include a "plan" field when: (a) 3+ actions, OR (b) any cmd/write_file/blender_python/blender_create_scene action.
+- Include a "plan" field when: (a) 3+ actions, OR (b) any cmd/write_file/blender_python/blender_create_scene/blender_enhance_scene action.
 - Plan = short list of 1-5 concrete steps. Each step = one sentence.
 - High-risk actions MUST be explained in the plan.
 - Plan must match actions. No hidden actions outside the plan.
@@ -157,7 +164,7 @@ For important actions, add an "expect" field declaring what success looks like:
 - {"type": "screen_text", "value": "text"} -- text appeared on screen
 - {"type": "blender_scene_objects"} -- Blender bridge reported created scene objects
 - {"type": "none"} -- skip verification
-ALWAYS add expect for cmd, write_file, blender_python, and blender_create_scene actions. Use blender_scene_objects for blender_create_scene.
+ALWAYS add expect for cmd, write_file, blender_python, blender_create_scene, and blender_enhance_scene actions. Use blender_scene_objects for blender_create_scene and blender_enhance_scene.
 
 ## SAFETY RULES
 - Dangerous commands (format, shutdown, rm -rf, registry edits) are blocked. Find safe alternatives.
@@ -166,7 +173,7 @@ ALWAYS add expect for cmd, write_file, blender_python, and blender_create_scene 
 - When reading files or running commands, set status="in_progress" so you can check the output.
 
 ## APP-SPECIFIC RULES
-Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen or open menu: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(). For "create/model/build/recreate/design something like this/image/reference" requests, do not ask for exact dimensions first; describe the visible reference in reference_summary with shape, materials, colors, openings, signage, room layout, major props, and style cues, then use blender_create_scene with status="in_progress". For MLO blockout requests, use blender_create_scene; it can generate template rooms, portals, collision helpers, and interior props. Only use raw Sollumz/export operations when the user explicitly asks for final YMAP/YTYP/YBN/YDR export or Sollumz property editing. For "MCP server", "bridge", or "is Blender connected" questions, use blender_bridge_status with status="in_progress"; Blender's MCP add-on normally runs on localhost:9876, and Ay-Eye also has a fallback bridge on 127.0.0.1:8765. Do not claim a Blender model is created unless the Blender API result reports success and scene objects.
+Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen or open menu: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(). For "create/model/build/recreate/design something like this/image/reference" requests, do not ask for exact dimensions first; describe the visible reference in reference_summary with shape, materials, colors, openings, signage, room layout, major props, and style cues, then use blender_create_scene with status="in_progress". For "add details/make it professional/improve/enhance/fix detailing" on an existing Blender scene, use blender_enhance_scene with status="in_progress"; do not rebuild blindly unless the user asks to start over. For MLO blockout requests, use blender_create_scene; it can generate template rooms, portals, collision helpers, and interior props. Use blender_enhance_scene to add polish and verify room/portal/collision evidence on an existing MLO. Only use raw Sollumz/export operations when the user explicitly asks for final YMAP/YTYP/YBN/YDR export or Sollumz property editing. For "MCP server", "bridge", or "is Blender connected" questions, use blender_bridge_status with status="in_progress"; Blender's MCP add-on normally runs on localhost:9876, and Ay-Eye also has a fallback bridge on 127.0.0.1:8765. Do not claim a Blender model is created unless the Blender API result reports success and scene objects.
 Messaging: Click input field first, then type, then hotkey Enter.
 Renaming files: click_text on name, hotkey F2, type new name, hotkey Enter.
 Streams: NEVER click inside picture-in-picture or recursive stream previews.
@@ -420,6 +427,16 @@ class Brain:
             and self._contains_any(combined_text, ("mcp", "bridge", "server", "connected", "connection", "opened through"))
             and not self._contains_any(combined_text, _BLENDER_CREATIVE_TERMS)
         )
+        creation_terms_for_new_scene = (
+            "create", "model", "build", "design", "recreate", "generate",
+            "bana", "banao", "banado", "something like", "somthing like",
+        )
+        wants_enhance_scene = (
+            not explicit_sollumz
+            and self._contains_any(combined_text, _BLENDER_ENHANCE_TERMS)
+            and self._contains_any(combined_text, _BLENDER_REFERENCE_TERMS)
+            and not self._contains_any(task_text, creation_terms_for_new_scene)
+        )
         wants_scene_create = (
             not explicit_sollumz
             and (
@@ -447,6 +464,44 @@ class Brain:
             normalized["confidence"] = max(float(normalized.get("confidence", 0.0) or 0.0), 0.9)
             logger.log_event("BRAIN_BLENDER_BRIDGE_STATUS_NORMALIZED", {
                 "original_task": str(original_task)[:160],
+            })
+            return normalized
+
+        if wants_enhance_scene:
+            enhance_description = (
+                f"{original_task}. Enhance the existing Blender scene non-destructively. "
+                "Add professional detail, material cleanup, bevels, labels, lighting, camera framing, "
+                "and if this is an MLO, verify room volume guides, portal guides, and collision proxy guides."
+            )
+            reference_summary = " ".join(
+                part for part in (str(response.get("message") or ""), str(original_task)) if part
+            )[:500]
+
+            normalized = dict(response)
+            normalized["intent"] = "act"
+            normalized["status"] = "in_progress"
+            normalized["message"] = "I'll refine the existing Blender scene and verify the detail pass through the bridge."
+            normalized["actions"] = [
+                {
+                    "type": "hotkey",
+                    "keys": ["escape"],
+                    "expect": {"type": "none"},
+                },
+                {
+                    "type": "blender_enhance_scene",
+                    "description": enhance_description,
+                    "reference_summary": reference_summary,
+                    "expect": {"type": "blender_scene_objects"},
+                },
+            ]
+            normalized["plan"] = [
+                "Close any Blender splash or modal with Escape.",
+                "Use Blender enhancement to preserve the current scene while adding professional details, labels, lighting, and MLO evidence.",
+            ]
+            normalized["confidence"] = max(float(normalized.get("confidence", 0.0) or 0.0), 0.9)
+            logger.log_event("BRAIN_BLENDER_ENHANCE_NORMALIZED", {
+                "original_task": str(original_task)[:160],
+                "actions": ["hotkey", "blender_enhance_scene"],
             })
             return normalized
 
@@ -641,7 +696,7 @@ BLENDER DOES NOT USE Alt+key MENUS. Use these correct shortcuts:
 - F3 = Search any command by name (type 'Open Recent' to find it)
 - Shift+A = Add menu, N = N-panel, Tab = Edit/Object mode
 To open a specific .blend file: use cmd action: & 'C:\\\\Program Files\\\\Blender Foundation\\\\Blender 4.2\\\\blender.exe' 'C:\\\\path\\\\to\\\\file.blend'
-For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, blender_create_scene, or blender_python with status=in_progress so you can verify after the API action. For reference image creative requests, use blender_create_scene and put a dense visual analysis in reference_summary: object type, silhouette, materials, colors, openings, signage/text, room layout, props, style, and visible proportions. For MLO blockouts, use blender_create_scene for room/portal/collision helper generation; reserve raw Sollumz/export scripts for final export or explicit property-editing requests. For MCP/server/bridge connection questions, use blender_bridge_status; Blender's MCP add-on runs on localhost:9876 when enabled, and Ay-Eye has a fallback bridge on 127.0.0.1:8765. Do NOT use click_text, and do not claim a Blender model/menu was created/opened unless the Blender API result reports success with scene objects or you verified it on screen.
+For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, blender_create_scene, blender_enhance_scene, or blender_python with status=in_progress so you can verify after the API action. For reference image creative requests, use blender_create_scene and put a dense visual analysis in reference_summary: object type, silhouette, materials, colors, openings, signage/text, room layout, props, style, and visible proportions. For existing-scene refinement requests like "add details", "make professional", "improve", or "fix detailing", use blender_enhance_scene and preserve the current scene. For MLO blockouts, use blender_create_scene for room/portal/collision helper generation, then blender_enhance_scene for polish/detail passes; reserve raw Sollumz/export scripts for final export or explicit property-editing requests. For MCP/server/bridge connection questions, use blender_bridge_status; Blender's MCP add-on runs on localhost:9876 when enabled, and Ay-Eye has a fallback bridge on 127.0.0.1:8765. Do NOT use click_text, and do not claim a Blender model/menu was created/opened unless the Blender API result reports success with scene objects or you verified it on screen.
 """
                 
                 # Retrieve RAG context (advisory only -- never blocks main loop)

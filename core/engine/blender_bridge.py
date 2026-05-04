@@ -24,13 +24,43 @@ def _scene_summary_code() -> str:
 def _ayeye_scene_summary():
     try:
         objects = list(bpy.context.scene.objects)
+        role_counts = {}
+        scene_tags = {}
+        material_names = set()
+        generated_count = 0
+        light_count = 0
+        camera_count = 0
+        for ob in objects:
+            tag = str(ob.get('ayeye_generated_scene') or '')
+            if tag:
+                generated_count += 1
+                scene_tags[tag] = scene_tags.get(tag, 0) + 1
+            role = str(ob.get('ayeye_mlo_role') or '')
+            if role:
+                role_counts[role] = role_counts.get(role, 0) + 1
+            ob_type = getattr(ob, 'type', '')
+            if ob_type == 'LIGHT':
+                light_count += 1
+            if ob_type == 'CAMERA':
+                camera_count += 1
+            data = getattr(ob, 'data', None)
+            materials = getattr(data, 'materials', []) if data else []
+            for material in materials:
+                if material:
+                    material_names.add(material.name)
         return {
             'object_count': len(objects),
             'mesh_count': len([ob for ob in objects if getattr(ob, 'type', '') == 'MESH']),
+            'generated_count': generated_count,
+            'role_counts': role_counts,
+            'scene_tags': scene_tags,
+            'material_count': len(material_names),
+            'light_count': light_count,
+            'camera_count': camera_count,
             'object_names': [ob.name for ob in objects[:40]],
         }
     except Exception as exc:
-        return {'object_count': -1, 'mesh_count': -1, 'object_names': [], 'summary_error': str(exc)}
+        return {'object_count': -1, 'mesh_count': -1, 'generated_count': -1, 'role_counts': {}, 'scene_tags': {}, 'material_count': -1, 'light_count': -1, 'camera_count': -1, 'object_names': [], 'summary_error': str(exc)}
 """
 
 
@@ -54,13 +84,43 @@ NS = bpy.app.driver_namespace
 def _ayeye_scene_summary():
     try:
         objects = list(bpy.context.scene.objects)
+        role_counts = {{}}
+        scene_tags = {{}}
+        material_names = set()
+        generated_count = 0
+        light_count = 0
+        camera_count = 0
+        for ob in objects:
+            tag = str(ob.get('ayeye_generated_scene') or '')
+            if tag:
+                generated_count += 1
+                scene_tags[tag] = scene_tags.get(tag, 0) + 1
+            role = str(ob.get('ayeye_mlo_role') or '')
+            if role:
+                role_counts[role] = role_counts.get(role, 0) + 1
+            ob_type = getattr(ob, 'type', '')
+            if ob_type == 'LIGHT':
+                light_count += 1
+            if ob_type == 'CAMERA':
+                camera_count += 1
+            data = getattr(ob, 'data', None)
+            materials = getattr(data, 'materials', []) if data else []
+            for material in materials:
+                if material:
+                    material_names.add(material.name)
         return {{
             'object_count': len(objects),
             'mesh_count': len([ob for ob in objects if getattr(ob, 'type', '') == 'MESH']),
+            'generated_count': generated_count,
+            'role_counts': role_counts,
+            'scene_tags': scene_tags,
+            'material_count': len(material_names),
+            'light_count': light_count,
+            'camera_count': camera_count,
             'object_names': [ob.name for ob in objects[:40]],
         }}
     except Exception as exc:
-        return {{'object_count': -1, 'mesh_count': -1, 'object_names': [], 'summary_error': str(exc)}}
+        return {{'object_count': -1, 'mesh_count': -1, 'generated_count': -1, 'role_counts': {{}}, 'scene_tags': {{}}, 'material_count': -1, 'light_count': -1, 'camera_count': -1, 'object_names': [], 'summary_error': str(exc)}}
 
 if NS.get('_ayeye_bridge_ready'):
     print('AYEYE_BRIDGE_READY: already running on {{}}:{{}}'.format(HOST, PORT))

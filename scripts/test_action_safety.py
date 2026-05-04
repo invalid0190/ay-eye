@@ -41,6 +41,7 @@ test("cmd mkdir",            {"type": "cmd", "command": "mkdir test_folder"})
 test("write_file",           {"type": "write_file", "path": "x.py", "content": "print(1)"})
 test("blender python",       {"type": "blender_python", "script": "import bpy"})
 test("blender create scene", {"type": "blender_create_scene", "description": "container cafe"})
+test("blender enhance scene", {"type": "blender_enhance_scene", "description": "add professional details"})
 test("blender bridge status", {"type": "blender_bridge_status"})
 
 # --- BLOCKED commands ---

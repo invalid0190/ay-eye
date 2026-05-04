@@ -36,7 +36,7 @@ _VALID_ACTION_TYPES = {
     "click", "click_text", "drag", "type", "hotkey", "scroll", "switch", "launch",
     "open_url", "cmd", "create_skill", "read_file", "list_dir",
     "write_file", "extract_clipboard", "listen_audio", "ocr_screen",
-    "blender_python", "blender_create_scene", "blender_bridge_status",
+    "blender_python", "blender_create_scene", "blender_enhance_scene", "blender_bridge_status",
     "blender_open_import_menu", "blender_import_file",
 }
 
@@ -54,6 +54,7 @@ _ACTION_REQUIRED_FIELDS: dict[str, list[str]] = {
     "launch": ["target"],
     "blender_python": ["script"],
     "blender_create_scene": ["description"],
+    "blender_enhance_scene": ["description"],
     "blender_import_file": ["path"],
     "create_skill": ["name", "instruction"],
     "read_file": ["path"],

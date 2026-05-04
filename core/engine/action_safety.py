@@ -57,6 +57,7 @@ _ACTION_RISK: dict[str, str] = {
     "write_file": HIGH,
     "blender_python": HIGH,
     "blender_create_scene": HIGH,
+    "blender_enhance_scene": HIGH,
     "blender_open_import_menu": MEDIUM,
     "blender_import_file": MEDIUM,
     "create_skill": MEDIUM,

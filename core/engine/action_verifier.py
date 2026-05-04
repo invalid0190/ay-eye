@@ -34,6 +34,7 @@ from __future__ import annotations
 import os
 import re
 import time
+import json
 import ctypes
 import ctypes.wintypes
 from core.config import sys_config
@@ -43,7 +44,7 @@ from core.vision.live_perception import live_perception
 
 # ── High-risk types requiring expect contracts ───────────────────────
 
-_HIGH_RISK_TYPES = {"cmd", "write_file", "blender_python", "blender_create_scene"}
+_HIGH_RISK_TYPES = {"cmd", "write_file", "blender_python", "blender_create_scene", "blender_enhance_scene"}
 
 # ── Valid expect types ───────────────────────────────────────────────
 
@@ -52,6 +53,45 @@ _VALID_EXPECT_TYPES = {
     "cmd_success", "app_focused", "clipboard_contains",
     "blender_scene_objects", "none",
 }
+
+_BLENDER_MLO_TERMS = (
+    "mlo", "fivem", "gta", "sollumz", "ymap", "ytyp", "ydr", "ybn",
+    "interior", "room", "portal", "collision", "convert", "conversion",
+)
+
+
+def _extract_memory_int(line: str, field: str) -> int | None:
+    matches = re.findall(rf"{re.escape(field)}=(-?\d+)", line)
+    if not matches:
+        return None
+    try:
+        return int(matches[-1])
+    except Exception:
+        return None
+
+
+def _extract_memory_json_map(line: str, field: str) -> dict:
+    match = re.search(rf"{re.escape(field)}=(\{{.*?\}})", line)
+    if not match:
+        return {}
+    try:
+        value = json.loads(match.group(1))
+    except Exception:
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _looks_like_mlo_blender_action(action: dict, line: str) -> bool:
+    combined = " ".join(
+        str(value or "")
+        for value in (
+            action.get("description"),
+            action.get("reference_summary"),
+            action.get("source_user_text"),
+            line,
+        )
+    ).lower()
+    return any(term in combined for term in _BLENDER_MLO_TERMS)
 
 
 # ── Verdict helpers ──────────────────────────────────────────────────
@@ -89,7 +129,7 @@ class ActionVerifier:
     _SCREEN_CHANGE_TYPES = {"click", "click_text", "drag", "scroll", "hotkey"}
     # Action types where we check short_term_memory for executor feedback
     _MEMORY_CHECK_TYPES = {
-        "cmd", "blender_python", "blender_create_scene", "blender_bridge_status",
+        "cmd", "blender_python", "blender_create_scene", "blender_enhance_scene", "blender_bridge_status",
         "blender_open_import_menu", "blender_import_file",
     }
 
@@ -370,16 +410,54 @@ class ActionVerifier:
             if status == "FAILED":
                 return _fail("Blender API action failed", {"action": action.get("type")}, should_retry=True)
 
-            if action.get("type") == "blender_create_scene":
-                counts = re.findall(r"object_count=(-?\d+)", line)
-                if counts and int(counts[-1]) > 0:
-                    return _ok("Blender scene contains objects", {
-                        "action": action.get("type"),
-                        "object_count": int(counts[-1]),
-                    })
-                return _fail("Blender scene creation did not report any objects", {
+            if action.get("type") in ("blender_create_scene", "blender_enhance_scene"):
+                object_count = _extract_memory_int(line, "object_count")
+                generated_count = _extract_memory_int(line, "generated_count")
+                material_count = _extract_memory_int(line, "material_count")
+                light_count = _extract_memory_int(line, "light_count")
+                camera_count = _extract_memory_int(line, "camera_count")
+                role_counts = _extract_memory_json_map(line, "role_counts")
+                evidence = {
                     "action": action.get("type"),
-                }, should_retry=True)
+                    "object_count": object_count,
+                    "generated_count": generated_count,
+                    "material_count": material_count,
+                    "light_count": light_count,
+                    "camera_count": camera_count,
+                    "role_counts": role_counts,
+                }
+
+                if object_count is None or object_count <= 0:
+                    return _fail("Blender scene action did not report any objects", evidence, should_retry=True)
+
+                if action.get("type") == "blender_enhance_scene":
+                    has_enhancement_marker = "AYEYE_ENHANCEMENT_RESULT" in line
+                    if not has_enhancement_marker and (generated_count is None or generated_count <= 0):
+                        return _fail(
+                            "Blender enhancement did not report a detail pass marker or generated objects",
+                            evidence,
+                            should_retry=True,
+                        )
+
+                if material_count is not None and material_count <= 0:
+                    return _fail("Blender scene has no reported materials", evidence, should_retry=True)
+                if light_count is not None and light_count <= 0:
+                    return _fail("Blender scene has no reported lights", evidence, should_retry=True)
+                if camera_count is not None and camera_count <= 0:
+                    return _fail("Blender scene has no reported camera", evidence, should_retry=True)
+
+                if _looks_like_mlo_blender_action(action, line):
+                    required_roles = ("room", "portal", "collision")
+                    missing = [role for role in required_roles if int(role_counts.get(role, 0) or 0) <= 0]
+                    if missing:
+                        evidence["missing_roles"] = missing
+                        return _fail(
+                            "Blender MLO action is missing required room/portal/collision evidence",
+                            evidence,
+                            should_retry=True,
+                        )
+
+                return _ok("Blender scene has verified objects and quality evidence", evidence)
 
             return _ok("Blender API command succeeded", {"action": action.get("type")})
         except Exception:
@@ -428,6 +506,7 @@ class ActionVerifier:
         "blender_bridge_status": _verify_blender,
         "blender_python": _verify_blender,
         "blender_create_scene": _verify_blender,
+        "blender_enhance_scene": _verify_blender,
         "blender_open_import_menu": _verify_blender,
         "blender_import_file": _verify_blender,
     }

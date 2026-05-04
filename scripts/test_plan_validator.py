@@ -96,6 +96,11 @@ test("blender_create_scene without plan",
          {"type": "blender_create_scene", "description": "container cafe"},
      ]},
      expect_valid=False)
+test("blender_enhance_scene without plan",
+     {"intent": "act", "actions": [
+         {"type": "blender_enhance_scene", "description": "add professional MLO details"},
+     ]},
+     expect_valid=False)
 
 # ------------------------------------------------------------------
 # Group 5: Valid plans (should PASS)
@@ -128,6 +133,11 @@ test("blender_create_scene with plan",
      {"intent": "act",
       "plan": ["Create a Blender reference scene from the image"],
       "actions": [{"type": "blender_create_scene", "description": "container cafe"}]},
+     expect_valid=True)
+test("blender_enhance_scene with plan",
+     {"intent": "act",
+      "plan": ["Enhance the Blender MLO scene with professional details"],
+      "actions": [{"type": "blender_enhance_scene", "description": "make this MLO professional"}]},
      expect_valid=True)
 
 # ------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import os
+import json
 import pyautogui
 import re
 import subprocess
@@ -14,12 +15,18 @@ from core.vision.live_perception import live_perception
 from core.vision.screen_locator import screen_locator
 from core.rag import rag_manager
 from core.engine.blender_bridge import BlenderBridgeClient, BlenderMCPClient, build_bootstrap_script
-from core.engine.blender_scene_builder import build_scene_script
+from core.engine.blender_scene_builder import build_scene_script, build_enhance_script
 
 _BLENDER_CREATIVE_TERMS = (
     "create", "make", "model", "build", "design", "recreate", "generate",
     "bana", "banao", "banado", "like this", "something like", "somthing like",
     "set up", "setup", "setting up",
+)
+
+_BLENDER_ENHANCE_TERMS = (
+    "enhance", "improve", "detail", "details", "detailing", "professional",
+    "polish", "upgrade", "fix detail", "make better", "more detail",
+    "aur detail", "aur details", "theek", "quality", "complete",
 )
 
 _BLENDER_SCENE_TERMS = (
@@ -158,6 +165,21 @@ class ActionExecutor:
         utility_terms = ("delete all", "clear scene", "select_all", "object.delete", "import_file")
         return not self._contains_any(combined, utility_terms)
 
+    def _should_redirect_blender_python_to_enhance(self, action):
+        """Route detail/polish requests through the non-destructive enhancer."""
+        script = str(action.get("script") or "")
+        description = str(action.get("description") or "")
+        source_text = str(action.get("source_user_text") or "")
+        combined = f"{source_text} {description} {script}".lower()
+        explicit_sollumz = self._contains_any(source_text.lower(), _SOLLUMZ_EXPLICIT_TERMS)
+        utility_terms = ("delete all", "clear scene", "select_all", "object.delete", "import_file")
+        return (
+            not explicit_sollumz
+            and self._contains_any(combined, _BLENDER_ENHANCE_TERMS)
+            and self._contains_any(combined, _BLENDER_SCENE_TERMS)
+            and not self._contains_any(combined, utility_terms)
+        )
+
     def _run_blender_create_scene(self, description, reference_summary=""):
         try:
             window_manager.switch_to("blender")
@@ -171,6 +193,24 @@ class ActionExecutor:
         return self._send_python_to_blender_console(
             script,
             f"create Blender scene: {label}",
+            restore_layout=True,
+            timeout=90,
+            min_objects=1,
+        )
+
+    def _run_blender_enhance_scene(self, description, reference_summary=""):
+        try:
+            window_manager.switch_to("blender")
+            pyautogui.press("escape")
+            time.sleep(0.1)
+        except Exception:
+            pass
+
+        script = build_enhance_script(description, reference_summary)
+        label = description[:90] or "enhance scene"
+        return self._send_python_to_blender_console(
+            script,
+            f"enhance Blender scene: {label}",
             restore_layout=True,
             timeout=90,
             min_objects=1,
@@ -437,19 +477,33 @@ class ActionExecutor:
             from core.state.short_term import short_term_memory
             if status == "SUCCESS":
                 object_count = self._scene_count(result or {})
+                after = (result or {}).get("after") if isinstance(result, dict) else {}
+                after = after if isinstance(after, dict) else {}
                 names = self._scene_names(result or {})
                 stdout = ((result or {}).get("stdout") or "").strip()
+                role_counts = json.dumps(after.get("role_counts") or {}, separators=(",", ":"))
+                scene_tags = json.dumps(after.get("scene_tags") or {}, separators=(",", ":"))
                 short_term_memory.add_system_context(
                     f"BLENDER_API_RESULT [SUCCESS]: {description}. "
-                    f"object_count={object_count}. object_names={names}. stdout={stdout[:1000]}"
+                    f"object_count={object_count}. "
+                    f"generated_count={after.get('generated_count', -1)}. "
+                    f"material_count={after.get('material_count', -1)}. "
+                    f"light_count={after.get('light_count', -1)}. "
+                    f"camera_count={after.get('camera_count', -1)}. "
+                    f"role_counts={role_counts}. scene_tags={scene_tags}. "
+                    f"object_names={names}. stdout={stdout[:1000]}"
                 )
             else:
                 error = reason or ((result or {}).get("error") or "unknown Blender bridge error")
                 object_count = self._scene_count(result or {})
+                after = (result or {}).get("after") if isinstance(result, dict) else {}
+                after = after if isinstance(after, dict) else {}
                 stdout = ((result or {}).get("stdout") or "").strip()
+                role_counts = json.dumps(after.get("role_counts") or {}, separators=(",", ":"))
                 short_term_memory.add_system_context(
                     f"BLENDER_API_RESULT [FAILED]: {description}. "
-                    f"object_count={object_count}. error={str(error)[:1200]}. stdout={stdout[:1000]}"
+                    f"object_count={object_count}. role_counts={role_counts}. "
+                    f"error={str(error)[:1200]}. stdout={stdout[:1000]}"
                 )
         except Exception:
             pass
@@ -1045,7 +1099,29 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                 script = action.get("script", "")
                 description = action.get("description", "custom Blender Python")
                 restore_layout = action.get("restore_layout", True)
-                if self._should_redirect_blender_python_to_scene(action):
+                if self._should_redirect_blender_python_to_enhance(action):
+                    source_text = action.get("source_user_text") or description
+                    enhance_description = (
+                        f"{source_text}. Enhance the existing Blender scene non-destructively. "
+                        "Add professional detail, material cleanup, bevels, labels, lighting, camera framing, "
+                        "and if this is an MLO, verify room, portal, and collision guide evidence."
+                    )
+                    reference_summary = " ".join(
+                        part for part in (str(action.get("description") or ""), str(source_text or "")) if part
+                    )[:500]
+                    logger.log_event("BLENDER_PYTHON_REDIRECTED_TO_ENHANCE", {
+                        "description": description[:160],
+                        "source_user_text": str(source_text)[:160],
+                    })
+                    try:
+                        from core.state.short_term import short_term_memory
+                        short_term_memory.add_system_context(
+                            "BLENDER_ACTION_REDIRECTED: blender_python -> blender_enhance_scene because this is a detail/professional polish request."
+                        )
+                    except Exception:
+                        pass
+                    success = self._run_blender_enhance_scene(enhance_description, reference_summary)
+                elif self._should_redirect_blender_python_to_scene(action):
                     source_text = action.get("source_user_text") or description
                     scene_description = (
                         f"{source_text}. Create a detailed Blender scene from the user's request. "
@@ -1083,6 +1159,15 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                 success = self._run_blender_create_scene(description, reference_summary)
                 if not success:
                     bus.publish("ACTION_ABORTED", {"reason": f"Blender scene creation failed: {label}"})
+                    return
+
+            elif a_type == "blender_enhance_scene":
+                description = action.get("description") or action.get("prompt") or ""
+                reference_summary = action.get("reference_summary") or ""
+                label = description[:90] or "enhance scene"
+                success = self._run_blender_enhance_scene(description, reference_summary)
+                if not success:
+                    bus.publish("ACTION_ABORTED", {"reason": f"Blender scene enhancement failed: {label}"})
                     return
 
             elif a_type == "blender_bridge_status":

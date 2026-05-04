@@ -97,17 +97,31 @@ try:
 
     short_term_memory.history.clear()
     short_term_memory.add_system_context(
-        "BLENDER_API_RESULT [SUCCESS]: create Blender scene. object_count=42. object_names=container, table"
+        "BLENDER_API_RESULT [SUCCESS]: create Blender scene. object_count=42. generated_count=42. material_count=8. light_count=2. camera_count=1. role_counts={}. object_names=container, table"
     )
     test("blender_create_scene after SUCCESS with objects",
          action_verifier.verify({"type": "blender_create_scene", "description": "container cafe"}))
 
     short_term_memory.history.clear()
     short_term_memory.add_system_context(
-        "BLENDER_API_RESULT [SUCCESS]: create Blender scene. object_count=0. object_names="
+        "BLENDER_API_RESULT [SUCCESS]: create Blender scene. object_count=0. generated_count=0. material_count=0. light_count=0. camera_count=0. role_counts={}. object_names="
     )
     test("blender_create_scene after SUCCESS with zero objects",
          action_verifier.verify({"type": "blender_create_scene", "description": "empty scene"}))
+
+    short_term_memory.history.clear()
+    short_term_memory.add_system_context(
+        "BLENDER_API_RESULT [SUCCESS]: enhance Blender scene. object_count=58. generated_count=16. material_count=9. light_count=3. camera_count=1. role_counts={\"room\":1,\"portal\":2,\"collision\":1}. object_names=room, portal. stdout=AYEYE_ENHANCEMENT_RESULT: added=16 rooms=1 portals=2 collision=1"
+    )
+    test("blender_enhance_scene after SUCCESS with MLO evidence",
+         action_verifier.verify({"type": "blender_enhance_scene", "description": "make this MLO professional"}))
+
+    short_term_memory.history.clear()
+    short_term_memory.add_system_context(
+        "BLENDER_API_RESULT [SUCCESS]: create Blender scene. object_count=25. generated_count=25. material_count=4. light_count=1. camera_count=1. role_counts={\"room\":1}. object_names=room"
+    )
+    test("blender_create_scene MLO missing roles",
+         action_verifier.verify({"type": "blender_create_scene", "description": "garage MLO"}))
 
     short_term_memory.history.clear()
     short_term_memory.add_system_context(
