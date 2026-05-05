@@ -395,7 +395,6 @@ class ActionExecutor:
         if action.get("coordinate_space") != "processed":
             return int(x), int(y)
 
-        from core.vision.live_perception import live_perception
         dx, dy = live_perception.image_to_desktop_for_frame(x, y, frame)
         action[label + "_image_x"] = x
         action[label + "_image_y"] = y
@@ -967,7 +966,6 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                 x2, y2 = action.get("x2"), action.get("y2")
                 if all(v is not None for v in [x1, y1, x2, y2]):
                     if action.get("coordinate_space") == "processed" and frame_before:
-                        from core.vision.live_perception import live_perception
                         action["_image_x1"] = x1
                         action["_image_y1"] = y1
                         action["_image_x2"] = x2
