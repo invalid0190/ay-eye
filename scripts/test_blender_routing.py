@@ -51,6 +51,37 @@ def main():
         "scene creation requires Blender object verification",
     )
 
+    stale_template_response = {
+        "intent": "act",
+        "status": "in_progress",
+        "message": "I'll use Blender Python to create a sci-fi spaceship model.",
+        "confidence": 0.95,
+        "actions": [
+            {
+                "type": "blender_python",
+                "description": "create the reference model",
+                "script": "import bpy\nprint('create')",
+                "expect": {"type": "none"},
+            }
+        ],
+        "plan": ["Use Blender Python for the model."],
+    }
+    fresh_reference = brain._normalize_blender_task(
+        stale_template_response,
+        "create a sci-fi spaceship like this reference image",
+        overlay_state,
+    )
+    assert_equal(
+        [a.get("type") for a in fresh_reference["actions"]],
+        ["hotkey", "blender_create_scene"],
+        "fresh non-container reference uses scene builder",
+    )
+    fresh_description = fresh_reference["actions"][1]["description"].lower()
+    assert_true(
+        "container cafe" not in fresh_description and "portal guides" not in fresh_description,
+        "fresh scene description does not inject stale container/MLO template text",
+    )
+
     mlo_blockout_response = {
         "intent": "act",
         "status": "in_progress",

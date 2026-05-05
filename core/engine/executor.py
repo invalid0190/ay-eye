@@ -1173,11 +1173,8 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                     source_text = action.get("source_user_text") or description
                     scene_description = (
                         f"{source_text}. Create a detailed Blender scene from the user's request. "
-                        "If this is a container cafe, include a corrugated shipping-container body, "
-                        "service window, counter, awning, signage, outdoor seating, planters, "
-                        "warm lights, camera, and scene lighting. If this is an MLO request, "
-                        "include room volume guides, portal guides, collision proxy guides, "
-                        "template-specific interior props, labels, lighting, and camera."
+                        "Do not reuse an old scene template unless the user explicitly asks for that subject. "
+                        "Match the requested object type, silhouette, materials, colors, openings, layout, props, labels, lighting, and camera."
                     )
                     reference_summary = " ".join(
                         part for part in (str(action.get("description") or ""), str(source_text or "")) if part

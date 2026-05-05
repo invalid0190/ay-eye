@@ -13,12 +13,227 @@ import re
 
 def build_scene_script(description: str = "", reference_summary: str = "") -> str:
     """Return a self-contained Blender Python script for a described scene."""
-    prompt = f"{description}\n{reference_summary}".lower()
-    if "container" in prompt and ("cafe" in prompt or "coffee" in prompt or "shop" in prompt):
+    prompt = f"{description}\n{reference_summary}"
+    if _looks_like_container_cafe_request(prompt):
         return _container_cafe_script(description, reference_summary)
     if _looks_like_mlo_request(prompt):
         return _mlo_scene_script(description, reference_summary)
     return _generic_reference_scene_script(description, reference_summary)
+
+
+def _select_reference_profile(prompt: str) -> dict:
+    p = prompt.lower()
+    profiles = [
+        {
+            "kind": "spaceship",
+            "title": "Sci-Fi Spacecraft Reference",
+            "keywords": ("spaceship", "space ship", "spacecraft", "rocket", "ufo", "sci fi", "sci-fi", "starship"),
+            "colors": {
+                "primary": (0.22, 0.29, 0.34, 1),
+                "accent": (0.08, 0.72, 0.95, 1),
+                "dark": (0.03, 0.04, 0.055, 1),
+                "floor": (0.18, 0.19, 0.20, 1),
+            },
+        },
+        {
+            "kind": "robot",
+            "title": "Robot / Mech Reference",
+            "keywords": ("robot", "mech", "android", "cyborg", "machine character", "humanoid"),
+            "colors": {
+                "primary": (0.46, 0.48, 0.48, 1),
+                "accent": (0.95, 0.18, 0.12, 1),
+                "dark": (0.055, 0.06, 0.065, 1),
+                "floor": (0.26, 0.27, 0.27, 1),
+            },
+        },
+        {
+            "kind": "temple",
+            "title": "Architectural Temple Reference",
+            "keywords": ("temple", "palace", "castle", "shrine", "monument", "cathedral", "ancient building"),
+            "colors": {
+                "primary": (0.62, 0.58, 0.48, 1),
+                "accent": (0.90, 0.68, 0.28, 1),
+                "dark": (0.18, 0.14, 0.10, 1),
+                "floor": (0.38, 0.35, 0.30, 1),
+            },
+        },
+        {
+            "kind": "vehicle",
+            "title": "Vehicle Reference",
+            "keywords": ("car", "vehicle", "truck", "bike", "motorcycle", "bus", "van", "racing"),
+            "colors": {
+                "primary": (0.12, 0.20, 0.55, 1),
+                "accent": (1.00, 0.55, 0.08, 1),
+                "dark": (0.015, 0.015, 0.014, 1),
+                "floor": (0.30, 0.31, 0.31, 1),
+            },
+        },
+        {
+            "kind": "landscape",
+            "title": "Environment Reference",
+            "keywords": ("landscape", "forest", "tree", "garden", "mountain", "waterfall", "river", "island", "nature"),
+            "colors": {
+                "primary": (0.12, 0.34, 0.16, 1),
+                "accent": (0.18, 0.55, 0.82, 1),
+                "dark": (0.16, 0.10, 0.06, 1),
+                "floor": (0.20, 0.32, 0.18, 1),
+            },
+        },
+        {
+            "kind": "interior",
+            "title": "Interior / Shopfront Reference",
+            "keywords": (
+                "interior", "room", "shop", "store", "restaurant", "cafe", "coffee",
+                "salon", "boutique", "bar", "office", "studio", "counter",
+            ),
+            "colors": {
+                "primary": (0.50, 0.45, 0.36, 1),
+                "accent": (0.98, 0.70, 0.28, 1),
+                "dark": (0.08, 0.075, 0.065, 1),
+                "floor": (0.32, 0.34, 0.34, 1),
+            },
+        },
+        {
+            "kind": "furniture",
+            "title": "Furniture / Product Reference",
+            "keywords": ("chair", "sofa", "table", "desk", "bed", "furniture", "product", "cabinet", "lamp"),
+            "colors": {
+                "primary": (0.55, 0.32, 0.16, 1),
+                "accent": (0.92, 0.82, 0.62, 1),
+                "dark": (0.06, 0.045, 0.035, 1),
+                "floor": (0.34, 0.33, 0.30, 1),
+            },
+        },
+    ]
+    for profile in profiles:
+        if any(keyword in p for keyword in profile["keywords"]):
+            return profile
+    return {
+        "kind": "abstract",
+        "title": "Custom Reference Model",
+        "keywords": (),
+        "colors": {
+            "primary": (0.20, 0.34, 0.48, 1),
+            "accent": (0.95, 0.58, 0.20, 1),
+            "dark": (0.05, 0.05, 0.045, 1),
+            "floor": (0.38, 0.38, 0.35, 1),
+        },
+    }
+
+
+def _generic_reference_detail_block(kind: str) -> str:
+    blocks = {
+        "spaceship": """
+body = cube('sleek spacecraft fuselage', (0, 0, 1.15), (3.8, 0.92, 0.58), primary)
+nose = cube('tapered spacecraft nose block', (2.12, 0, 1.16), (0.62, 0.58, 0.42), accent)
+tail = cube('dark rear engine housing', (-2.08, 0, 1.12), (0.42, 0.82, 0.50), dark)
+left_wing = cube('left swept wing panel', (-0.25, -1.02, 0.98), (1.95, 1.35, 0.09), dark)
+right_wing = cube('right swept wing panel', (-0.25, 1.02, 0.98), (1.95, 1.35, 0.09), dark)
+left_wing.rotation_euler[2] = math.radians(-10)
+right_wing.rotation_euler[2] = math.radians(10)
+cockpit = cube('bright cockpit canopy', (0.92, 0, 1.52), (0.86, 0.58, 0.24), accent)
+for y in [-0.32, 0.32]:
+    engine = cyl('round rear thruster nozzle', (-2.38, y, 1.12), 0.18, 0.26, dark, vertices=32)
+    engine.rotation_euler[1] = math.radians(90)
+for x in [-0.9, -0.2, 0.5, 1.2]:
+    cube('small glowing hull panel', (x, -0.48, 1.52), (0.20, 0.035, 0.08), accent)
+""",
+        "robot": """
+torso = cube('robot angular torso', (0, 0, 1.65), (1.05, 0.55, 1.15), primary)
+head = cube('robot square sensor head', (0, 0, 2.45), (0.72, 0.56, 0.42), primary)
+visor = cube('robot glowing visor slit', (0, -0.31, 2.48), (0.52, 0.045, 0.10), accent)
+for x in [-0.78, 0.78]:
+    upper = cube('robot upper arm segment', (x, 0, 1.78), (0.26, 0.26, 0.75), dark)
+    lower = cube('robot forearm tool segment', (x, 0, 1.12), (0.30, 0.30, 0.62), primary)
+    hand = cube('robot block hand', (x, -0.05, 0.72), (0.34, 0.22, 0.18), accent)
+for x in [-0.34, 0.34]:
+    thigh = cube('robot upper leg piston', (x, 0, 0.68), (0.24, 0.24, 0.72), dark)
+    foot = cube('robot wide foot', (x, -0.14, 0.20), (0.46, 0.70, 0.18), primary)
+for x in [-0.42, 0.42]:
+    cyl('shoulder circular joint', (x, -0.02, 2.02), 0.18, 0.16, accent, vertices=24)
+""",
+        "temple": """
+cube('broad stepped stone base', (0, 0, 0.12), (4.8, 3.8, 0.24), floor_mat)
+for i, y in enumerate([-1.45, -1.12, -0.79]):
+    cube('front temple stair tier', (0, y, 0.22 + i * 0.12), (4.2 - i * 0.45, 0.28, 0.12), primary)
+for x in [-1.65, -0.55, 0.55, 1.65]:
+    col = cyl('tall temple column', (x, -0.25, 1.15), 0.16, 1.82, primary, vertices=32)
+    cap = cube('gold column capital', (x, -0.25, 2.10), (0.42, 0.42, 0.16), accent)
+    base = cube('column foot block', (x, -0.25, 0.22), (0.44, 0.44, 0.16), dark)
+cube('rear sanctuary wall mass', (0, 0.65, 1.10), (3.8, 0.46, 1.85), primary)
+cube('triangular roof proxy block', (0, -0.10, 2.42), (4.55, 2.8, 0.36), accent)
+text_obj('architectural label', 'REFERENCE ARCHITECTURE', (-2.1, -1.9, 0.55), 0.18, accent, align='LEFT')
+""",
+        "vehicle": """
+body = cube('vehicle main body shell', (0, 0, 0.72), (3.4, 1.35, 0.58), primary)
+cabin = cube('vehicle cabin with windshield', (0.35, -0.02, 1.18), (1.28, 1.08, 0.55), accent)
+hood = cube('vehicle front hood plane', (1.35, 0, 1.03), (1.18, 1.18, 0.16), primary)
+rear = cube('vehicle rear deck', (-1.35, 0, 0.98), (0.86, 1.12, 0.18), dark)
+for x in [-1.15, 1.15]:
+    for y in [-0.78, 0.78]:
+        wheel = cyl('round vehicle wheel', (x, y, 0.42), 0.28, 0.18, dark, vertices=36)
+        wheel.rotation_euler[0] = math.radians(90)
+        cyl('small wheel hub cap', (x, y, 0.42), 0.12, 0.20, accent, vertices=28).rotation_euler[0] = math.radians(90)
+for x in [1.85, -1.85]:
+    cube('vehicle light strip', (x, -0.70, 0.82), (0.10, 0.08, 0.12), accent)
+""",
+        "landscape": """
+cube('terrain island base', (0, 0, 0.06), (5.8, 4.2, 0.12), floor_mat)
+cube('curving blue water ribbon', (0.35, -0.25, 0.16), (4.8, 0.45, 0.04), accent)
+for x, y, scale in [(-1.8, 0.9, 0.9), (-0.4, 1.15, 1.2), (1.25, 0.72, 0.72)]:
+    rock = cube('faceted landscape rock mass', (x, y, 0.36), (0.82*scale, 0.62*scale, 0.55*scale), dark)
+    rock.rotation_euler[2] = math.radians(12 + x * 8)
+for x, y, h in [(-2.1, -0.9, 1.1), (-0.8, -1.15, 1.4), (0.9, -0.85, 1.2), (2.0, -0.35, 1.0)]:
+    trunk = cyl('tree trunk', (x, y, 0.58), 0.08, h, dark, vertices=16)
+    crown = cyl('rounded tree canopy', (x, y, 0.58 + h * 0.58), 0.36, 0.52, primary, vertices=24)
+for x in [-2.4, -1.6, -0.2, 1.2, 2.4]:
+    cyl('small plant cluster', (x, 1.65, 0.28), 0.12, 0.30, primary, vertices=12)
+""",
+        "interior": """
+cube('interior floor plate', (0, 0, 0.05), (5.2, 3.8, 0.10), floor_mat)
+cube('rear interior feature wall', (0, 1.58, 1.32), (5.0, 0.18, 2.55), primary)
+cube('left side wall suggestion', (-2.48, 0.1, 1.20), (0.14, 3.0, 2.30), dark)
+cube('interior service counter', (-0.65, -0.95, 0.72), (2.35, 0.55, 0.82), dark)
+cube('bright counter top', (-0.65, -0.95, 1.16), (2.55, 0.65, 0.10), accent)
+cube('wall menu or art panel', (-0.65, 1.46, 1.82), (1.55, 0.06, 0.62), accent)
+for x in [-1.75, 0.45, 1.75]:
+    cube('shelf or display bay', (x, 1.37, 1.08), (0.72, 0.16, 0.46), dark)
+    cube('small product blocks on shelf', (x, 1.22, 1.38), (0.54, 0.12, 0.12), accent)
+for x in [-1.55, 0.05, 1.55]:
+    table = cyl('round interior table', (x, -1.75, 0.52), 0.32, 0.08, accent, vertices=32)
+    cyl('single table pedestal', (x, -1.75, 0.30), 0.055, 0.42, dark, vertices=16)
+    for y in [-2.18, -1.32]:
+        cube('simple chair block', (x, y, 0.42), (0.34, 0.30, 0.48), primary)
+for x in [-1.9, -0.65, 0.65, 1.9]:
+    light = cyl('warm hanging pendant light', (x, 0.25, 2.55), 0.16, 0.16, accent, vertices=24)
+    cyl('thin pendant cord', (x, 0.25, 2.85), 0.018, 0.46, dark, vertices=12)
+text_obj('interior label', 'REFERENCE INTERIOR', (-2.25, -2.35, 0.42), 0.18, accent, align='LEFT')
+""",
+        "furniture": """
+seat = cube('furniture main cushioned seat', (0, 0, 0.55), (1.9, 1.25, 0.32), primary)
+back = cube('furniture angled back rest', (0, 0.62, 1.10), (1.95, 0.24, 1.05), primary)
+back.rotation_euler[0] = math.radians(-8)
+for x in [-0.82, 0.82]:
+    arm = cube('furniture side arm rest', (x, 0, 0.86), (0.22, 1.25, 0.72), dark)
+    for y in [-0.48, 0.48]:
+        leg = cyl('tapered furniture leg', (x, y, 0.22), 0.055, 0.40, dark, vertices=16)
+table = cube('matching small side table', (2.0, -0.2, 0.48), (0.78, 0.78, 0.10), accent)
+for x, y in [(1.72,-0.48), (2.28,-0.48), (1.72,0.08), (2.28,0.08)]:
+    cyl('side table thin leg', (x, y, 0.24), 0.035, 0.44, dark, vertices=12)
+lamp = cyl('small product lamp stem', (-2.0, -0.2, 0.86), 0.045, 1.2, dark, vertices=16)
+shade = cube('small lamp shade', (-2.0, -0.2, 1.52), (0.58, 0.58, 0.34), accent)
+""",
+        "abstract": """
+cube('main reference silhouette mass', (0, 0, 1.1), (3.2, 1.45, 1.95), primary)
+cube('asymmetric front feature panel', (-0.45, -0.78, 1.24), (1.55, 0.08, 1.05), dark)
+cube('offset accent header piece', (0.38, -1.02, 2.25), (3.2, 0.40, 0.20), accent)
+cube('left proportional support element', (-2.05, -0.05, 0.84), (0.42, 1.12, 1.45), dark)
+cube('right proportional support element', (2.05, -0.05, 0.84), (0.42, 1.12, 1.45), dark)
+for i, x in enumerate([-1.1, -0.35, 0.4, 1.15]):
+    cube('visible small reference detail strip', (x, -1.12, 1.42 + (i % 2) * 0.28), (0.34, 0.06, 0.10), accent)
+""",
+    }
+    return blocks.get(kind, blocks["abstract"])
 
 
 def build_enhance_script(description: str = "", reference_summary: str = "") -> str:
@@ -368,13 +583,83 @@ print(
 """
 
 
+def _has_word_or_phrase(text: str, term: str) -> bool:
+    return bool(re.search(r"\b" + re.escape(term.lower()) + r"\b", text.lower()))
+
+
+def _has_any_word_or_phrase(text: str, terms: tuple[str, ...]) -> bool:
+    return any(_has_word_or_phrase(text, term) for term in terms)
+
+
+def _looks_like_container_cafe_request(prompt: str) -> bool:
+    p = prompt.lower()
+    explicit_phrases = (
+        "container cafe",
+        "container coffee",
+        "container coffee shop",
+        "shipping container cafe",
+        "shipping container coffee",
+        "shipping-container cafe",
+        "shipping-container coffee",
+    )
+    if any(phrase in p for phrase in explicit_phrases):
+        return True
+    return (
+        _has_any_word_or_phrase(p, ("container", "shipping container", "shipping-container"))
+        and _has_any_word_or_phrase(p, ("cafe", "coffee", "espresso", "tea stall", "food kiosk"))
+    )
+
+
 def _looks_like_mlo_request(prompt: str) -> bool:
-    return any(term in prompt for term in (
-        "mlo", "fivem", "gta", "sollumz", "ymap", "ytyp", "ydr", "ybn",
-        "interior", "portal", "room", "collision", "convert", "conversion",
-        "house", "garage", "shop", "store", "restaurant", "office",
-        "warehouse", "club", "bar", "motel", "apartment",
-    ))
+    p = prompt.lower()
+    strong_mlo_terms = (
+        "mlo",
+        "sollumz",
+        "ymap",
+        "ytyp",
+        "ybn",
+        "codewalker",
+        "portal",
+        "collision",
+        "occlusion",
+    )
+    game_terms = ("fivem", "gta")
+    export_terms = ("ydr", "ydd", "archetype", "drawable")
+    interior_terms = (
+        "interior",
+        "room",
+        "building",
+        "shell",
+        "map",
+        "house",
+        "garage",
+        "shop",
+        "store",
+        "restaurant",
+        "office",
+        "warehouse",
+        "club",
+        "bar",
+        "motel",
+        "apartment",
+    )
+    explicit_phrases = (
+        "game-ready interior",
+        "game ready interior",
+        "gta interior",
+        "fivem interior",
+        "convert to mlo",
+        "mlo conversion",
+        "sollumz export",
+    )
+    return (
+        _has_any_word_or_phrase(p, strong_mlo_terms)
+        or any(phrase in p for phrase in explicit_phrases)
+        or (
+            _has_any_word_or_phrase(p, game_terms + export_terms)
+            and _has_any_word_or_phrase(p, interior_terms)
+        )
+    )
 
 
 def _safe_text(value: str, fallback: str) -> str:
@@ -1125,7 +1410,12 @@ text_obj('MLO helper label', 'MLO guides: room / portals / collision proxy', (-3
 
 
 def _generic_reference_scene_script(description: str, reference_summary: str) -> str:
-    title = _safe_text(description or reference_summary, "Reference Inspired Scene")
+    prompt = f"{description}\n{reference_summary}"
+    profile = _select_reference_profile(prompt)
+    title = _safe_text(description or reference_summary or profile["title"], profile["title"])
+    reference = _safe_text(reference_summary or description or profile["title"], profile["title"])
+    colors = profile["colors"]
+    detail_block = _generic_reference_detail_block(profile["kind"])
     return f"""
 import bpy
 import math
@@ -1135,8 +1425,14 @@ for existing in list(bpy.data.objects):
     if str(existing.get('ayeye_generated_scene') or '').startswith('ayeye_'):
         bpy.data.objects.remove(existing, do_unlink=True)
 
-def mark(ob):
+PROFILE_KIND = {profile["kind"]!r}
+TASK_TITLE = {title!r}
+REFERENCE_SUMMARY = {reference!r}
+
+def mark(ob, role='detail'):
     ob['ayeye_generated_scene'] = SCENE_TAG
+    ob['ayeye_reference_profile'] = PROFILE_KIND
+    ob['ayeye_role'] = role
     return ob
 
 def mat(name, color):
@@ -1150,12 +1446,12 @@ def mat(name, color):
             bsdf.inputs['Roughness'].default_value = 0.55
     return m
 
-primary = mat('primary reference color', (0.20, 0.34, 0.48, 1))
-accent = mat('warm accent color', (0.95, 0.58, 0.20, 1))
-dark = mat('dark trim', (0.05, 0.05, 0.045, 1))
-floor_mat = mat('simple studio floor', (0.38, 0.38, 0.35, 1))
+primary = mat('primary reference color - ' + PROFILE_KIND, {colors["primary"]!r})
+accent = mat('accent reference color - ' + PROFILE_KIND, {colors["accent"]!r})
+dark = mat('dark trim - ' + PROFILE_KIND, {colors["dark"]!r})
+floor_mat = mat('studio floor - ' + PROFILE_KIND, {colors["floor"]!r})
 
-def cube(name, loc, scale, material):
+def cube(name, loc, scale, material, role='detail'):
     bpy.ops.mesh.primitive_cube_add(size=1, location=loc)
     ob = bpy.context.object
     ob.name = name
@@ -1166,34 +1462,42 @@ def cube(name, loc, scale, material):
     bevel.width = 0.04
     bevel.segments = 2
     ob.modifiers.new('weighted normals', 'WEIGHTED_NORMAL')
-    return mark(ob)
+    return mark(ob, role)
 
-cube('large base platform', (0, 0, -0.08), (8, 6, 0.16), floor_mat)
-cube('main reference mass', (0, 0, 1.1), (3.8, 1.8, 2.2), primary)
-cube('front feature panel', (0, -0.95, 1.2), (2.8, 0.08, 1.2), dark)
-cube('accent canopy or header', (0, -1.25, 2.42), (4.4, 0.55, 0.18), accent)
-cube('left supporting detail', (-2.25, -0.2, 0.9), (0.45, 1.4, 1.6), dark)
-cube('right supporting detail', (2.25, -0.2, 0.9), (0.45, 1.4, 1.6), dark)
+def cyl(name, loc, radius, depth, material, vertices=24, role='detail'):
+    bpy.ops.mesh.primitive_cylinder_add(vertices=vertices, radius=radius, depth=depth, location=loc)
+    ob = bpy.context.object
+    ob.name = name
+    ob.data.materials.append(material)
+    ob.modifiers.new('weighted normals', 'WEIGHTED_NORMAL')
+    return mark(ob, role)
 
-bpy.ops.object.text_add(location=(-3.3, -2.2, 0.35), rotation=(math.radians(75), 0, 0))
-txt = bpy.context.object
-txt.name = 'task label'
-txt.data.body = '{title}'
-txt.data.size = 0.28
-txt.data.align_x = 'LEFT'
-txt.data.materials.append(accent)
-mark(txt)
+def text_obj(name, body, loc, size, material, rotation=(math.radians(75), 0, 0), align='LEFT', role='label'):
+    bpy.ops.object.text_add(location=loc, rotation=rotation)
+    ob = bpy.context.object
+    ob.name = name
+    ob.data.body = body
+    ob.data.size = size
+    ob.data.align_x = align
+    ob.data.materials.append(material)
+    return mark(ob, role)
+
+cube('large base platform', (0, 0, -0.08), (8, 6, 0.16), floor_mat, 'floor')
+{detail_block}
+
+text_obj('task label', TASK_TITLE, (-3.3, -2.2, 0.35), 0.28, accent, align='LEFT')
+text_obj('reference note label', REFERENCE_SUMMARY[:96], (-3.3, 2.55, 0.35), 0.16, dark, align='LEFT')
 
 bpy.ops.object.light_add(type='AREA', location=(0, -4, 5.5))
 light = bpy.context.object
 light.name = 'large soft reference light'
 light.data.energy = 450
 light.data.size = 5
-mark(light)
+mark(light, 'light')
 
 bpy.ops.object.camera_add(location=(5.0, -6.0, 3.5), rotation=(math.radians(60), 0, math.radians(39)))
 bpy.context.scene.camera = bpy.context.object
-mark(bpy.context.object)
+mark(bpy.context.object, 'camera')
 try:
     bpy.context.scene.render.engine = 'CYCLES'
     if hasattr(bpy.context.scene, 'cycles'):
@@ -1212,5 +1516,5 @@ if screen:
     except Exception as view_error:
         print('AYEYE_VIEW_WARNING:', view_error)
 
-print('AYEYE_SCENE_CREATED: generic reference scene from task: {title}')
+print('AYEYE_SCENE_CREATED: generic reference profile=' + PROFILE_KIND + ' task=' + TASK_TITLE)
 """
