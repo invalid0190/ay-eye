@@ -42,6 +42,8 @@ _SOLLUMZ_EXPLICIT_TERMS = (
     "ybn", "ytyp", "ymap", "drawable", "archetype", "export", "final export",
 )
 
+_UI_ACTION_TYPES = {"click", "click_text", "drag", "type", "hotkey", "scroll"}
+
 class ActionExecutor:
     _DIRECT_EXE_RE = re.compile(
         r"^\s*(?:&\s*)?(?P<quote>['\"])(?P<exe>[A-Za-z]:\\[^'\"]+\.exe)(?P=quote)(?P<args>.*)$",
@@ -372,6 +374,36 @@ class ActionExecutor:
             f"targeting '{target_name or 'coordinate target'}'{locator_note}"
         )
         return jx, jy
+
+    def _prepare_for_ui_action(self, action):
+        """Hide Ay-Eye chrome before capture/click so it never steals the target."""
+        try:
+            bus.publish("UI_ACTION_PREPARE", {"type": action.get("type"), "action": action})
+            time.sleep(0.25)
+        except Exception:
+            pass
+
+    @staticmethod
+    def _ensure_desktop_point(action, x, y, frame, label="point"):
+        """Convert explicit processed-image coordinates if they reach the executor."""
+        if x is None or y is None:
+            return x, y
+        if not frame:
+            return int(x), int(y)
+        if action.get("_coord_space") == "desktop" or action.get("coordinate_space") == "desktop":
+            return int(x), int(y)
+        if action.get("coordinate_space") != "processed":
+            return int(x), int(y)
+
+        from core.vision.live_perception import live_perception
+        dx, dy = live_perception.image_to_desktop_for_frame(x, y, frame)
+        action[label + "_image_x"] = x
+        action[label + "_image_y"] = y
+        action[label + "_desktop_x"] = dx
+        action[label + "_desktop_y"] = dy
+        action["_coord_space"] = "desktop"
+        action["coordinate_space"] = "desktop"
+        return dx, dy
 
     def _click_with_retry(
         self,
@@ -772,7 +804,10 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
         a_type = action.get("type")
         bus.publish("ACTION_STARTED", action)
         logger.log_event("ACTION_STARTED", action)
-        
+
+        if a_type in _UI_ACTION_TYPES:
+            self._prepare_for_ui_action(action)
+
         frame_before = live_perception.get_latest_frame()
         
         try:
@@ -782,6 +817,7 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                 button = action.get("button", "left")  # left, right, middle
                 clicks = action.get("clicks", 1)        # 1 = single, 2 = double
                 target_name = action.get("target", "")
+                x, y = self._ensure_desktop_point(action, x, y, frame_before, "click")
                 original_point = (x, y) if x is not None and y is not None else None
 
                 locator_result = None
@@ -930,6 +966,18 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                 x1, y1 = action.get("x1"), action.get("y1")
                 x2, y2 = action.get("x2"), action.get("y2")
                 if all(v is not None for v in [x1, y1, x2, y2]):
+                    if action.get("coordinate_space") == "processed" and frame_before:
+                        from core.vision.live_perception import live_perception
+                        action["_image_x1"] = x1
+                        action["_image_y1"] = y1
+                        action["_image_x2"] = x2
+                        action["_image_y2"] = y2
+                        x1, y1 = live_perception.image_to_desktop_for_frame(x1, y1, frame_before)
+                        x2, y2 = live_perception.image_to_desktop_for_frame(x2, y2, frame_before)
+                        action["_coord_space"] = "desktop"
+                        action["coordinate_space"] = "desktop"
+                    x1, y1 = self._clamp_point(x1, y1, frame_before)
+                    x2, y2 = self._clamp_point(x2, y2, frame_before)
                     pyautogui.moveTo(x1, y1, duration=0.5)
                     time.sleep(0.1)
                     pyautogui.mouseDown()
@@ -1287,12 +1335,21 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                 # Extract text from a screen region using Tesseract OCR
                 x = action.get("x", 0)
                 y = action.get("y", 0)
+                was_processed_region = action.get("coordinate_space") == "processed"
+                x, y = self._ensure_desktop_point(action, x, y, frame_before, "ocr")
                 if frame_before:
                     desk_w, desk_h = frame_before.raw_size
                 else:
                     desk_w, desk_h = self.screen_w, self.screen_h
                 w = action.get("w", desk_w)
                 h = action.get("h", desk_h)
+                if was_processed_region and frame_before:
+                    scale_x = frame_before.raw_size[0] / frame_before.processed_size[0]
+                    scale_y = frame_before.raw_size[1] / frame_before.processed_size[1]
+                    w = int(w * scale_x)
+                    h = int(h * scale_y)
+                    action["w"] = w
+                    action["h"] = h
                 try:
                     import mss
                     import pytesseract

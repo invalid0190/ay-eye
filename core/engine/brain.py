@@ -270,7 +270,21 @@ class Brain:
 
     def _capture_screen_b64(self, save_debug=True):
         """Get latest frame from live perception and add grid."""
+        prepare_started = time.time()
+        try:
+            bus.publish("VISION_CAPTURE_PREPARE", {"reason": "hide_ayeye_chrome"})
+        except Exception:
+            pass
+        time.sleep(0.25)
+
         b64, frame = live_perception.get_latest_frame_b64()
+        if frame and getattr(frame, "timestamp", 0) < prepare_started:
+            deadline = time.time() + 0.6
+            while time.time() < deadline:
+                time.sleep(0.05)
+                b64, frame = live_perception.get_latest_frame_b64()
+                if frame and getattr(frame, "timestamp", 0) >= prepare_started:
+                    break
         if not b64 or not frame:
             time.sleep(0.5)
             b64, frame = live_perception.get_latest_frame_b64()
@@ -719,7 +733,7 @@ For Blender menu/import/model operations, use blender_open_import_menu, blender_
                 
                 prompt = f"""{VISION_SYSTEM_PROMPT}
 
-IMPORTANT: Return coordinates relative to the PROCESSED IMAGE SIZE you are seeing, not the desktop resolution.
+IMPORTANT: Return coordinates relative to the PROCESSED IMAGE SIZE you are seeing, not the desktop resolution. Ay-Eye's own panel is hidden during capture/action, so do not compensate for where it used to be.
 
 DESKTOP RAW SIZE: {frame.raw_size[0]}x{frame.raw_size[1]}
 PROCESSED IMAGE SIZE: {frame.processed_size[0]}x{frame.processed_size[1]}

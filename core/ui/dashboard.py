@@ -33,6 +33,8 @@ class ThreadBridge(QObject):
     web_search = pyqtSignal(str)
     dry_run = pyqtSignal(str)
     trace_exported = pyqtSignal(str)
+    prepare_vision = pyqtSignal()
+    prepare_action = pyqtSignal()
 
 
 class AyEyeDashboard:
@@ -82,6 +84,8 @@ class AyEyeDashboard:
         self.bridge.web_search.connect(self._on_web_search)
         self.bridge.dry_run.connect(self._on_dry_run)
         self.bridge.trace_exported.connect(self._on_trace_exported)
+        self.bridge.prepare_vision.connect(lambda: self._hide_chrome("vision"))
+        self.bridge.prepare_action.connect(lambda: self._hide_chrome("action"))
         
         # ── Subscribe event bus → emit signals (thread-safe) ──
         bus.subscribe("BRAIN_THINKING", lambda d: self.bridge.thinking.emit())
@@ -119,6 +123,8 @@ class AyEyeDashboard:
         bus.subscribe("TRACE_EXPORTED", lambda d: self.bridge.trace_exported.emit(
             d.get("filename", "trace.json") if isinstance(d, dict) else "trace.json"
         ))
+        bus.subscribe("VISION_CAPTURE_PREPARE", lambda d=None: self.bridge.prepare_vision.emit())
+        bus.subscribe("UI_ACTION_PREPARE", lambda d=None: self.bridge.prepare_action.emit())
         bus.subscribe("TOGGLE_COMMAND_PANEL", lambda d=None: self.bridge.toggle_panel.emit())
         bus.subscribe("HIGHLIGHT_REQUESTED", self.on_highlight_request)
         
@@ -186,6 +192,7 @@ class AyEyeDashboard:
     
     def _on_recording_start(self):
         self.update_status("recording")
+        self.status_bar.setVisible(True)
         self.command_panel.add_log("🎙️", "Listening...", theme.RECORDING.name())
         self.audio_level.setVisible(True)
         self.command_panel.setVisible(True)
@@ -205,6 +212,7 @@ class AyEyeDashboard:
 
     def _on_voice_ignored(self, reason: str):
         self.update_status("idle")
+        self.status_bar.setVisible(True)
         hints = {
             "no_audio": "No audio captured — hold Alt+Z while you speak.",
             "empty_transcript": "No speech detected — speak louder or check the mic.",
@@ -215,6 +223,7 @@ class AyEyeDashboard:
     
     def _on_error(self, reason):
         self.update_status("idle")
+        self.status_bar.setVisible(True)
         self.command_panel.add_log("⚠️", reason[:60], theme.ERROR.name())
     
     def _on_dry_run(self, action_type):
@@ -234,6 +243,7 @@ class AyEyeDashboard:
 
     def _on_suggestion(self, data):
         self.update_status("idle")
+        self.status_bar.setVisible(True)
         message = data.get("message", "")
         confidence = data.get("confidence", 0)
         intent = data.get("intent", "guide")
@@ -257,13 +267,16 @@ class AyEyeDashboard:
 
     def _on_action_done(self, a_type):
         self.update_status("idle")
+        self.status_bar.setVisible(True)
         self.command_panel.add_log("✅", f"{a_type} completed", theme.SUCCESS.name())
     
     def _on_action_abort(self, reason):
+        self.status_bar.setVisible(True)
         self.command_panel.add_log("🚫", reason[:40], theme.WARNING.name())
     
     def _on_emergency(self):
         self.update_status("idle")
+        self.status_bar.setVisible(True)
         self.command_panel.add_log("🛑", "EMERGENCY STOP", theme.ERROR.name())
 
     def _on_toggle_panel(self):
@@ -277,6 +290,11 @@ class AyEyeDashboard:
     
     def _on_web_search(self, query):
         self.command_panel.add_log("🔍", f"Searching: {query[:35]}", theme.ACCENT_COLOR.name())
+
+    def _hide_chrome(self, reason):
+        self._auto_hide_timer.stop()
+        self.command_panel.setVisible(False)
+        self.status_bar.setVisible(False)
 
     def on_highlight_request(self, coords):
         if self.overlay and isinstance(coords, dict):
