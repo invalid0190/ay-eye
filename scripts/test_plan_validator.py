@@ -52,25 +52,42 @@ test("click + type (2 actions)",
      expect_valid=True)
 
 # ------------------------------------------------------------------
-# Group 3: Multi-action WITHOUT plan (should FAIL)
+# Group 3: Multi-action WITHOUT plan -- now auto-synthesises a plan
+# from the actions and passes (was: hard-rejected, which silently
+# dropped the user's task whenever the LLM forgot the 'plan' field).
+# High-risk actions are still hard-gated separately in Group 4.
 # ------------------------------------------------------------------
-print("\n[Group 3] Multi-action without plan (should fail)")
-test("3 clicks, no plan",
+print("\n[Group 3] Multi-action without plan (auto-synthesised)")
+
+def test_with_plan_synthesis(label, response):
+    """Run the validator and assert it passed AND that a plan was synthesised
+    in place onto the response dict."""
+    verdict = plan_validator.validate(response)
+    ok = (
+        verdict["valid"] is True
+        and isinstance(response.get("plan"), list)
+        and len(response["plan"]) >= 1
+        and any("auto-synth" in w.lower() for w in verdict.get("warnings", []))
+    )
+    print(f"  {'[PASS]' if ok else '[FAIL]'} {label}: synthesised plan = {response.get('plan')}")
+    if not ok:
+        sys.exit(1)
+
+
+test_with_plan_synthesis("3 clicks, no plan",
      {"intent": "act", "actions": [
          {"type": "click", "x": 1, "y": 1},
          {"type": "click_text", "text": "OK"},
          {"type": "type", "text": "hello"},
-     ]},
-     expect_valid=False)
-test("5 actions, no plan",
+     ]})
+test_with_plan_synthesis("5 actions, no plan",
      {"intent": "act", "actions": [
          {"type": "click", "x": 1, "y": 1},
          {"type": "type", "text": "hello"},
          {"type": "hotkey", "keys": ["enter"]},
          {"type": "click_text", "text": "Send"},
          {"type": "switch", "target": "discord"},
-     ]},
-     expect_valid=False)
+     ]})
 
 # ------------------------------------------------------------------
 # Group 4: High-risk action WITHOUT plan (should FAIL)

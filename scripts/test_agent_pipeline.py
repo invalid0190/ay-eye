@@ -213,9 +213,12 @@ test("missing required action fields", {
 }, expect="SCHEMA_FAIL")
 
 # ------------------------------------------------------------------
-# 3. Multi-action without plan -> blocked by PlanValidator
+# 3. Multi-action without plan -> PlanValidator now auto-synthesises a
+#    plan from the actions (was: hard-rejected, which dropped the user's
+#    intent silently and caused the "kehta hai but karta nahi" bug).
+#    High-risk actions without a plan are still blocked -- see [4] below.
 # ------------------------------------------------------------------
-print("\n[3] Multi-action without plan")
+print("\n[3] Multi-action without plan (auto-synthesised, executes)")
 test("3 actions, no plan", {
     "intent": "act", "status": "in_progress", "message": "Doing stuff.",
     "actions": [
@@ -224,7 +227,7 @@ test("3 actions, no plan", {
         {"type": "type", "text": "document.txt"},
     ],
     "confidence": 0.9,
-}, expect="PLAN_FAIL")
+}, expect="PASS")
 
 # ------------------------------------------------------------------
 # 4. Dangerous cmd -> blocked by ActionSafety

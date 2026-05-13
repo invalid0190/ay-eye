@@ -510,7 +510,7 @@ scenario(10, "Full project setup (mkdir + write + cmd)", {
 # BONUS: Negative edge cases
 # =====================================================================
 
-scenario(11, "Multi-action without plan (rejected by planner)", {
+scenario(11, "Multi-action without plan (auto-synthesised + executed)", {
     "intent": "act",
     "status": "complete",
     "message": "Doing several things at once.",
@@ -520,7 +520,7 @@ scenario(11, "Multi-action without plan (rejected by planner)", {
         {"type": "click_text", "text": "Blank Document"},
     ],
     "confidence": 0.9,
-}, expect_plan_fail=True)
+}, expect_exec=3)
 
 scenario(12, "Low confidence action rejected", {
     "intent": "act",

@@ -20,6 +20,7 @@ from core.engine.web_search import web_search
 from core.vision.live_perception import live_perception
 from core.engine.audio_state import audio_state
 from core.rag import rag_manager
+from core.utils.vision_cache import vision_cache
 
 _INFO_GATHERING_TERMS = (
     "check", "dekho", "dekh", "bata", "kya", "what", "which", "who",
@@ -173,7 +174,7 @@ ALWAYS add expect for cmd, write_file, blender_python, blender_create_scene, and
 - When reading files or running commands, set status="in_progress" so you can check the output.
 
 ## APP-SPECIFIC RULES
-Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen or open menu: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(). For "create/model/build/recreate/design something like this/image/reference" requests, do not ask for exact dimensions first; treat each request/image as a fresh subject, ignore older Blender scene memories unless the user explicitly says to reuse them, describe the visible reference in reference_summary with shape, materials, colors, openings, signage, room layout, major props, and style cues, then use blender_create_scene with status="in_progress". For "add details/make it professional/improve/enhance/fix detailing" on an existing Blender scene, use blender_enhance_scene with status="in_progress"; do not rebuild blindly unless the user asks to start over. For MLO blockout requests, use blender_create_scene; it can generate template rooms, portals, collision helpers, and interior props. Use blender_enhance_scene to add polish and verify room/portal/collision evidence on an existing MLO. Only use raw Sollumz/export operations when the user explicitly asks for final YMAP/YTYP/YBN/YDR export or Sollumz property editing. For "MCP server", "bridge", or "is Blender connected" questions, use blender_bridge_status with status="in_progress"; Blender's MCP add-on normally runs on localhost:9876, and Ay-Eye also has a fallback bridge on 127.0.0.1:8765. Do not claim a Blender model is created unless the Blender API result reports success and scene objects.
+Blender: Use Blender API actions/hotkeys, NOT clicks. Blender UI is OpenGL/custom-rendered, so click_text and coordinate clicks are unreliable. Splash screen or open menu: press Escape. Clear/delete all objects: use blender_python with bpy.ops.object.select_all(action='SELECT'); bpy.ops.object.delete(). For "create/model/build/recreate/design something like this/image/reference" requests, do not ask for exact dimensions first; treat each request/image as a fresh subject, ignore older Blender scene memories unless the user explicitly says to reuse them, describe the visible reference in reference_summary with shape, materials, colors, openings, signage, room layout, major props, and style cues, then use blender_create_scene with status="in_progress". For "add details/make it professional/improve/enhance/fix detailing" on an existing Blender scene, use blender_enhance_scene with status="in_progress"; do not rebuild blindly unless the user asks to start over. For FiveM/GTA MLO blockout requests, use blender_create_scene to generate an interior shell only: floors, walls, ceilings, room volume guides, portal guides, collision proxy guides, interior trim, utilities, labels, and subject-specific interior props. Do not add exterior terrain, trees, roads, or outdoor decoration for MLOs; those belong in CodeWalker/exterior assets. Use blender_enhance_scene to add polish and verify room/portal/collision evidence on an existing MLO. Only use raw Sollumz/export operations when the user explicitly asks for final YMAP/YTYP/YBN/YDR export or Sollumz property editing. For "MCP server", "bridge", or "is Blender connected" questions, use blender_bridge_status with status="in_progress"; Blender's MCP add-on normally runs on localhost:9876, and Ay-Eye also has a fallback bridge on 127.0.0.1:8765. Do not claim a Blender model is created unless the Blender API result reports success and scene objects.
 Messaging: Click input field first, then type, then hotkey Enter.
 Renaming files: click_text on name, hotkey F2, type new name, hotkey Enter.
 Streams: NEVER click inside picture-in-picture or recursive stream previews.
@@ -291,11 +292,16 @@ class Brain:
             if not b64 or not frame:
                 logger.logger.error("Screen capture failed: No live frame available")
                 return None, None
-                
+
+        # Cache hit: same screen as a previous capture -> skip grid+encode entirely.
+        cached_b64 = vision_cache.get("brain_b64", frame)
+        if cached_b64 is not None:
+            return cached_b64, frame
+
         try:
             # Draw coordinate grid overlay on a copy of the processed image
             img = frame.processed_image.copy()
-            img = self._draw_grid(img)
+            img = self._draw_grid(img, monitors=getattr(frame, "monitors", None))
             
             # Save debug image (with grid)
             if save_debug:
@@ -305,13 +311,20 @@ class Brain:
             # Convert to base64
             buffer = io.BytesIO()
             img.save(buffer, format="JPEG", quality=75)
-            return base64.b64encode(buffer.getvalue()).decode("utf-8"), frame
+            encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
+            vision_cache.set("brain_b64", frame, encoded)
+            return encoded, frame
         except Exception as e:
             logger.logger.error(f"Screen capture grid/encode failed: {e}")
             return None, None
 
-    def _draw_grid(self, img):
-        """Draw a subtle coordinate grid on the screenshot to help the AI estimate positions."""
+    def _draw_grid(self, img, monitors=None):
+        """Draw a subtle coordinate grid on the screenshot to help the AI estimate positions.
+
+        When the frame spans multiple physical monitors, also draw a thick
+        coloured boundary at each monitor edge with a 'MON N' label, so the
+        LLM cannot confuse one display with another.
+        """
         try:
             from PIL import ImageDraw, ImageFont
             draw = ImageDraw.Draw(img)
@@ -322,6 +335,10 @@ class Brain:
                 font = ImageFont.truetype("arial.ttf", 14)
             except Exception:
                 font = ImageFont.load_default()
+            try:
+                big_font = ImageFont.truetype("arial.ttf", 22)
+            except Exception:
+                big_font = font
             
             grid_color = (255, 255, 0, 128)  # Yellow, semi-transparent
             text_color = (255, 255, 0)
@@ -343,6 +360,29 @@ class Brain:
             for y in range(100, h, 200):
                 draw.line([(0, y), (8, y)], fill=grid_color, width=1)
                 draw.text((10, y + 1), str(y), fill=text_color, font=font)
+
+            # Multi-monitor boundary + label overlay.
+            if monitors and len(monitors) > 1:
+                boundary_color = (0, 200, 255)  # Cyan
+                label_color = (0, 220, 255)
+                for mon in monitors:
+                    img_left, img_top, img_w, img_h = mon["image"]
+                    img_right = img_left + img_w
+                    img_bottom = img_top + img_h
+                    # Rectangle outline.
+                    draw.rectangle(
+                        [(img_left, img_top), (img_right - 1, img_bottom - 1)],
+                        outline=boundary_color,
+                        width=3,
+                    )
+                    label = f"MON {mon['index']}"
+                    # Plain label, top-left inside the monitor.
+                    draw.text(
+                        (img_left + 8, img_top + 8),
+                        label,
+                        fill=label_color,
+                        font=big_font,
+                    )
                 
         except Exception as e:
             logger.logger.warning(f"Brain: Grid overlay failed: {e}")
@@ -707,7 +747,7 @@ BLENDER DOES NOT USE Alt+key MENUS. Use these correct shortcuts:
 - F3 = Search any command by name (type 'Open Recent' to find it)
 - Shift+A = Add menu, N = N-panel, Tab = Edit/Object mode
 To open a specific .blend file: use cmd action: & 'C:\\\\Program Files\\\\Blender Foundation\\\\Blender 4.2\\\\blender.exe' 'C:\\\\path\\\\to\\\\file.blend'
-For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, blender_create_scene, blender_enhance_scene, or blender_python with status=in_progress so you can verify after the API action. For reference image creative requests, use blender_create_scene and put a dense visual analysis in reference_summary: object type, silhouette, materials, colors, openings, signage/text, room layout, props, style, and visible proportions. Treat every new image/request as a fresh subject and do not carry over an old container cafe, MLO, or any previous Blender scene unless the user asks to continue that scene. For existing-scene refinement requests like "add details", "make professional", "improve", or "fix detailing", use blender_enhance_scene and preserve the current scene. For MLO blockouts, use blender_create_scene for room/portal/collision helper generation, then blender_enhance_scene for polish/detail passes; reserve raw Sollumz/export scripts for final export or explicit property-editing requests. For MCP/server/bridge connection questions, use blender_bridge_status; Blender's MCP add-on runs on localhost:9876 when enabled, and Ay-Eye has a fallback bridge on 127.0.0.1:8765. Do NOT use click_text, and do not claim a Blender model/menu was created/opened unless the Blender API result reports success with scene objects or you verified it on screen.
+For Blender menu/import/model operations, use blender_open_import_menu, blender_import_file, blender_create_scene, blender_enhance_scene, or blender_python with status=in_progress so you can verify after the API action. For reference image creative requests, use blender_create_scene and put a dense visual analysis in reference_summary: object type, silhouette, materials, colors, openings, signage/text, room layout, props, style, and visible proportions. Treat every new image/request as a fresh subject and do not carry over an old container cafe, MLO, or any previous Blender scene unless the user asks to continue that scene. For existing-scene refinement requests like "add details", "make professional", "improve", or "fix detailing", use blender_enhance_scene and preserve the current scene. For FiveM/GTA MLO blockouts, use blender_create_scene for an interior shell only: room/portal/collision helper generation, wall/ceiling/floor trim, utilities, labels, and subject-specific interior props. Do not add exterior terrain, trees, roads, patios, or outdoor decoration for MLOs; exterior context should come from CodeWalker/imported game assets. Then use blender_enhance_scene for polish/detail passes; reserve raw Sollumz/export scripts for final export or explicit property-editing requests. For MCP/server/bridge connection questions, use blender_bridge_status; Blender's MCP add-on runs on localhost:9876 when enabled, and Ay-Eye has a fallback bridge on 127.0.0.1:8765. Do NOT use click_text, and do not claim a Blender model/menu was created/opened unless the Blender API result reports success with scene objects or you verified it on screen.
 """
                 
                 # Retrieve RAG context (advisory only -- never blocks main loop)
@@ -728,6 +768,52 @@ For Blender menu/import/model operations, use blender_open_import_menu, blender_
                 except Exception as _activity_err:
                     logger.logger.error(f"RAG: activity context failed, continuing without it: {_activity_err}")
                 
+                monitors_block = ""
+                mons = getattr(frame, "monitors", None) or []
+                if len(mons) > 1:
+                    rows = []
+                    for m in mons:
+                        il, it, iw, ih = m["image"]
+                        dl, dt, dw, dh = m["desktop"]
+                        rows.append(
+                            f"  - MON {m['index']}: image x={il}..{il + iw} y={it}..{it + ih}  "
+                            f"(desktop {dw}x{dh} at {dl},{dt})"
+                        )
+                    monitors_block = (
+                        "MONITORS (the screenshot spans multiple physical displays — "
+                        "each is outlined in cyan and labelled 'MON N' on the image):\n"
+                        + "\n".join(rows)
+                        + "\nWhen the user mentions an app on a different display, click inside that monitor's image-x range.\n"
+                    )
+
+                # Tell the LLM exactly where the OS cursor currently sits, in
+                # both desktop space (for action coords) and processed-image
+                # space (for grid-overlay reasoning). The on-screen glow ring
+                # is hidden during capture so we surface this textually.
+                cursor_block = ""
+                try:
+                    import ctypes
+                    pt = ctypes.wintypes.POINT() if hasattr(ctypes, "wintypes") else None
+                    if pt is None:
+                        from ctypes import wintypes
+                        pt = wintypes.POINT()
+                    if ctypes.windll.user32.GetCursorPos(ctypes.byref(pt)):
+                        cur_dx, cur_dy = int(pt.x), int(pt.y)
+                        img_x, img_y = live_perception.desktop_to_image(cur_dx, cur_dy)
+                        which_mon = None
+                        for m in mons:
+                            dl, dt, dw, dh = m["desktop"]
+                            if dl <= cur_dx < dl + dw and dt <= cur_dy < dt + dh:
+                                which_mon = m["index"]
+                                break
+                        mon_str = f" on MON {which_mon}" if which_mon else ""
+                        cursor_block = (
+                            f"CURSOR: desktop=({cur_dx},{cur_dy}) image=({img_x},{img_y}){mon_str}. "
+                            f"This is where the mouse pointer currently sits. Plan moves from this point.\n"
+                        )
+                except Exception:
+                    pass
+
                 prompt = f"""{VISION_SYSTEM_PROMPT}
 
 IMPORTANT: Return coordinates relative to the PROCESSED IMAGE SIZE you are seeing, not the desktop resolution. Ay-Eye's own panel is hidden during capture/action, so do not compensate for where it used to be.
@@ -735,7 +821,7 @@ IMPORTANT: Return coordinates relative to the PROCESSED IMAGE SIZE you are seein
 DESKTOP RAW SIZE: {frame.raw_size[0]}x{frame.raw_size[1]}
 PROCESSED IMAGE SIZE: {frame.processed_size[0]}x{frame.processed_size[1]}
 DESKTOP OFFSET: {frame.desktop_offset[0]}, {frame.desktop_offset[1]}
-ACTIVE WINDOW: {state.window}
+{monitors_block}{cursor_block}ACTIVE WINDOW: {state.window}
 ACTIVE APP: {state.app}
 {app_context}
 {web_context}

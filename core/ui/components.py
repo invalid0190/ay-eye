@@ -36,6 +36,15 @@ class DraggableMixin:
 class PillStatusBar(QWidget, DraggableMixin):
     def __init__(self, parent=None):
         super().__init__(parent)
+        # Frameless top-level pill: no OS title bar (was showing 'python3' /
+        # min-max-close icons on Windows because the widget had no window
+        # flags set). Tool keeps it out of the taskbar; StaysOnTop pins it
+        # above other windows.
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.Tool
+        )
         # Paint an actual surface (avoid true transparency for better vision/OCR)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         self.setAutoFillBackground(True)
@@ -63,7 +72,7 @@ class PillStatusBar(QWidget, DraggableMixin):
         
         # Separator
         sep = QLabel("│")
-        sep.setStyleSheet(f"color: rgba(255,255,255,20); font-size: 9pt; background:transparent; border:none;")
+        sep.setStyleSheet(f"color: rgba(255,255,255,55); font-size: 9pt; background:transparent; border:none;")
         
         # App name
         self.app_label = QLabel("SYSTEM")
@@ -273,12 +282,15 @@ class CommandPanel(QFrame, DraggableMixin):
             background:transparent; border:none;
         """)
         
-        self.confidence_value = QLabel("--")
+        # Confidence value - hidden until the first real reply (was showing
+        # an ugly '--' placeholder on startup).
+        self.confidence_value = QLabel("")
         self.confidence_value.setStyleSheet(f"""
-            color: {theme.ACCENT_COLOR.name()}; font-family: {theme.FONT_MONO}; 
+            color: {theme.ACCENT_COLOR.name()}; font-family: {theme.FONT_MONO};
             font-size: 7pt; font-weight: bold;
             background:transparent; border:none;
         """)
+        self.confidence_value.setVisible(False)
         intent_row.addWidget(self.intent_badge)
         intent_row.addStretch()
         intent_row.addWidget(self.confidence_value)
@@ -311,10 +323,10 @@ class CommandPanel(QFrame, DraggableMixin):
         # ── Activity Section ──
         act_header = QLabel("ACTIVITY")
         act_header.setStyleSheet(f"""
-            color: {theme.GRAY_COLOR.name()}; font-family: {theme.FONT_MONO}; 
+            color: {theme.GRAY_COLOR.name()}; font-family: {theme.FONT_MONO};
             font-size: 6.5pt; letter-spacing: 3px;
             background:transparent; border:none;
-            margin-top: 2px;
+            padding: 6px 0 4px 0;
         """)
         main_layout.addWidget(act_header)
         
@@ -330,9 +342,10 @@ class CommandPanel(QFrame, DraggableMixin):
         self.log_scroll.setFixedHeight(110)
         
         self.log_container = QWidget()
+        self.log_container.setStyleSheet("background: transparent;")
         self.log_layout = QVBoxLayout(self.log_container)
-        self.log_layout.setContentsMargins(0, 0, 0, 0)
-        self.log_layout.setSpacing(1)
+        self.log_layout.setContentsMargins(2, 4, 2, 4)
+        self.log_layout.setSpacing(3)
         self.log_layout.addStretch()
         
         self.log_scroll.setWidget(self.log_container)
@@ -378,65 +391,101 @@ class CommandPanel(QFrame, DraggableMixin):
         input_row.addWidget(self.text_input, 1)
         main_layout.addLayout(input_row)
         
-        # ── Buttons ──
-        btn_row = QHBoxLayout()
-        btn_row.setSpacing(6)
-        
-        self.btn_confirm = QPushButton("✓  CONFIRM")
+        # ── Confirmation row (hidden by default) ──
+        self.btn_confirm = QPushButton("✓ CONFIRM")
         self.btn_confirm.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_confirm.setFixedHeight(26)
         self.btn_confirm.clicked.connect(lambda: bus.publish("CONFIRM_HOTKEY"))
         self.btn_confirm.setStyleSheet(f"""
             QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
                     stop:0 {theme.ACCENT_COLOR.name()}, stop:1 rgba(0,220,255,255));
                 color: #080808;
-                border-radius: 8px;
-                padding: 7px 0;
+                border-radius: 6px;
+                padding: 0 12px;
                 font-family: {theme.FONT_MONO};
                 font-weight: bold;
-                font-size: 7.5pt;
+                font-size: 7pt;
                 letter-spacing: 1px;
                 border: none;
             }}
             QPushButton:hover {{ background: white; }}
         """)
-        
-        self.btn_dismiss = QPushButton("✕  DISMISS")
+
+        self.btn_dismiss = QPushButton("✕ CANCEL")
         self.btn_dismiss.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.btn_dismiss.clicked.connect(lambda: self.setVisible(False))
+        self.btn_dismiss.setFixedHeight(26)
+        self.btn_dismiss.clicked.connect(lambda: bus.publish("CANCEL_CONFIRMATION"))
         self.btn_dismiss.setStyleSheet(f"""
             QPushButton {{
                 background-color: rgba(255,255,255,5);
                 color: {theme.TEXT_DIM.name()};
                 border: 1px solid rgba(255,255,255,10);
-                border-radius: 8px;
-                padding: 7px 0;
+                border-radius: 6px;
+                padding: 0 12px;
                 font-family: {theme.FONT_MONO};
                 font-weight: bold;
-                font-size: 7.5pt;
+                font-size: 7pt;
                 letter-spacing: 1px;
             }}
-            QPushButton:hover {{ 
-                background-color: rgba(255,55,55,20); 
+            QPushButton:hover {{
+                background-color: rgba(255,55,55,20);
                 color: {theme.ERROR.name()};
                 border-color: rgba(255,55,55,30);
             }}
         """)
+
+        # Wrap in a container so we can show/hide the whole confirmation
+        # row in one go. Hidden by default — only shown when an action is
+        # actually waiting for confirmation (WAITING_FOR_CONFIRMATION event).
+        self.confirm_row = QWidget()
+        self.confirm_row.setStyleSheet("background: transparent; border: none;")
+        cr_layout = QHBoxLayout(self.confirm_row)
+        cr_layout.setContentsMargins(0, 2, 0, 2)
+        cr_layout.setSpacing(6)
+        cr_layout.addWidget(self.btn_confirm, 1)
+        cr_layout.addWidget(self.btn_dismiss, 1)
+        self.confirm_row.setVisible(False)
+        main_layout.addWidget(self.confirm_row)
+
+        # Show on confirmation requested, hide on resolution.
+        bus.subscribe(
+            "WAITING_FOR_CONFIRMATION",
+            lambda d=None: QTimer.singleShot(0, lambda: self.confirm_row.setVisible(True)),
+        )
+        for evt in ("CONFIRM_HOTKEY", "CANCEL_CONFIRMATION", "ACTION_COMPLETED",
+                    "ACTION_ABORTED", "EMERGENCY_STOP"):
+            bus.subscribe(
+                evt,
+                lambda d=None: QTimer.singleShot(0, lambda: self.confirm_row.setVisible(False)),
+            )
         
-        btn_row.addWidget(self.btn_confirm, 1)
-        btn_row.addWidget(self.btn_dismiss, 1)
-        main_layout.addLayout(btn_row)
-        
-        # ── Footer ──
-        hint = QLabel("Alt+Z speak  ·  Alt+Enter confirm  ·  Ctrl+Shift+X stop")
+        # ── Footer (keyboard hints) ──
+        # Build the hint as colour-keyed kbd-style spans so each shortcut
+        # reads as a chip rather than dim grey text. Uses HTML rendering
+        # supported by QLabel.
+        def _kbd(keys: str) -> str:
+            return (
+                "<span style='"
+                "background: rgba(0,186,255,28);"
+                "color: #d6ecff;"
+                "border: 1px solid rgba(0,186,255,55);"
+                "border-radius: 3px;"
+                "padding: 1px 5px;"
+                "font-family: " + theme.FONT_MONO + ";"
+                "'>" + keys + "</span>"
+            )
+
+        hint = QLabel(
+            f"{_kbd('Alt+Z')} <span style='color:rgba(255,255,255,140);'>speak</span>"
+            f"&nbsp;&nbsp;&nbsp;{_kbd('Alt+Enter')} <span style='color:rgba(255,255,255,140);'>confirm</span>"
+            f"&nbsp;&nbsp;&nbsp;{_kbd('Ctrl+Shift+X')} <span style='color:rgba(255,90,90,200);'>stop</span>"
+        )
+        hint.setTextFormat(Qt.TextFormat.RichText)
         hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        hint.setStyleSheet(f"""
-            color: rgba(255,255,255,25); 
-            font-family: {theme.FONT_MONO}; 
-            font-size: 6pt;
-            background:transparent; border:none;
-            padding-top: 2px;
-        """)
+        hint.setStyleSheet(
+            "background:transparent; border:none; padding-top: 4px; font-size: 6.5pt;"
+        )
         main_layout.addWidget(hint)
         
         self.setStyleSheet(theme.GLASS_STYLE)
@@ -460,6 +509,7 @@ class CommandPanel(QFrame, DraggableMixin):
         self.suggestion_label.setText(text)
         self.confidence_bar.setValue(int(confidence * 100))
         self.confidence_value.setText(f"{int(confidence * 100)}%")
+        self.confidence_value.setVisible(True)
         
         color = theme.get_confidence_color(confidence)
         self.confidence_bar.setStyleSheet(f"""
@@ -582,6 +632,138 @@ class AudioLevelBar(QWidget):
             color = theme.SUCCESS if self._level < 0.5 else (theme.WARNING if self._level < 0.8 else theme.ERROR)
             painter.setBrush(color)
             painter.drawRoundedRect(0, 0, fill_w, self.height(), 1, 1)
+
+
+# ═══════════════════════════════════════════
+#  METRICS BAR (cost + latency dashboard)
+# ═══════════════════════════════════════════
+
+class MetricsBar(QFrame):
+    """Compact panel showing per-turn LLM cost, tokens, latency, and cache hit-rate.
+
+    Updates on every TURN_METRICS event from telemetry, plus a slow timer that
+    refreshes the cache hit-rate (which changes on every cached perception).
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet("background:transparent; border:none;")
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(4, 4, 4, 4)
+        layout.setSpacing(2)
+
+        row = QHBoxLayout()
+        row.setSpacing(0)
+
+        # Each metric is a (key, prefix, initial-value, accent-color) tuple.
+        # We render prefix in dim text + value in accent so the eye lands on
+        # the numbers, not the labels. Thin vertical separators between them.
+        self._labels: dict[str, QLabel] = {}
+        self._values: dict[str, QLabel] = {}
+        metric_specs = [
+            ("cost",     "$",      "0.0000", theme.ACCENT_COLOR.name()),
+            ("tokens",   "tok ",   "0/0",    theme.TEXT_COLOR.name()),
+            ("llm_ms",   "llm ",   "0ms",    theme.TEXT_COLOR.name()),
+            ("total_ms", "total ", "0ms",    theme.TEXT_COLOR.name()),
+            ("cache",    "cache ", "0%",     theme.SUCCESS.name()),
+        ]
+        for i, (key, prefix, value, color) in enumerate(metric_specs):
+            if i > 0:
+                pipe = QLabel("·")
+                pipe.setStyleSheet(
+                    "color: rgba(255,255,255,40); font-family: monospace; "
+                    "font-size: 8pt; padding: 0 7px; background:transparent; border:none;"
+                )
+                row.addWidget(pipe)
+
+            cell = QHBoxLayout()
+            cell.setSpacing(0)
+            cell.setContentsMargins(0, 0, 0, 0)
+            prefix_lbl = QLabel(prefix)
+            prefix_lbl.setStyleSheet(
+                f"color: rgba(255,255,255,90); font-family: {theme.FONT_MONO}; "
+                f"font-size: 7pt; letter-spacing: 0.3px; background:transparent; border:none;"
+            )
+            # Stash the live accent so we can swap from the dim zero-state
+            # to the bright colour once a real value lands.
+            value_lbl = QLabel(value)
+            value_lbl._live_color = color  # type: ignore[attr-defined]
+            value_lbl.setStyleSheet(
+                f"color: rgba(255,255,255,55); font-family: {theme.FONT_MONO}; "
+                f"font-size: 7.5pt; font-weight: 600; letter-spacing: 0.3px; "
+                f"background:transparent; border:none;"
+            )
+            cell.addWidget(prefix_lbl)
+            cell.addWidget(value_lbl)
+            wrapper = QWidget()
+            wrapper.setLayout(cell)
+            wrapper.setStyleSheet("background: transparent; border: none;")
+            row.addWidget(wrapper)
+            self._labels[key] = prefix_lbl
+            self._values[key] = value_lbl
+
+        row.addStretch()
+        layout.addLayout(row)
+
+        bus.subscribe("TURN_METRICS", self._on_turn_metrics)
+
+        # Cache hit-rate refresh; cheap and decoupled from LLM turns.
+        self._cache_timer = QTimer(self)
+        self._cache_timer.timeout.connect(self._refresh_cache_stats)
+        self._cache_timer.start(2000)
+
+    def _on_turn_metrics(self, snapshot):
+        if not isinstance(snapshot, dict):
+            return
+        # Bus subscribers may be invoked off the Qt thread; guard accordingly.
+        try:
+            QTimer.singleShot(0, lambda s=snapshot: self._apply(s))
+        except Exception:
+            self._apply(snapshot)
+
+    def _activate(self, key: str, override_color: str | None = None) -> None:
+        """Switch a value label from its dim zero-state to the bright accent."""
+        lbl = self._values.get(key)
+        if lbl is None:
+            return
+        color = override_color or getattr(lbl, "_live_color", theme.TEXT_COLOR.name())
+        lbl.setStyleSheet(
+            f"color: {color}; font-family: {theme.FONT_MONO}; "
+            f"font-size: 7.5pt; font-weight: 600; letter-spacing: 0.3px; "
+            f"background:transparent; border:none;"
+        )
+
+    def _apply(self, snapshot: dict) -> None:
+        cost = snapshot.get("cost_usd", 0.0)
+        pt = snapshot.get("prompt_tokens", 0)
+        ct = snapshot.get("completion_tokens", 0)
+        llm_ms = snapshot.get("llm_ms", 0)
+        total_ms = snapshot.get("total_ms", 0)
+
+        self._values["cost"].setText(f"{cost:.4f}")
+        self._values["tokens"].setText(f"{pt}/{ct}")
+        self._values["llm_ms"].setText(f"{llm_ms}ms")
+        self._values["total_ms"].setText(f"{total_ms}ms")
+
+        # Promote each value out of the dim zero-state to its live colour.
+        self._activate("cost")
+        self._activate("tokens")
+        self._activate("llm_ms")
+        # Slow turns flip total to warning colour, otherwise its live colour.
+        slow = total_ms >= 6000
+        self._activate("total_ms", theme.WARNING.name() if slow else None)
+
+    def _refresh_cache_stats(self):
+        try:
+            from core.utils.vision_cache import vision_cache
+            s = vision_cache.stats()
+            rate = int(round(s.get("hit_rate", 0.0) * 100))
+            self._values["cache"].setText(f"{rate}%")
+            if rate > 0:
+                self._activate("cache")
+        except Exception:
+            pass
 
 
 # ═══════════════════════════════════════════

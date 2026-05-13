@@ -11,7 +11,17 @@ from core.engine.event_bus import bus
 from core.utils.logger import logger
 
 class ScreenFrame:
-    def __init__(self, raw_image, processed_image, raw_size, processed_size, desktop_offset, monitor_info, timestamp):
+    def __init__(
+        self,
+        raw_image,
+        processed_image,
+        raw_size,
+        processed_size,
+        desktop_offset,
+        monitor_info,
+        timestamp,
+        monitors=None,
+    ):
         self.raw_image = raw_image
         self.processed_image = processed_image
         self.raw_size = raw_size
@@ -19,6 +29,11 @@ class ScreenFrame:
         self.desktop_offset = desktop_offset
         self.monitor_info = monitor_info
         self.timestamp = timestamp
+        # List of per-physical-monitor dicts:
+        #   {"index": 1-based, "desktop": (left, top, w, h),
+        #    "image":   (left, top, w, h)  -- in processed image coords}
+        # Empty list = unknown / single monitor.
+        self.monitors = monitors or []
 
 class LivePerceptionService:
     def __init__(self):
@@ -48,6 +63,67 @@ class LivePerceptionService:
             self._sct = None
         logger.logger.info("LivePerceptionService stopped.")
 
+    def _effective_max_width(self, raw_width):
+        """Pick a downscale target that keeps each physical monitor legible.
+
+        On a single 1920-wide setup we honour the configured cap (1920 default).
+        On a wide virtual desktop (e.g. dual 1920 = 3840) we raise the cap so
+        each monitor keeps roughly its native width, which is critical for
+        reading small UI like notification badges. Hard ceiling at 3840 to
+        keep JPEG / LLM payloads bounded.
+        """
+        configured = self._max_width
+        if raw_width <= configured:
+            return raw_width
+        # Allow up to 2x configured for very wide desktops.
+        return min(raw_width, max(configured, min(3840, raw_width)))
+
+    @staticmethod
+    def _build_monitor_layout(sct, virtual_monitor, processed_size):
+        """Map each physical monitor to its (desktop) and (processed image) rect.
+
+        ``sct.monitors[0]`` is the union of all displays; entries [1:] are the
+        individual physical monitors with absolute desktop coordinates. We
+        translate those into image space using the same scale factor used for
+        the processed screenshot, so the Brain can quote a region purely in
+        image coordinates when prompting the LLM.
+        """
+        if not virtual_monitor or processed_size[0] <= 0:
+            return []
+        v_left = virtual_monitor["left"]
+        v_top = virtual_monitor["top"]
+        v_width = virtual_monitor["width"]
+        v_height = virtual_monitor["height"]
+        if v_width <= 0 or v_height <= 0:
+            return []
+
+        scale_x = processed_size[0] / v_width
+        scale_y = processed_size[1] / v_height
+
+        out = []
+        try:
+            physicals = list(sct.monitors)[1:]
+        except Exception:
+            return []
+        for idx, mon in enumerate(physicals, start=1):
+            try:
+                left = int(mon["left"]); top = int(mon["top"])
+                width = int(mon["width"]); height = int(mon["height"])
+            except Exception:
+                continue
+            if width <= 0 or height <= 0:
+                continue
+            img_left = int(round((left - v_left) * scale_x))
+            img_top = int(round((top - v_top) * scale_y))
+            img_w = int(round(width * scale_x))
+            img_h = int(round(height * scale_y))
+            out.append({
+                "index": idx,
+                "desktop": (left, top, width, height),
+                "image": (img_left, img_top, img_w, img_h),
+            })
+        return out
+
     def _loop(self):
         try:
             self._sct = mss.mss()
@@ -60,12 +136,21 @@ class LivePerceptionService:
                     
                     raw_img = Image.frombytes("RGB", screenshot.size, screenshot.bgra, "raw", "BGRX")
                     
-                    # Resize logic (matching original brain.py logic)
+                    # Resize to a target width that keeps per-monitor detail
+                    # legible on multi-display setups.
+                    target_width = self._effective_max_width(raw_img.width)
                     processed_img = raw_img
-                    if raw_img.width > self._max_width:
-                        ratio = self._max_width / raw_img.width
-                        processed_img = raw_img.resize((self._max_width, int(raw_img.height * ratio)), Image.Resampling.LANCZOS)
-                        
+                    if target_width < raw_img.width:
+                        ratio = target_width / raw_img.width
+                        processed_img = raw_img.resize(
+                            (target_width, int(raw_img.height * ratio)),
+                            Image.Resampling.LANCZOS,
+                        )
+
+                    monitors = self._build_monitor_layout(
+                        self._sct, monitor, (processed_img.width, processed_img.height)
+                    )
+
                     frame = ScreenFrame(
                         raw_image=raw_img,
                         processed_image=processed_img,
@@ -73,7 +158,8 @@ class LivePerceptionService:
                         processed_size=(processed_img.width, processed_img.height),
                         desktop_offset=(monitor["left"], monitor["top"]),
                         monitor_info=monitor,
-                        timestamp=time.time()
+                        timestamp=time.time(),
+                        monitors=monitors,
                     )
                     
                     with self._lock:

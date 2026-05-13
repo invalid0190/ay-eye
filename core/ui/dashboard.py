@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, QObject, pyqtSignal
 from core.ui.theme import theme
 from core.ui.models import ui_state_manager
-from core.ui.components import PillStatusBar, CommandPanel, ChatBubble, HealthBar, AudioLevelBar
+from core.ui.components import PillStatusBar, CommandPanel, ChatBubble, HealthBar, AudioLevelBar, MetricsBar
 from core.engine.event_bus import bus
 from core.config import sys_config
 from core.state.manager import state_manager
@@ -60,7 +60,11 @@ class AyEyeDashboard:
         self.audio_level = AudioLevelBar()
         self.audio_level.setVisible(False)
         self.command_panel.layout().insertWidget(2, self.audio_level)
-        
+
+        # 5. Metrics Bar (cost / tokens / latency / cache)
+        self.metrics_bar = MetricsBar()
+        self.command_panel.layout().insertWidget(3, self.metrics_bar)
+
         self.adjust_positions()
         
         # ── Connect signals to main-thread slots ──
@@ -233,9 +237,13 @@ class AyEyeDashboard:
         self.command_panel.add_log("📄", f"Trace: {filename}", theme.SUCCESS.name())
     
     def _on_greeting(self, text):
-        self.command_panel.add_log("👋", "System online", theme.SUCCESS.name())
-        if text:
-            self._add_chat_bubble(text, is_user=False)
+        # Don't add a chat bubble for the greeting — the bubble overflowed
+        # the small activity scroll on startup ("System online. I am Ay-Eye,
+        # standing by for your commands."). The activity-log breadcrumb is
+        # enough; the assistant's voice playback already conveys the message.
+        self.command_panel.add_log(
+            "👋", text[:60] if text else "System online", theme.SUCCESS.name()
+        )
     
     def _on_voice_input(self, text):
         self.command_panel.add_log("🗣️", f'"{text[:50]}"', theme.ACCENT_COLOR.name())
@@ -247,11 +255,13 @@ class AyEyeDashboard:
         message = data.get("message", "")
         confidence = data.get("confidence", 0)
         intent = data.get("intent", "guide")
-        
+
+        # The suggestion card already prominently displays the full message,
+        # so we DO NOT also push a chat bubble for the assistant — that was
+        # making every reply appear three times (card + activity log + bubble).
+        # We keep a single short activity log entry as breadcrumb.
         self.command_panel.show_suggestion(message, confidence, intent)
         self.command_panel.add_log("💡", message[:50], theme.SUCCESS.name())
-        if message:
-            self._add_chat_bubble(message, is_user=False)
         
         self.anim = QPropertyAnimation(self.command_panel, b"windowOpacity")
         self.anim.setDuration(400)

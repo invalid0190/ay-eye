@@ -5,6 +5,7 @@ import time
 import os
 from core.engine.event_bus import bus
 from core.utils.logger import logger
+from core.utils.vision_cache import vision_cache
 
 class OCREngine:
     def __init__(self):
@@ -17,11 +18,31 @@ class OCREngine:
     def process(self, image):
         if image is None:
             return None
-            
+
+        # Same screen as last OCR run? Skip the Node subprocess entirely.
+        cached_text = vision_cache.get("ocr_text", image)
+        if cached_text is not None:
+            bus.publish("TEXT_UPDATED", cached_text)
+            return cached_text
+
         current_time = time.time()
         if current_time - self.last_run_time < self.cooldown:
             return None
-            
+
+        # Preferred path: RapidOCR (no Node subprocess, no Tesseract install).
+        try:
+            from core.ocr.rapidocr_engine import rapid_ocr
+
+            if rapid_ocr.available:
+                text = rapid_ocr.process(image) or ""
+                self.last_run_time = current_time
+                vision_cache.set("ocr_text", image, text)
+                bus.publish("TEXT_UPDATED", text)
+                logger.log_event("OCR_COMPLETED", {"text_length": len(text), "backend": "rapidocr"})
+                return text
+        except Exception as exc:
+            logger.logger.info(f"OCREngine: RapidOCR path failed, falling back to Node: {exc}")
+
         try:
             # Preprocessing
             open_cv_image = np.array(image)
@@ -64,7 +85,8 @@ class OCREngine:
                 text = ""
 
             self.last_run_time = current_time
-            
+
+            vision_cache.set("ocr_text", image, text)
             bus.publish("TEXT_UPDATED", text)
             logger.log_event("OCR_COMPLETED", {"text_length": len(text)})
             return text

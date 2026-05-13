@@ -389,15 +389,28 @@ class ScreenLocator:
             image, offset = self._capture_image(frame)
 
             ocr_data = None
+
+            # Preferred: RapidOCR (ONNX) -- no Tesseract / Node dependency.
             try:
-                import pytesseract
-                from pytesseract import Output
+                from core.ocr.rapidocr_engine import rapid_ocr
 
-                if self._configure_tesseract(pytesseract):
-                    ocr_data = pytesseract.image_to_data(image, output_type=Output.DICT)
+                if rapid_ocr.available:
+                    ocr_data = rapid_ocr.image_to_data(image)
             except Exception as exc:
-                logger.logger.info(f"ScreenLocator: pytesseract unavailable, trying Node OCR: {exc}")
+                logger.logger.info(f"ScreenLocator: RapidOCR unavailable: {exc}")
 
+            # Fallback 1: pytesseract.
+            if not ocr_data:
+                try:
+                    import pytesseract
+                    from pytesseract import Output
+
+                    if self._configure_tesseract(pytesseract):
+                        ocr_data = pytesseract.image_to_data(image, output_type=Output.DICT)
+                except Exception as exc:
+                    logger.logger.info(f"ScreenLocator: pytesseract unavailable, trying Node OCR: {exc}")
+
+            # Fallback 2: Node + Tesseract.js worker.
             if not ocr_data:
                 ocr_data = self._node_ocr_data(image)
 
@@ -557,6 +570,12 @@ class ScreenLocator:
             logger.logger.warning(f"ScreenLocator: Visual locate failed for '{target}': {exc}")
             return None
 
+    # UIA results are deterministic semantic matches against the accessibility
+    # tree; even a moderate-confidence UIA hit is more reliable than the best
+    # OCR pixel-match. Short-circuit UIA at a much lower threshold than the
+    # generic 0.92 used for visual / OCR methods.
+    UIA_SHORT_CIRCUIT_CONFIDENCE = 0.78
+
     def locate(self, target, frame=None, methods=("uia", "ocr"), min_confidence=None, approximate=None):
         if not self.is_specific_target(target):
             return None
@@ -575,7 +594,15 @@ class ScreenLocator:
                 continue
 
             if result:
-                if result.confidence >= max(0.92, threshold):
+                # UIA-first: prefer a deterministic semantic match over running OCR.
+                if result.method == "uia":
+                    short_circuit = max(
+                        threshold, self.UIA_SHORT_CIRCUIT_CONFIDENCE
+                    )
+                else:
+                    short_circuit = max(0.92, threshold)
+
+                if result.confidence >= short_circuit:
                     logger.logger.info(
                         f"ScreenLocator: Located '{target}' via {result.method} as '{result.label}' "
                         f"at ({result.x},{result.y}), confidence={result.confidence:.2f}"

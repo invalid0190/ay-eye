@@ -71,18 +71,30 @@ class PlanValidator:
 
         warnings: list[str] = []
 
-        # ── Check 1: Plan required for multi-action sequences ────────
+        # ── Check 1: Multi-action sequences should describe a plan ───
+        # Historically we hard-rejected here, which meant the user's task
+        # was silently dropped when the LLM forgot the field. That made the
+        # agent feel broken ("kehta hai but karta nahi"). Now we *synthesize*
+        # a minimal plan from the actions themselves, attach it back onto
+        # the response and pass with a warning. High-risk actions are still
+        # gated separately below.
         if (
             sys_config.get("require_plan_for_multi_action")
             and len(significant_actions) >= 3
             and not plan
+            and not high_risk_actions
         ):
-            reason = (
-                f"Response contains {len(significant_actions)} significant actions "
-                f"but no plan. Multi-action responses require a 'plan' field."
+            synthesized = _synthesize_plan(significant_actions)
+            response["plan"] = synthesized
+            plan = synthesized
+            warnings.append(
+                f"LLM omitted 'plan' for {len(significant_actions)} actions; "
+                f"auto-synthesised {len(synthesized)} steps from action list."
             )
-            logger.log_event("PLAN_VALIDATION_FAILED", {"reason": reason})
-            return _verdict(False, reason)
+            logger.log_event("PLAN_AUTOSYNTHESISED", {
+                "actions": len(significant_actions),
+                "plan_steps": len(synthesized),
+            })
 
         # ── Check 2: Plan required for high-risk actions ─────────────
         if (
@@ -183,5 +195,53 @@ _RISK_KEYWORDS: dict[str, list[str]] = {
     "blender_create_scene": ["blender", "scene", "model", "create", "reference"],
     "blender_enhance_scene": ["blender", "scene", "model", "enhance", "detail", "professional", "mlo"],
 }
+
+def _action_to_step(idx: int, action: dict) -> str:
+    """Render one action as a human-readable plan step.
+
+    Used by the missing-plan rescue path. Best-effort; never raises.
+    """
+    a_type = (action.get("type") or "action").strip()
+    # Pick the most descriptive single field available.
+    target = (
+        action.get("text")
+        or action.get("target")
+        or action.get("path")
+        or action.get("command")
+        or action.get("url")
+        or action.get("app")
+        or action.get("key")
+        or ""
+    )
+    if isinstance(target, list):
+        target = " ".join(str(t) for t in target[:4])
+    target = str(target).strip()
+    if len(target) > 80:
+        target = target[:77] + "..."
+
+    verb_map = {
+        "click": "Click",
+        "click_text": "Click",
+        "double_click": "Double-click",
+        "right_click": "Right-click",
+        "type": "Type",
+        "hotkey": "Press hotkey",
+        "key": "Press key",
+        "open_app": "Open",
+        "focus_app": "Focus",
+        "wait": "Wait",
+        "navigate": "Navigate to",
+        "scroll": "Scroll",
+    }
+    verb = verb_map.get(a_type, a_type.replace("_", " ").capitalize())
+    if target:
+        return f"Step {idx}: {verb} {target}"
+    return f"Step {idx}: {verb}"
+
+
+def _synthesize_plan(actions: list) -> list:
+    """Build a minimal plan list from raw actions when the LLM forgot one."""
+    return [_action_to_step(i + 1, a) for i, a in enumerate(actions[:12])]
+
 
 plan_validator = PlanValidator()

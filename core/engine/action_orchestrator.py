@@ -26,7 +26,15 @@ class ActionOrchestrator:
     def __init__(self):
         bus.subscribe("ACTION_REQUESTED", self.on_action_requested)
         self.confirm_event = threading.Event()
+        self.cancelled = False
         bus.subscribe("CONFIRM_HOTKEY", lambda d: self.confirm_event.set())
+        # CANCEL_CONFIRMATION (from the panel's Cancel button) wakes the
+        # waiter and flags the run as cancelled so it aborts cleanly instead
+        # of executing.
+        def _on_cancel(_d=None):
+            self.cancelled = True
+            self.confirm_event.set()
+        bus.subscribe("CANCEL_CONFIRMATION", _on_cancel)
 
     def on_action_requested(self, data):
         logger.log_event("ACTION_REQUESTED", {
@@ -44,7 +52,8 @@ class ActionOrchestrator:
         def _run():
             try:
                 self.confirm_event.clear()
-                
+                self.cancelled = False
+
                 if sys_config.is_observation_only:
                     logger.log_event("OBSERVATION_MODE_BLOCK", data)
                     return
@@ -52,9 +61,14 @@ class ActionOrchestrator:
                 # Wait for confirmation if required
                 if sys_config.get("action_confirmation_required"):
                     logger.log_event("WAITING_FOR_CONFIRMATION", data)
+                    bus.publish("WAITING_FOR_CONFIRMATION", data)
                     if not self.confirm_event.wait(timeout=15.0):
                         logger.log_event("ACTION_ABORTED", {"reason": "Timeout"})
                         bus.publish("ACTION_ABORTED", {"reason": "Confirmation timeout"})
+                        return
+                    if self.cancelled:
+                        logger.log_event("ACTION_ABORTED", {"reason": "Cancelled by user"})
+                        bus.publish("ACTION_ABORTED", {"reason": "Cancelled by user"})
                         return
 
                 # Resolve active window/app for safety context

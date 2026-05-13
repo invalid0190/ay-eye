@@ -20,8 +20,30 @@ def assert_not_contains(name, code, forbidden_terms):
 def main():
     test_case(
         "container cafe",
-        "professional detailed container cafe MLO with portal collision helpers",
-        ["AYEYE_SCENE_CREATED", "MLO portal guide", "espresso machine"],
+        "professional detailed container cafe with espresso machine and outdoor counter",
+        ["AYEYE_SCENE_CREATED", "shipping container cafe body", "espresso machine"],
+    )
+    container_cafe_mlo = build_scene_script(
+        "create a FiveM container cafe MLO interior with rooms portals and collision",
+        "restaurant service counter, kitchen, seating, no exterior landscaping",
+    )
+    compile(container_cafe_mlo, "<container cafe mlo interior>", "exec")
+    for term in ("AYEYE_MLO_SCENE_CREATED", "MLO room volume guide", "long restaurant service counter"):
+        if term not in container_cafe_mlo:
+            raise AssertionError(f"container cafe MLO interior: missing {term!r}")
+    assert_not_contains(
+        "container cafe MLO interior",
+        container_cafe_mlo,
+        [
+            "shipping container cafe body",
+            "container corner casting block",
+            "dark round planter",
+            "tree trunk",
+            "plant green",
+            "front exterior wall",
+            "rear exterior wall",
+            "_container_cafe_mlo_block",
+        ],
     )
     test_case(
         "garage MLO",

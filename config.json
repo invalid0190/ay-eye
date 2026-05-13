@@ -24,5 +24,9 @@
     "rag_persist_path": "data/rag/chroma",
     "dry_run_enabled": false,
     "dry_run_show_overlay": true,
-    "dry_run_trace_enabled": true
+    "dry_run_trace_enabled": true,
+    "vision_cache_enabled": true,
+    "vision_cache_max_entries": 32,
+    "vision_cache_ttl_seconds": 30.0,
+    "vision_cache_phash_tolerance": 2
 }

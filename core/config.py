@@ -30,7 +30,11 @@ class SystemConfig:
             "rag_persist_path": "data/rag/chroma",
             "dry_run_enabled": False,
             "dry_run_show_overlay": True,
-            "dry_run_trace_enabled": True
+            "dry_run_trace_enabled": True,
+            "vision_cache_enabled": True,
+            "vision_cache_max_entries": 32,
+            "vision_cache_ttl_seconds": 30.0,
+            "vision_cache_phash_tolerance": 2
         }
         self.config = self.load()
 

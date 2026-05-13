@@ -14,10 +14,10 @@ import re
 def build_scene_script(description: str = "", reference_summary: str = "") -> str:
     """Return a self-contained Blender Python script for a described scene."""
     prompt = f"{description}\n{reference_summary}"
-    if _looks_like_container_cafe_request(prompt):
-        return _container_cafe_script(description, reference_summary)
     if _looks_like_mlo_request(prompt):
         return _mlo_scene_script(description, reference_summary)
+    if _looks_like_container_cafe_request(prompt):
+        return _container_cafe_script(description, reference_summary)
     return _generic_reference_scene_script(description, reference_summary)
 
 
@@ -846,7 +846,6 @@ wood_mat = mat('warm interior wood', (0.55, 0.32, 0.16, 1), 0.5)
 glass_mat = mat('transparent glass portal surfaces', (0.18, 0.46, 0.75, 0.32), 0.12, 0.0, 0.32)
 guide_mat = mat('blue MLO room portal collision guides', (0.08, 0.35, 1.0, 0.25), 0.35, 0.0, 0.25)
 accent_mat = mat('warm accent props', (0.95, 0.55, 0.18, 1), 0.45)
-green_mat = mat('interior plant green', (0.10, 0.34, 0.14, 1), 0.7)
 red_mat = mat('red warning and interaction markers', (0.75, 0.04, 0.035, 1), 0.55)
 white_mat = mat('white label text', (0.95, 0.92, 0.84, 1), 0.5)
 
@@ -898,10 +897,10 @@ add_bevel(floor, 0.02, 1)
 ceiling = cube('MLO ceiling plane', (0, 0, sz), (sx, sy, 0.12), ceiling_mat, 'ceiling')
 add_bevel(ceiling, 0.015, 1)
 wall_specs = [
-    ('front exterior wall with openings', (0, -sy/2, sz/2), (sx, 0.16, sz)),
-    ('rear exterior wall', (0, sy/2, sz/2), (sx, 0.16, sz)),
-    ('left exterior wall', (-sx/2, 0, sz/2), (0.16, sy, sz)),
-    ('right exterior wall', (sx/2, 0, sz/2), (0.16, sy, sz)),
+    ('front interior shell wall with portal openings', (0, -sy/2, sz/2), (sx, 0.16, sz)),
+    ('rear interior shell wall', (0, sy/2, sz/2), (sx, 0.16, sz)),
+    ('left interior shell wall', (-sx/2, 0, sz/2), (0.16, sy, sz)),
+    ('right interior shell wall', (sx/2, 0, sz/2), (0.16, sy, sz)),
 ]
 for name, loc, scale in wall_specs:
     ob = cube(name, loc, scale, wall_mat, 'shell')
@@ -921,8 +920,14 @@ for idx, (portal_name, loc, scale) in enumerate(PORTALS):
     portal['ayeye_mlo_portal_id'] = idx
     frame_top = cube('portal top frame - ' + portal_name, (loc[0], loc[1], loc[2] + scale[2]/2), (scale[0] + 0.18, 0.08, 0.08), trim_mat, 'portal_frame')
     frame_bottom = cube('portal threshold - ' + portal_name, (loc[0], loc[1], loc[2] - scale[2]/2), (scale[0] + 0.18, 0.08, 0.08), trim_mat, 'portal_frame')
+    frame_left = cube('portal left jamb - ' + portal_name, (loc[0] - scale[0]/2, loc[1], loc[2]), (0.08, 0.08, scale[2] + 0.10), trim_mat, 'portal_frame')
+    frame_right = cube('portal right jamb - ' + portal_name, (loc[0] + scale[0]/2, loc[1], loc[2]), (0.08, 0.08, scale[2] + 0.10), trim_mat, 'portal_frame')
+    handle = cube('portal handle marker - ' + portal_name, (loc[0] + scale[0] * 0.32, loc[1] - 0.045, loc[2]), (0.08, 0.045, 0.22), accent_mat, 'portal_hardware')
     add_bevel(frame_top, 0.01, 1)
     add_bevel(frame_bottom, 0.01, 1)
+    add_bevel(frame_left, 0.01, 1)
+    add_bevel(frame_right, 0.01, 1)
+    add_bevel(handle, 0.012, 1)
 
 collision = cube('collision proxy guide - whole MLO shell', (0, 0, sz/2), (sx + 0.25, sy + 0.25, sz + 0.15), guide_mat, 'collision')
 collision.display_type = 'WIRE'
@@ -953,6 +958,32 @@ for x in [-sx/2 + 0.55, sx/2 - 0.55]:
 for y in [-sy/2 + 0.8, sy/2 - 0.8]:
     exit_sign = cube('red EXIT sign marker', (0, y, 2.35), (0.72, 0.06, 0.22), red_mat, 'signage')
     text_obj('EXIT text label', 'EXIT', (-0.22, y - 0.04, 2.35), 0.13, white_mat, role='signage')
+
+# Interior-only FiveM detailing. Exterior meshes, trees, roads, and terrain belong in CodeWalker.
+for y in [-sy/2 + 0.10, sy/2 - 0.10]:
+    base = cube('interior baseboard trim run', (0, y, 0.26), (sx - 0.32, 0.055, 0.10), trim_mat, 'trim')
+    crown = cube('interior crown trim run', (0, y, sz - 0.28), (sx - 0.32, 0.055, 0.10), trim_mat, 'trim')
+    add_bevel(base, 0.008, 1)
+    add_bevel(crown, 0.008, 1)
+for x in [-sx/2 + 0.10, sx/2 - 0.10]:
+    base = cube('side wall baseboard trim run', (x, 0, 0.26), (0.055, sy - 0.32, 0.10), trim_mat, 'trim')
+    crown = cube('side wall crown trim run', (x, 0, sz - 0.28), (0.055, sy - 0.32, 0.10), trim_mat, 'trim')
+    add_bevel(base, 0.008, 1)
+    add_bevel(crown, 0.008, 1)
+for gx in range(1, 4):
+    x = -sx/2 + gx * sx / 4
+    ceiling_strip = cube('acoustic ceiling grid cross strip', (x, 0, sz - 0.08), (0.025, sy - 0.42, 0.025), trim_mat, 'ceiling_grid')
+    add_bevel(ceiling_strip, 0.004, 1)
+for gy in range(1, 4):
+    y = -sy/2 + gy * sy / 4
+    ceiling_strip = cube('acoustic ceiling grid long strip', (0, y, sz - 0.075), (sx - 0.42, 0.025, 0.025), trim_mat, 'ceiling_grid')
+    add_bevel(ceiling_strip, 0.004, 1)
+for idx, (room_name, loc, scale) in enumerate(ROOMS):
+    outlet = cube('wall outlet pair - ' + room_name, (loc[0] - scale[0] * 0.34, loc[1] + scale[1] * 0.34, 0.54), (0.13, 0.035, 0.095), white_mat, 'utility')
+    switch = cube('light switch plate - ' + room_name, (loc[0] + scale[0] * 0.34, loc[1] - scale[1] * 0.34, 1.18), (0.11, 0.035, 0.18), white_mat, 'utility')
+    add_bevel(outlet, 0.006, 1)
+    add_bevel(switch, 0.006, 1)
+    text_obj('room fitout note - ' + room_name, 'INTERIOR FITOUT', (loc[0] - scale[0]/2 + 0.18, loc[1], 0.72), 0.095, white_mat, role='label')
 
 {detail_block}
 
@@ -1101,10 +1132,6 @@ for x in [-3.5, -2.9, -2.3]:
 
 def _container_cafe_script(description: str, reference_summary: str) -> str:
     title = _safe_text(description or reference_summary, "Reference Container Cafe")
-    prompt = f"{description} {reference_summary}".lower()
-    mlo_block = _container_cafe_mlo_block() if any(
-        term in prompt for term in ("mlo", "interior", "convert", "conversion", "portal", "room")
-    ) else ""
     return f"""
 import bpy
 import math
@@ -1338,8 +1365,6 @@ for i in range(9):
     l.data.shadow_soft_size = 1.5
     mark(l)
 
-{mlo_block}
-
 # Area lighting and camera.
 bpy.ops.object.light_add(type='AREA', location=(0, -4.5, 6.5))
 area = bpy.context.object
@@ -1376,36 +1401,6 @@ if screen:
         print('AYEYE_VIEW_WARNING:', view_error)
 
 print('AYEYE_SCENE_CREATED: container cafe reference scene from task: {title}')
-"""
-
-
-def _container_cafe_mlo_block() -> str:
-    """Return optional non-destructive MLO planning helpers for container cafes."""
-    return """
-# MLO conversion planning helpers. These are wireframe guide objects, not a final game export.
-mlo = mat('blue MLO room and portal helper material', (0.10, 0.42, 1.0, 0.28), 0.35, 0.0)
-try:
-    mlo.blend_method = 'BLEND'
-    mlo.use_screen_refraction = True
-except Exception:
-    pass
-room = cube('MLO room volume guide - cafe interior', (-0.55, 0.08, 1.36), (6.6, 2.05, 2.35), mlo)
-room['ayeye_mlo_role'] = 'room'
-room.display_type = 'WIRE'
-room.hide_render = True
-portal_front = cube('MLO portal guide - service window opening', (-1.15, -1.42, 1.65), (3.45, 0.045, 1.28), mlo)
-portal_front['ayeye_mlo_role'] = 'portal'
-portal_front.display_type = 'WIRE'
-portal_front.hide_render = True
-portal_door = cube('MLO portal guide - staff door opening', (2.85, -1.42, 1.22), (1.02, 0.045, 1.95), mlo)
-portal_door['ayeye_mlo_role'] = 'portal'
-portal_door.display_type = 'WIRE'
-portal_door.hide_render = True
-collision_shell = cube('collision proxy guide - container shell', (0, 0, 1.35), (7.65, 2.55, 2.85), mlo)
-collision_shell['ayeye_mlo_role'] = 'collision'
-collision_shell.display_type = 'WIRE'
-collision_shell.hide_render = True
-text_obj('MLO helper label', 'MLO guides: room / portals / collision proxy', (-3.35, 1.55, 2.95), 0.16, mlo, rotation=(math.radians(72), 0, math.radians(180)), align='LEFT')
 """
 
 
