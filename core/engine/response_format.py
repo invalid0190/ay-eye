@@ -125,6 +125,9 @@ def build_action_schema() -> Dict[str, Any]:
             "instruction": _str_or_null(),
             "script": _str_or_null(),
             "description": _str_or_null(),
+            # arrange_windows extras.
+            "preset": _str_or_null(),
+            "monitor_index": _num_or_null(),
             # Optional verification contract.
             "expect": {
                 "type": ["object", "null"],
@@ -144,7 +147,8 @@ def build_action_schema() -> Dict[str, Any]:
         "required": [
             "type", "x", "y", "x1", "y1", "x2", "y2", "target", "text",
             "keys", "key", "amount", "command", "path", "content", "url",
-            "app", "name", "instruction", "script", "description", "expect",
+            "app", "name", "instruction", "script", "description",
+            "preset", "monitor_index", "expect",
         ],
     }
 

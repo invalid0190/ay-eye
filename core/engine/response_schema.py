@@ -36,9 +36,16 @@ _VALID_ACTION_TYPES = {
     "click", "click_text", "drag", "type", "hotkey", "scroll", "switch", "launch",
     "open_url", "cmd", "create_skill", "read_file", "list_dir",
     "write_file", "extract_clipboard", "listen_audio", "ocr_screen",
+    "arrange_windows",
+    "start_mimic", "stop_mimic_and_save", "cancel_mimic",
+    "debug_visible_error",
+    "start_ghost_typing", "stop_ghost_typing",
+    "start_live_commentary", "stop_live_commentary",
     "blender_python", "blender_create_scene", "blender_enhance_scene", "blender_bridge_status",
     "blender_open_import_menu", "blender_import_file",
 }
+
+_VALID_ARRANGE_PRESETS = {"golden_ratio", "two_column"}
 
 # Per-action-type required fields (at least ONE of these must be present)
 _ACTION_REQUIRED_FIELDS: dict[str, list[str]] = {
@@ -52,6 +59,7 @@ _ACTION_REQUIRED_FIELDS: dict[str, list[str]] = {
     "open_url": ["url"],
     "switch": ["target"],
     "launch": ["target"],
+    "stop_mimic_and_save": ["name"],
     "blender_python": ["script"],
     "blender_create_scene": ["description"],
     "blender_enhance_scene": ["description"],
@@ -208,6 +216,28 @@ class ResponseSchemaValidator:
                         f"Schema: Action [{index}] {a_type} missing fields {missing}, removing"
                     )
                     return None
+
+        # arrange_windows: normalize the optional preset and monitor_index
+        # fields so the executor can rely on safe values without re-checking.
+        if a_type == "arrange_windows":
+            action = dict(action)
+            preset = action.get("preset")
+            if isinstance(preset, str) and preset in _VALID_ARRANGE_PRESETS:
+                action["preset"] = preset
+            else:
+                if preset is not None:
+                    logger.logger.warning(
+                        f"Schema: Action [{index}] arrange_windows had unknown "
+                        f"preset '{preset}', defaulting to 'golden_ratio'"
+                    )
+                action["preset"] = "golden_ratio"
+            mi = action.get("monitor_index")
+            if mi is None:
+                pass
+            elif isinstance(mi, int) and mi >= 1:
+                action["monitor_index"] = mi
+            else:
+                action.pop("monitor_index", None)
 
         # Validate expect contract if present
         expect = action.get("expect")

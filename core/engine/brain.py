@@ -131,6 +131,26 @@ System actions:
 - extract_clipboard: {"type": "extract_clipboard"} -- Presses Ctrl+C and injects clipboard into history.
 - listen_audio: {"type": "listen_audio", "duration": 5} -- Captures system audio (max 15s).
 - ocr_screen: {"type": "ocr_screen", "x": 0, "y": 0, "w": 800, "h": 600}
+- arrange_windows: {"type": "arrange_windows", "preset": "golden_ratio"} -- Auto-Aesthetic. Snaps every visible window on the user's active monitor into a clean layout. Use when the user says "aesthetic", "arrange windows", "tidy up", "clean my desktop", "organize my screen", or similar. Optional fields: "preset" ("golden_ratio" default, "two_column"), "monitor_index" (1-based; defaults to whichever monitor the cursor is on). The Ay-Eye dashboard is automatically protected from being moved.
+
+Mimic Mode (record-once, replay-forever):
+- start_mimic: {"type": "start_mimic", "name": "morning_routine"} -- Begin recording the user's clicks + keystrokes. Use when the user says "watch this", "learn this workflow", "record this", "remember how I do this", or similar. The "name" hint is optional; the user usually tells you the final name when they stop. After emitting this action you MUST set status="in_progress" and stop emitting other actions until the user finishes.
+- stop_mimic_and_save: {"type": "stop_mimic_and_save", "name": "morning_routine", "description": "one-line summary"} -- Use when the user says "save this as <name>", "stop recording", "save the workflow", etc. The "name" is REQUIRED and should be the user-supplied label. Provide a short "description" (one sentence) summarising what was recorded.
+- cancel_mimic: {"type": "cancel_mimic"} -- Use when the user says "forget that", "cancel recording", "throw it away".
+
+Conversational Debugger:
+- debug_visible_error: {"type": "debug_visible_error"} -- Scan the foreground IDE for the most recent error message and produce an explanation + fix. Use when the user says "what's this error", "fix this error", "yeh kya hai", "debug karo", "explain this", "help with this error", or similar phrasings while an IDE is in focus. After the action runs, a DEBUG_SUGGESTION block is added to history; on your *next* turn, set intent="guide" and verbalise the explanation + fix_steps to the user. If a DEBUG_SKIPPED block appears instead, surface the reason gracefully.
+
+Ghost Typing (streaming dictation):
+- start_ghost_typing: {"type": "start_ghost_typing"} -- Begin streaming dictation. Whatever the user speaks next will be typed live into the focused text field. Use when the user says "ghost type", "dictate", "type for me", "live type", "speak to type", or similar.
+- stop_ghost_typing: {"type": "stop_ghost_typing"} -- End streaming dictation. Use when the user says "stop typing", "done dictating", "that's it", or releases the dictation hotkey.
+
+Live Commentary (watch-with-me):
+- start_live_commentary: {"type": "start_live_commentary", "tone": "buddy"} -- Begin watching the user's screen + system audio and offering brief reactions every ~30 seconds. Use when the user says "watch with me", "react to this", "commentary on", "saath dekho", or similar. Optional "tone": "buddy" (default, witty friend), "analyst" (substantive observations), or "hype" (gamer energy).
+- stop_live_commentary: {"type": "stop_live_commentary"} -- End live commentary. Use when the user says "stop commentary", "stop watching", "be quiet", or similar.
+
+REPLAYING a recorded skill:
+- When the user asks for a skill name that appears in the LEARNED SKILLS section with a "RECORDED_ACTIONS:" line, COPY that JSON action list into your response's "actions" field VERBATIM. Do not re-derive the steps from the description; the recorded actions are already verified to work. Always include a plan field for replays of 3+ recorded actions.
 
 Blender actions (use instead of clicking Blender menus -- Blender OCR is unreliable):
 - blender_open_import_menu: {"type": "blender_open_import_menu"}

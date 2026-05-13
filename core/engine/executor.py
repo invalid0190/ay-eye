@@ -1376,7 +1376,263 @@ print(f"AYEYE_IMPORT_RESULT: {{path}} objects_before={{before}} objects_after={{
                     logger.logger.warning("Executor: pytesseract not installed, falling back to full-screen OCR")
                 except Exception as e:
                     logger.logger.error(f"Executor: OCR failed - {e}")
-                
+
+            elif a_type == "start_mimic":
+                # Mimic Mode: begin watching the user's input until they
+                # either say "save this as <name>" or "cancel mimic".
+                from core.engine.mimic_recorder import mimic_recorder
+                hint_name = action.get("name") or "untitled_skill"
+                if mimic_recorder.is_recording:
+                    logger.logger.info(
+                        f"Executor: Mimic recorder already running "
+                        f"('{mimic_recorder.active_name}'), ignoring start_mimic"
+                    )
+                else:
+                    started = mimic_recorder.start(hint_name)
+                    if started:
+                        logger.logger.info(
+                            f"Executor: Mimic Mode armed as '{hint_name}'. "
+                            "Perform your workflow, then say 'save this as <name>'."
+                        )
+                        from core.state.short_term import short_term_memory
+                        short_term_memory.add_system_context(
+                            f"MIMIC_MODE_ACTIVE: Recording '{hint_name}'. "
+                            "All clicks/keystrokes are being captured. "
+                            "Stop with stop_mimic_and_save (name=<final_name>) "
+                            "or cancel_mimic."
+                        )
+                    else:
+                        logger.logger.warning(
+                            "Executor: Mimic recorder failed to start "
+                            "(pynput likely missing — install with "
+                            "`pip install pynput` and restart Ay-Eye)"
+                        )
+                        bus.publish("ACTION_ABORTED", {
+                            "reason": "Mimic Mode unavailable: pynput is not installed",
+                        })
+
+            elif a_type == "stop_mimic_and_save":
+                from core.engine.mimic_recorder import mimic_recorder
+                from core.engine.skill_synthesizer import synthesize_skill
+                from core.engine.skill_manager import skill_manager
+                final_name = (action.get("name") or "").strip()
+                if not mimic_recorder.is_recording:
+                    logger.logger.warning(
+                        "Executor: stop_mimic_and_save called but recorder is not active"
+                    )
+                else:
+                    events = mimic_recorder.stop()
+                    if not events:
+                        logger.logger.warning(
+                            "Executor: Mimic recorder produced zero events — "
+                            "nothing to save"
+                        )
+                        bus.publish("ACTION_ABORTED", {
+                            "reason": "Mimic Mode captured no events; nothing to save",
+                        })
+                    else:
+                        skill = synthesize_skill(
+                            events,
+                            name=final_name or "untitled_skill",
+                            description=action.get("description"),
+                        )
+                        ok = skill_manager.save_recorded_skill(skill)
+                        if ok:
+                            from core.state.short_term import short_term_memory
+                            short_term_memory.add_system_context(
+                                f"MIMIC_SAVED: Recorded skill '{skill['name']}' "
+                                f"with {len(skill['recorded_actions'])} actions. "
+                                "Reply with 'do my <name>' to replay."
+                            )
+                            logger.logger.info(
+                                f"Executor: Saved Mimic skill '{skill['name']}'"
+                            )
+                        else:
+                            bus.publish("ACTION_ABORTED", {
+                                "reason": f"Could not save mimic skill '{final_name}'",
+                            })
+
+            elif a_type == "cancel_mimic":
+                from core.engine.mimic_recorder import mimic_recorder
+                if mimic_recorder.is_recording:
+                    mimic_recorder.cancel()
+                    logger.logger.info("Executor: Mimic recording cancelled and discarded")
+                else:
+                    logger.logger.info("Executor: cancel_mimic called but no recording was active")
+
+            elif a_type == "start_live_commentary":
+                # Begin watching whatever the user has on screen and
+                # making conversational commentary every ~30s.
+                from core.engine.live_commentary import live_commentary
+                from core.state.short_term import short_term_memory
+                tone = action.get("tone")
+                if isinstance(tone, str) and tone in ("buddy", "analyst", "hype"):
+                    live_commentary.tone = tone
+                started = live_commentary.start()
+                if started:
+                    short_term_memory.add_system_context(
+                        f"LIVE_COMMENTARY_ACTIVE (tone={live_commentary.tone}): "
+                        "I'll react to what's on your screen every ~30s. "
+                        "Stop with stop_live_commentary."
+                    )
+                    logger.logger.info(
+                        f"Executor: Live Commentary armed (tone={live_commentary.tone})"
+                    )
+                else:
+                    logger.logger.info(
+                        "Executor: Live Commentary already running, ignoring start"
+                    )
+
+            elif a_type == "stop_live_commentary":
+                from core.engine.live_commentary import live_commentary
+                from core.state.short_term import short_term_memory
+                live_commentary.stop()
+                short_term_memory.add_system_context("LIVE_COMMENTARY_STOPPED")
+                logger.logger.info("Executor: Live Commentary stopped")
+
+            elif a_type == "start_ghost_typing":
+                # Streaming dictation mode: types as the user speaks.
+                # The actual audio + whisper streaming backend is
+                # lazily wired here so the project loads cleanly even
+                # when the optional audio deps aren't installed.
+                from core.engine.ghost_typer import ghost_typer, set_backends
+                from core.state.short_term import short_term_memory
+
+                # Build a pyautogui-backed typer on demand.
+                class _PyAutoGuiTyper:
+                    def insert(self, text: str) -> None:
+                        if not text:
+                            return
+                        try:
+                            import pyperclip
+                            pyperclip.copy(text)
+                            pyautogui.hotkey("ctrl", "v")
+                        except Exception:
+                            pyautogui.typewrite(text, interval=0.0)
+
+                    def backspace(self, count: int) -> None:
+                        for _ in range(max(0, int(count))):
+                            pyautogui.press("backspace")
+
+                set_backends(typer=_PyAutoGuiTyper())
+
+                started = ghost_typer.start()
+                if started:
+                    short_term_memory.add_system_context(
+                        "GHOST_TYPING_ACTIVE: dictation is on. "
+                        "Speak now; characters will appear in the focused field. "
+                        "Stop with stop_ghost_typing."
+                    )
+                    logger.logger.info("Executor: Ghost Typing armed")
+                else:
+                    logger.logger.warning(
+                        "Executor: Ghost Typing failed to start (no streaming "
+                        "transcriber wired — install faster-whisper + sounddevice "
+                        "and call ghost_typer.set_backends with a real transcriber)"
+                    )
+                    bus.publish("ACTION_ABORTED", {
+                        "reason": "Ghost Typing requires a streaming transcriber backend",
+                    })
+
+            elif a_type == "stop_ghost_typing":
+                from core.engine.ghost_typer import ghost_typer
+                from core.state.short_term import short_term_memory
+                final = ghost_typer.stop()
+                short_term_memory.add_system_context(
+                    f"GHOST_TYPING_STOPPED: dictated {len(final)} chars"
+                )
+                logger.logger.info(
+                    f"Executor: Ghost Typing stopped ({len(final)} final chars)"
+                )
+
+            elif a_type == "debug_visible_error":
+                # Conversational Debugger: snapshot the IDE, OCR it, find
+                # the latest error stanza, ask the LLM for a fix.
+                from core.engine.code_debugger import code_debugger
+                from core.state.short_term import short_term_memory
+                try:
+                    result = code_debugger.run_once()
+                except Exception as e:
+                    logger.logger.error(f"Executor: debug_visible_error failed - {e}")
+                    bus.publish("ACTION_ABORTED", {
+                        "reason": f"Debug suggestion failed: {e}",
+                    })
+                    return
+
+                if result.suggestion is None:
+                    reason = result.skipped_reason or "no_suggestion"
+                    user_msg = {
+                        "not_an_ide":
+                            "I can only debug errors when an IDE (VS Code, Cursor, "
+                            "PyCharm, etc.) is the active window.",
+                        "no_error_in_view":
+                            "I scanned the screen but did not see a recognisable "
+                            "error message. Make sure the error is visible.",
+                        "ocr_unavailable":
+                            "OCR backend is not available right now.",
+                        "llm_unavailable":
+                            "LLM backend is not configured for the debugger.",
+                    }.get(reason, f"Could not produce a debug suggestion ({reason}).")
+                    short_term_memory.add_system_context(
+                        f"DEBUG_SKIPPED [{reason}]: {user_msg}"
+                    )
+                    logger.logger.info(
+                        f"Executor: debug_visible_error skipped ({reason})"
+                    )
+                else:
+                    fix_lines = "\n".join(
+                        f"  {i + 1}. {step}" for i, step in enumerate(result.suggestion.fix_steps)
+                    )
+                    summary = (
+                        f"DEBUG_SUGGESTION ({result.ide.kind}, "
+                        f"confidence={result.suggestion.confidence:.2f}, "
+                        f"cached={result.from_cache}):\n"
+                        f"  ERROR: {result.error.short_summary() if result.error else ''}\n"
+                        f"  EXPLANATION: {result.suggestion.explanation}\n"
+                        f"  FIX_STEPS:\n{fix_lines}"
+                    )
+                    if result.suggestion.code_patch:
+                        summary += f"\n  CODE_PATCH:\n{result.suggestion.code_patch}"
+                    short_term_memory.add_system_context(summary)
+                    logger.logger.info(
+                        f"Executor: debug suggestion attached "
+                        f"(confidence={result.suggestion.confidence:.2f}, "
+                        f"cached={result.from_cache})"
+                    )
+
+            elif a_type == "arrange_windows":
+                # Auto-Aesthetic: snap visible windows on the active monitor
+                # into a golden-ratio (or two-column) grid via Win32.
+                from core.engine.window_arranger import window_arranger
+                preset = action.get("preset", "golden_ratio")
+                monitor_index = action.get("monitor_index")
+                try:
+                    summary = window_arranger.arrange(
+                        preset=preset,
+                        monitor_index=monitor_index,
+                    )
+                except Exception as e:
+                    logger.logger.error(f"Executor: arrange_windows failed - {e}")
+                    bus.publish("ACTION_ABORTED", {
+                        "reason": f"Window arrangement failed: {e}",
+                    })
+                    return
+
+                placed = summary.get("placed", [])
+                minimized = summary.get("minimized", [])
+                if not placed and not minimized:
+                    logger.logger.info(
+                        "Executor: arrange_windows found no windows to move"
+                    )
+                else:
+                    titles = ", ".join(
+                        f"{p['category']}:{p['title'][:24]}" for p in placed
+                    )
+                    logger.logger.info(
+                        f"Executor: arranged {len(placed)} windows ({preset}) -> {titles}"
+                        + (f"; minimized {len(minimized)}" if minimized else "")
+                    )
+
             time.sleep(random.uniform(0.1, 0.2))
             
             # Post action verification
