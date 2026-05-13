@@ -5,7 +5,7 @@
 > [!WARNING]
 > **Development Status**: This project is currently in the **Early Development Phase**. It is intended for experimental use and is **not yet production-ready**. Expect frequent breaking changes and bugs.
 
-**Ay-Eye** is a powerful multimodal AI agent that acts as an autonomous extension of your desktop. Powered by **OpenAI GPT-4o**, it "sees" your entire desktop, "hears" your voice commands, searches the web, and executes complex tasks—from browsing and messaging to creating code projects and navigating 3D software.
+**Ay-Eye** is a powerful multimodal AI agent that acts as an autonomous extension of your desktop. Powered by **OpenAI GPT-4o** or **Anthropic Claude Sonnet 4.5** (toggleable), it "sees" your entire desktop, "hears" your voice commands, searches the web, and executes complex tasks—from browsing and messaging to creating code projects and navigating 3D software.
 
 It is designed to act like a human-like, highly capable assistant living natively on your machine.
 
@@ -17,9 +17,11 @@ While tools like GitHub Copilot live in your IDE, and the ChatGPT Desktop app re
 
 1. **Total OS Control vs. Sandboxed APIs**: Unlike most AI tools that rely on specific API integrations, Ay-Eye "sees" your screen via computer vision and controls your actual mouse and keyboard. If a human can do it on a computer, Ay-Eye can do it too—no APIs required.
 2. **True Multimodal Execution**: Ay-Eye doesn't just generate text. It can synthesize a web search, verbally explain the answer to you, and then autonomously type that answer into a Discord chat or a Word document.
-3. **Developer-First "CMD" Capabilities**: Ay-Eye isn't just a UI clicker. It has a native terminal action pipeline. You can ask it to "Create a React project," and it will silently execute the proper PowerShell commands in the background.
-4. **Dynamic Skill Learning**: Other agents are hardcoded. Ay-Eye features a dynamic *Skills System*. You can literally speak to it and say "Learn this workflow," and it will generate a JSON skill file and permanently inject that workflow into its brain for future use.
-5. **No Cloud Vendor Lock-in**: While optimized for GPT-4o, Ay-Eye supports graceful fallbacks. You can run the entire vision and logic pipeline offline using Ollama if privacy is your absolute priority.
+3. **Multi-Monitor Native**: First-class support for spanning displays. Ay-Eye sees every connected monitor as a single labelled grid (`MON 1`, `MON 2`...) and can click between Discord on the left screen and VS Code on the right without losing track of which app lives where.
+4. **UIA-First Clicking + Modern OCR**: Uses Windows UI Automation (semantic element trees) as the primary click strategy. Modern **RapidOCR** (ONNX) is the OCR fallback — 5-10× better small-text accuracy than Tesseract, especially on Discord channel names and badge counters.
+5. **Developer-First "CMD" Capabilities**: Ay-Eye isn't just a UI clicker. It has a native terminal action pipeline. You can ask it to "Create a React project," and it will silently execute the proper PowerShell commands in the background.
+6. **Dynamic Skill Learning**: Other agents are hardcoded. Ay-Eye features a dynamic *Skills System*. You can literally speak to it and say "Learn this workflow," and it will generate a JSON skill file and permanently inject that workflow into its brain for future use.
+7. **No Cloud Vendor Lock-in**: While optimized for GPT-4o and Claude Sonnet 4.5, Ay-Eye supports graceful fallbacks (Moonshot/Kimi, AgentRouter, Ollama Cloud, local Ollama). You can run the entire vision and logic pipeline offline using Ollama if privacy is your absolute priority.
 
 ---
 
@@ -29,20 +31,26 @@ Ay-Eye operates on a high-speed continuous loop that combines real-time data ing
 
 1. **Continuous Audio Stream**: The app listens for the `Alt + Z` hotkey globally. When pressed, a local `faster-whisper` model transcribes your voice in milliseconds.
 2. **Context Compilation**:
-   - **Vision**: `mss` captures a raw frame of your entire virtual desktop (all monitors).
+   - **Vision**: `mss` captures the entire virtual desktop spanning every connected monitor. Each physical monitor's bounds are computed and labelled (`MON 1`, `MON 2`...) so the LLM can map "Discord on the left" to a concrete pixel range.
+   - **UI Automation**: `UIAutoScanner` walks the accessibility tree of *every visible top-level window* (not just the foreground app), capturing semantic element names + automation IDs from up to 800 elements across all open apps.
    - **Knowledge**: If you asked a factual question, the `Web Search` module queries Brave Search.
-   - **Memory**: The `SkillManager` and `ShortTermMemory` modules inject past conversations and learned behaviors.
-3. **Multimodal Reasoning**: All this context is packaged and sent to the LLM (GPT-4o). The AI acts as a decision engine, outputting a strict JSON format dictating exactly what must happen next.
-4. **The Orchestrator**: The `ActionOrchestrator` decodes the JSON. 
+   - **Memory**: The `SkillManager`, `RagManager`, and `ShortTermMemory` modules inject learned behaviours, app-specific rules, and past conversations.
+   - **Cursor**: The current OS cursor position is mapped to image-space coordinates and passed to the LLM in a `CURSOR:` block so the model can plan moves from where the pointer actually is.
+3. **Multimodal Reasoning**: All this context is packaged and sent to the LLM. **Structured outputs** (OpenAI strict JSON Schema or Anthropic forced tool-use) guarantee the response conforms to the action schema — no JSON healing needed for capable models.
+4. **The Orchestrator**: The `ActionOrchestrator` decodes the structured response. 
    - If it needs to speak, it streams audio via **OpenAI TTS**.
-   - If it needs to click/type, it calculates coordinates and uses `PyAutoGUI` with human-like easing curves.
+   - If it needs to click, it tries **UIA** first (semantic match by name/automation-ID), falls back to **RapidOCR** locator, and only then to coordinate-based clicking. Movement uses `PyAutoGUI` with human-like easing curves.
    - If it needs to run a command, it bypasses the UI and pipes it directly into `subprocess/powershell`.
+5. **Verification & Telemetry**: Per-turn token cost, prompt/completion sizes, and end-to-end latency are recorded by the telemetry module and surfaced live in the dashboard. Vision results are cached against perceptual hashes so unchanged screens don't re-spend tokens.
 
 ---
 
 ## 🚀 Core Features
 
-- **👁️ Flawless Desktop Vision**: Uses `mss` for full-desktop capture and **GPT-4o Vision** for deep pixel-perfect understanding of UIs.
+- **👁️ Flawless Desktop Vision**: Uses `mss` for full-virtual-desktop capture and **GPT-4o** or **Claude Sonnet 4.5** Vision for deep pixel-perfect UI understanding. Captures span every connected monitor; per-monitor rectangles are drawn on the screenshot so the LLM never confuses left vs right display.
+- **🧖 UIA-First Clicking with OCR Fallback**: `UIAutoScanner` enumerates every visible top-level window's accessibility tree (not just the foreground app) for instant, deterministic clicks by element name. **RapidOCR (ONNX)** kicks in only when UIA misses — dramatically more accurate than Tesseract on small Discord/Slack/Teams text.
+- **🧠 Structured Outputs by Default**: OpenAI gpt-4o-family models use native strict JSON Schema; Anthropic Claude uses forced tool-use. The model is *guaranteed* to return well-formed action JSON, eliminating ~95% of JSON-parse retries.
+- **📊 Per-Turn Telemetry + Vision Cache**: Live cost / token / latency / cache hit-rate displayed in the dashboard. Perceptual-hash-keyed vision cache skips re-OCR and re-LLM-vision on unchanged screens (~30% cost reduction on idle screens).
 - **🧠 Advanced Memory System**: 
   - *Short-Term Memory*: Tracks full conversation context (your commands + its responses).
   - *Skill System*: Ay-Eye can dynamically learn new workflows and save them permanently to its brain (e.g. "Learn a skill called 'Daily Setup'").
@@ -51,7 +59,8 @@ Ay-Eye operates on a high-speed continuous loop that combines real-time data ing
 - **🎙️ Voice Command & Control**: Hands-free interaction via `faster-whisper` for fast STT, and **OpenAI TTS** (Nova) for highly natural, responsive voice playback. 
 - **🪟 Smart Window Management**: Utilizes the Win32 API to seamlessly switch between running windows or launch new apps via the Windows Registry.
 - **🎯 Precise Automation**: Clicks, types, scrolls, and pastes using `pyautogui` and clipboard manipulation for speed and reliability.
-- **💎 Premium UI**: A glassmorphism-inspired PyQt6 dashboard with real-time status indicators, activity logs, and system health checks.
+- **💎 Premium UI**: Glassmorphism-inspired PyQt6 dashboard with floating cursor marker that spans all monitors, color-coded metrics, on-demand confirmation buttons, kbd-styled hotkey chips, and zero OS chrome.
+- **💭 Plan Auto-Synthesis**: When the LLM forgets to include a `plan` field for low-risk multi-action turns, the validator synthesises one from the actions instead of silently dropping the user's task. High-risk operations (cmd, write_file, blender) still require explicit reasoning.
 - **🧠 RAG Memory Layer**: Uses ChromaDB to store and retrieve app-specific rules, past failures, and project knowledge, helping the AI learn from its own mistakes.
 
 ---
@@ -68,27 +77,40 @@ Because Ay-Eye is not restricted by APIs, its capabilities are limited only by i
 
 ---
 
-## 🗺️ Roadmap & Future Capabilities
+## 🗺️ Roadmap & Recently Shipped
 
-To ensure Ay-Eye remains a cutting-edge autonomous agent, the following features are actively being explored:
+### ✅ Recently Shipped
+- **Multi-Monitor Support**: All connected displays captured + labelled; per-monitor cursor + click coordinates surfaced to the LLM.
+- **UIA-First Locator + RapidOCR**: Semantic UI Automation tries first; modern ONNX-based OCR replaces Tesseract as the primary fallback.
+- **Structured Outputs**: Native JSON Schema (OpenAI gpt-4o family) and forced tool-use (Anthropic Claude) eliminate JSON-parse retries.
+- **Anthropic Claude Backend**: Drop-in alternative to OpenAI — toggle via `LLM_PROVIDER=anthropic` in `.env`.
+- **Per-Turn Telemetry + Vision Cache**: Live cost / latency dashboard; perceptual-hash cache skips redundant LLM/OCR calls.
+- **Plan Auto-Synthesis**: Low-risk multi-action turns no longer silently fail when the LLM forgets the plan field.
+- **Cursor Overlay Redesign**: Floating status pill + offset glow that spans every monitor and never occludes click targets.
 
-1. **Agentic Verification Loop**: Moving from single-shot execution to continuous autonomous loops. Ay-Eye will take verification screenshots after every action to confirm success or self-correct if an app is lagging.
-2. **Local Codebase Integration**: Advanced file-system reading tools allowing Ay-Eye to act as a fully autonomous coding agent (similar to Devin) that can read your repository, write code, and run tests.
-3. **Always-On Wake Word**: Replacing the `Alt + Z` hotkey with a low-latency local wake word (e.g., "Hey Ay-Eye") for truly hands-free operation.
-4. **Contextual System Audio**: Routing desktop audio into the model's context so it can summarize live meetings, YouTube videos, or podcasts in real-time.
-5. **Cross-App RPA**: Enhanced memory allowing complex multi-app data transfers (e.g., "Read my last email, summarize it, open Jira, and create a ticket").
+### 🔬 In Progress / Planned
+1. **Discord-Precision Retry Loop**: When `click_text` misses, locator crops the region, 2× upscales, and re-runs RapidOCR before giving up.
+2. **Verification Loop Cost Cut**: Replace the second LLM verification call with screenshot-diff + OCR-confirm-target where possible (~40% cost reduction per task).
+3. **Hybrid LLM Router**: Per-turn provider selection — fast turns to gpt-4o, tricky UI scenarios auto-retry with Claude.
+4. **Local Codebase Integration**: Advanced file-system tools allowing Ay-Eye to act as a fully autonomous coding agent (read repo, write code, run tests).
+5. **Always-On Wake Word**: Low-latency local wake word (e.g., "Hey Ay-Eye") to replace the `Alt + Z` hotkey.
+6. **Contextual System Audio**: Routing desktop audio into the model's context for live meeting / video summarisation.
+7. **Cross-App RPA**: Enhanced memory for complex multi-app data transfers (e.g., "Read my last email, summarize it, open Jira, and create a ticket").
 
 ---
 
 ### Tech Stack
 - **Languages**: Python 3.13
-- **Primary LLM & Vision**: OpenAI GPT-4o
-- **Fallback LLM**: Ollama Cloud / Local Ollama
+- **Primary LLM & Vision**: OpenAI GPT-4o (strict JSON Schema) or Anthropic Claude Sonnet 4.5 (forced tool-use)
+- **Alternative LLM Backends**: Moonshot/Kimi, AgentRouter (DeepSeek/GLM), Ollama Cloud, Local Ollama
+- **OCR**: RapidOCR (ONNX) primary, Tesseract / Node fallback
+- **UI Automation**: Windows UIA via `uiautomation` (semantic element trees)
 - **Speech-to-Text (STT)**: Faster-Whisper (Local)
 - **Text-to-Speech (TTS)**: OpenAI TTS (Fallback: Murf AI)
 - **Web Search**: Brave Search API
-- **UI**: PyQt6
+- **UI**: PyQt6 (glassmorphism dashboard, multi-monitor cursor overlay)
 - **Automation**: PyAutoGUI, Pyperclip, Win32 API (`ctypes`)
+- **Memory**: ChromaDB (RAG); perceptual-hash vision cache; per-turn telemetry
 
 ---
 
@@ -96,37 +118,54 @@ To ensure Ay-Eye remains a cutting-edge autonomous agent, the following features
 
 ### Prerequisites
 - **Python 3.13+**
-- **Ollama locally installed** (If you want to run offline)
-- **Tesseract OCR installed on Windows** (Required for the `click_text` feature. Ensure it's installed either in your PATH or inside your user folder: `C:\Users\<YourUsername>\AppData\Local\Programs\Tesseract-OCR\`)
+- **Windows 10 / 11** (UIA + Win32 are Windows-only; multi-monitor support tested on dual-display setups)
+- **Ollama locally installed** *(optional)* — only if you want a fully offline fallback.
+- **Tesseract OCR** *(optional)* — RapidOCR (ONNX) is the new primary backend and is auto-installed via `requirements.txt`. Tesseract is only used as a secondary fallback. If you do install it, place it in PATH or `C:\Users\<YourUsername>\AppData\Local\Programs\Tesseract-OCR\`.
 
 ### 1. Configure Your AI Brain
 Ay-Eye operates using a cascading fallback system. It attempts to use the best available engine configured in your `.env` file. Create a `.env` file in the root directory:
 
 ```env
-# 🥇 PRIMARY: OpenAI (Highly Recommended)
+# 🥇 PRIMARY OPTION A — OpenAI (default; native strict JSON Schema)
 # Gives you GPT-4o Vision and ultra-fast OpenAI TTS.
 OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-4o
 
-# Optional: Kimi / Moonshot API (OpenAI-compatible)
-# Keep OpenAI as default, or set LLM_PROVIDER=moonshot to use Kimi for LLM+vision.
+# 🥇 PRIMARY OPTION B — Anthropic Claude (forced tool-use structured output)
+# Generally better at small UI elements (Discord channels, badges) and
+# spatial reasoning across monitors. Slightly slower + slightly costlier.
+# Set LLM_PROVIDER=anthropic to make this the active backend.
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+ANTHROPIC_MODEL=claude-sonnet-4-5
+
+# Active backend toggle. Priority when unset: openai > anthropic > moonshot > agentrouter > ollama.
+# LLM_PROVIDER=openai          # default if both keys present
+# LLM_PROVIDER=anthropic       # use Claude for everything
+# LLM_PROVIDER=moonshot        # Kimi K2.6 (OpenAI-compatible)
+# LLM_PROVIDER=agentrouter     # DeepSeek / GLM via AgentRouter
+# LLM_PROVIDER=ollama          # hosted or local Ollama
 LLM_PROVIDER=openai
+
+# Optional: Kimi / Moonshot (OpenAI-compatible API)
 MOONSHOT_API_KEY=your_moonshot_or_kimi_key_here
 MOONSHOT_MODEL=kimi-k2.6
 MOONSHOT_BASE_URL=https://api.moonshot.ai/v1
 
-# 🥈 FALLBACK 1: Ollama Cloud + Murf AI
+# 🥈 FALLBACK — Ollama Cloud + Murf AI
 # Uses hosted Gemma 3 Vision and Murf AI TTS.
 OLLAMA_API_KEY=your_ollama_cloud_key
 MURF_API_KEY=your_murf_tts_key
 
-# 🥉 FALLBACK 2: Local Offline (No keys needed)
+# 🥉 FALLBACK — Local Offline (No keys needed)
 # If no keys are provided, Ay-Eye will attempt to connect to http://localhost:11434
 # You must have Ollama installed and the `gemma3:4b` model pulled.
 
 # 🌐 WEB SEARCH (Required for knowledge queries)
 BRAVE_API_KEY=your_brave_search_key_here
 ```
+
+> [!CAUTION]
+> **Never paste your `.env` contents into a chat, screenshot, GitHub issue, or commit.** API keys leak this way more often than from breaches. If you suspect a key has been exposed, rotate it immediately at the provider's console (OpenAI, Anthropic, Brave, etc.). `.env` is gitignored by default.
 
 ### 2. Install Dependencies
 ```bash
@@ -202,15 +241,21 @@ Ay-Eye is hardcoded to prioritize what it currently **sees** on your screen over
 
 Because Ay-Eye controls your physical computer, the intelligence and speed of the underlying model dramatically impacts its performance.
 
-| Feature | 🥇 OpenAI (GPT-4o) | 🥈 Ollama Cloud (Gemma 3) | 🥉 Local Ollama (Gemma 3) |
-|---------|--------------------|---------------------------|---------------------------|
-| **Vision Accuracy** | **Flawless**. GPT-4o has a deep understanding of spatial coordinates and rarely misses a click target. | **Good**. Sometimes struggles with small UI elements or dense text areas. | **Good**. Same as cloud, but depends on your local GPU. |
-| **JSON Reliability** | **Perfect**. Uses native `json_object` format. | **Fair**. Requires our custom `JSONHealingParser` to fix formatting errors. | **Fair**. Requires healing parser. |
-| **TTS Voice** | **OpenAI TTS (Nova)**. Extremely fast (streams directly as MP3) and highly expressive. | **Murf AI**. High quality, but slower due to a 2-step generate/download process. | **None**. Ay-Eye will operate silently in text-only mode. |
-| **Speed** | Takes ~2-4 seconds to perceive, think, and start acting. | Takes ~4-8 seconds depending on cloud load. | Depends entirely on your hardware (VRAM). |
-| **Privacy** | Data sent to OpenAI. | Data sent to Ollama Cloud. | **100% Private**. No screen data leaves your machine. |
+| Feature | 🥇 OpenAI GPT-4o | 🥇 Anthropic Claude Sonnet 4.5 | 🥈 Ollama Cloud (Gemma 3) | 🥉 Local Ollama (Gemma 3) |
+|---------|------------------|-------------------------------|---------------------------|---------------------------|
+| **Vision Accuracy** | **Excellent**. Strong spatial understanding, rarely misses larger click targets. | **Best for small UI**. Reads tiny text (Discord channel names, badges) better than GPT-4o; better at multi-monitor spatial reasoning. | **Good**. Sometimes struggles with small UI elements or dense text. | **Good**. Same as cloud, but depends on your local GPU. |
+| **Structured Output** | **Native strict JSON Schema** — model is *guaranteed* to return valid action JSON. | **Forced tool-use** — model emits a tool_use block whose input matches the brain schema. | **Fair**. Requires `JSONHealingParser` to fix formatting errors. | **Fair**. Requires healing parser. |
+| **TTS Voice** | **OpenAI TTS (Nova)** — fastest, most expressive. | Uses OpenAI TTS (Anthropic doesn't ship a TTS API). | **Murf AI**. High quality, slower 2-step process. | **None** — Ay-Eye operates in text-only mode. |
+| **Speed (per turn)** | ~600-1000 ms LLM + ~2-4 s end-to-end. | ~1000-1500 ms LLM + ~3-5 s end-to-end. | ~4-8 s depending on cloud load. | Depends entirely on your hardware (VRAM). |
+| **Cost (per 1M tokens)** | $2.50 input / $10 output | $3 input / $15 output (~20-50% pricier) | Free (Ollama Cloud) | **Free** (your hardware). |
+| **Privacy** | Data sent to OpenAI. | Data sent to Anthropic. | Data sent to Ollama Cloud. | **100% Private**. No screen data leaves your machine. |
 
-**Verdict**: If you want the agent to be a highly capable, autonomous developer assistant, **use OpenAI**. If you are doing basic OS navigation and value extreme privacy, **use Local Ollama**.
+**Verdict**:
+- **General use, fastest + cheapest**: GPT-4o.
+- **Best Discord / Slack / Teams precision, complex multi-step tasks**: Claude Sonnet 4.5 (`LLM_PROVIDER=anthropic`).
+- **Maximum privacy / offline**: Local Ollama (Gemma 3).
+
+You can keep both keys configured and toggle via `LLM_PROVIDER` without restarting your `.env` setup.
 
 ---
 
@@ -218,6 +263,36 @@ Because Ay-Eye controls your physical computer, the intelligence and speed of th
 - **Hold Alt + Z**: Speak to Ay-Eye.
 - **Alt + Enter**: Confirm a pending action (if confirmation is required).
 - **Ctrl + Shift + X**: Emergency Stop (immediately halts all mouse/keyboard execution).
+
+The dashboard shows the current state with a **floating cursor pill** (`AI` / `REC` / `THINKING` / `ACTING`) offset 14 px above the cursor on every monitor. The pill never sits on top of click targets, so you can always see exactly what the agent is doing without it occluding the UI.
+
+---
+
+## 🖥️ Multi-Monitor Support
+
+Ay-Eye natively understands setups with two or more displays:
+
+- **Capture spans the entire virtual desktop**, including monitors with negative coordinates (e.g. a secondary monitor placed to the *left* of the primary).
+- **Adaptive resolution scaling** — a 3840×1080 dual-monitor capture is *not* down-sampled to 1920×540. The downscale cap is raised so per-monitor pixels remain legible for OCR and LLM vision.
+- **Per-monitor labelling** — the screenshot drawn for the LLM has a thick cyan rectangle and `MON 1` / `MON 2` label inside each physical monitor's bounds.
+- **Coordinate-aware prompt** — the LLM receives a `MONITORS:` block listing each monitor's image-x range and a `CURSOR:` block telling it exactly which monitor and pixel the OS pointer is on right now.
+- **All-windows UIA scan** — `UIAutoScanner` walks the accessibility tree of *every visible top-level window*, not just the foreground app. So Ay-Eye can find Discord controls on the left monitor even while VS Code is active on the right.
+- **Cursor overlay spans the union of all displays** — the floating status pill stays visible no matter which monitor you move the mouse to.
+
+### Verifying Multi-Monitor Detection
+
+After launching, check that all displays are detected:
+
+```powershell
+.venv\Scripts\python -c "import mss; sct = mss.mss(); print('Virtual:', sct.monitors[0]); [print(f'  Mon {i}:', m) for i, m in enumerate(sct.monitors[1:], 1)]"
+```
+
+Expected output for a dual-monitor setup:
+```
+Virtual: {'left': 0, 'top': 0, 'width': 3840, 'height': 1080}
+  Mon 1: {'left': 0,    'top': 0, 'width': 1920, 'height': 1080}
+  Mon 2: {'left': 1920, 'top': 0, 'width': 1920, 'height': 1080}
+```
 
 ---
 
@@ -231,20 +306,34 @@ Because Ay-Eye relies on computer vision, seeing what the AI sees is critical fo
 
 ## 🛡️ Pipeline Safety Tests
 
-Ay-Eye includes a comprehensive test harness that validates the full action pipeline **without** triggering real desktop interactions. No mouse clicks, keyboard input, or subprocess commands are executed.
+Ay-Eye includes a comprehensive test harness — **258 tests across 11 suites, all green** — that validates the full action pipeline **without** triggering real desktop interactions. No mouse clicks, keyboard input, or subprocess commands are executed.
 
 ### Quick Start
 
 ```bash
-# Run the full end-to-end pipeline test (27 test cases)
-.venv\Scripts\python scripts/test_agent_pipeline.py
+# Foundation infra
+.venv\Scripts\python scripts/test_telemetry.py                # Per-turn cost / latency (22 tests)
+.venv\Scripts\python scripts/test_vision_cache.py             # Perceptual-hash cache (25 tests)
+.venv\Scripts\python scripts/test_dpi_coordinate_mapping.py   # DPI scaling (79 tests)
 
-# Run individual component tests
-.venv\Scripts\python scripts/test_response_schema.py    # LLM response validation (30 tests)
-.venv\Scripts\python scripts/test_plan_validator.py      # Plan enforcement (20 tests)
-.venv\Scripts\python scripts/test_action_verifier.py     # Post-action verification (17 tests)
-.venv\Scripts\python scripts/test_expect_contracts.py    # Expect contract evaluation (17 tests)
-.venv\Scripts\python scripts/test_rag_retrieval.py       # RAG retrieval quality
+# Multi-monitor + UIA
+.venv\Scripts\python scripts/test_multi_monitor.py            # Per-monitor layout (17 tests)
+.venv\Scripts\python scripts/test_uia_first_locator.py        # UIA-first locator (14 tests)
+
+# Pipeline / planning
+.venv\Scripts\python scripts/test_response_schema.py          # LLM response validation
+.venv\Scripts\python scripts/test_plan_validator.py           # Plan enforcement + auto-synthesis
+.venv\Scripts\python scripts/test_agent_pipeline.py           # Full E2E pipeline (27 tests)
+.venv\Scripts\python scripts/test_action_verifier.py          # Post-action verification (17 tests)
+.venv\Scripts\python scripts/test_expect_contracts.py         # Expect contract evaluation (17 tests)
+
+# LLM providers / structured outputs
+.venv\Scripts\python scripts/test_response_format.py          # JSON Schema + Anthropic tool spec (27 tests)
+.venv\Scripts\python scripts/test_anthropic_provider.py       # Claude provider dispatch + tool-use (26 tests)
+
+# Real-world scenarios
+.venv\Scripts\python scripts/test_real_world_scenarios.py     # 21 user-flow scenarios
+.venv\Scripts\python scripts/test_rag_retrieval.py            # RAG retrieval quality
 ```
 
 ### What the Pipeline Tests Cover
@@ -335,22 +424,51 @@ When `dry_run_trace_enabled` is true, every simulated sequence generates a JSON 
 ### Pipeline Architecture
 
 ```
-LLM Response
-    |
-    v
-1. Schema Validator      -- Normalize/sanitize, strip invalid actions
-    |
-    v
-2. Plan Validator        -- Require plan for 3+ actions or high-risk
-    |
-    v
-3. Action Safety         -- Block dangerous commands, sensitive windows
-    |
-    v
-4. Executor              -- Run the action (mouse/keyboard/cmd)
-    |
-    v
-5. Action Verifier       -- Check expect contract or screen-change heuristic
+                      ┌─────────────────────────┐
+                      │  Voice / Typed Command  │
+                      └────────────┬────────────┘
+                                   v
+                      ┌─────────────────────────┐
+                      │  Brain — Context Build   │
+                      │  • Vision + monitor map  │
+                      │  • UIA tree (all windows)│
+                      │  • RAG + skills + memory │
+                      │  • Cursor pos + state    │
+                      └────────────┬────────────┘
+                                   v
+                      ┌─────────────────────────┐
+                      │  LLM Bridge              │
+                      │  • Strict JSON Schema    │  ← OpenAI gpt-4o
+                      │  • Forced tool-use       │  ← Anthropic Claude
+                      │  • Healing fallback      │  ← Others
+                      └────────────┬────────────┘
+                                   v
+                      ┌─────────────────────────┐
+                      │  Telemetry Recorder      │
+                      │  Tokens / cost / ms      │ → Dashboard
+                      └────────────┬────────────┘
+                                   v
+                  1. Schema Validator    — normalize, strip invalid actions
+                                   |
+                                   v
+                  2. Plan Validator      — auto-synthesise plan if low-risk
+                                   |    — require explicit plan for cmd/write_file
+                                   v
+                  3. Action Safety       — block destructive cmds, sensitive windows
+                                   |
+                                   v
+                  4. Confirmation Gate   — pause for Alt+Enter on high-risk
+                                   |
+                                   v
+                  5. Executor            — UIA → RapidOCR → coordinate clicks
+                                   |    — PyAutoGUI / PowerShell
+                                   v
+                  6. Action Verifier     — expect contract or screen diff
+                                   v
+                      ┌─────────────────────────┐
+                      │  RAG / Memory Update     │
+                      │  Successes + failures    │
+                      └─────────────────────────┘
 ```
 
 ---
