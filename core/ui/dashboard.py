@@ -35,6 +35,8 @@ class ThreadBridge(QObject):
     trace_exported = pyqtSignal(str)
     prepare_vision = pyqtSignal()
     prepare_action = pyqtSignal()
+    pet_visibility = pyqtSignal(bool)
+    command_log = pyqtSignal(str, str, str)
 
 
 class AyEyeDashboard:
@@ -44,9 +46,15 @@ class AyEyeDashboard:
         # Thread-safe signal bridge
         self.bridge = ThreadBridge()
         
+        # When the desktop pet is visible, it takes over the status
+        # role from the IDLE / SYSTEM pill bar. We gate every later
+        # `setVisible(True)` call on this flag so the pill bar
+        # doesn't pop back in on the next bus event.
+        self._pet_active: bool = False
+
         # 1. Persistent Status Bar
         self.status_bar = PillStatusBar()
-        self.status_bar.show()
+        self._show_status_bar()
         
         # 2. Rich Command Panel
         self.command_panel = CommandPanel()
@@ -90,6 +98,10 @@ class AyEyeDashboard:
         self.bridge.trace_exported.connect(self._on_trace_exported)
         self.bridge.prepare_vision.connect(lambda: self._hide_chrome("vision"))
         self.bridge.prepare_action.connect(lambda: self._hide_chrome("action"))
+        self.bridge.pet_visibility.connect(self._on_pet_visibility)
+        self.bridge.command_log.connect(
+            lambda emoji, text, color: self.command_panel.add_log(emoji, text, color)
+        )
         
         # ── Subscribe event bus → emit signals (thread-safe) ──
         bus.subscribe("BRAIN_THINKING", lambda d: self.bridge.thinking.emit())
@@ -131,6 +143,14 @@ class AyEyeDashboard:
         bus.subscribe("UI_ACTION_PREPARE", lambda d=None: self.bridge.prepare_action.emit())
         bus.subscribe("TOGGLE_COMMAND_PANEL", lambda d=None: self.bridge.toggle_panel.emit())
         bus.subscribe("HIGHLIGHT_REQUESTED", self.on_highlight_request)
+        bus.subscribe("PET_VISIBILITY_CHANGED", lambda d: self.bridge.pet_visibility.emit(
+            bool(d.get("visible", False)) if isinstance(d, dict) else bool(d)
+        ))
+        bus.subscribe("COMMAND_LOG", lambda d: self.bridge.command_log.emit(
+            (d.get("emoji", "") if isinstance(d, dict) else ""),
+            (d.get("text", "") if isinstance(d, dict) else str(d or "")),
+            (d.get("color", "") if isinstance(d, dict) else ""),
+        ))
         
         # Sync timer
         self.update_timer = QTimer()
@@ -196,7 +216,7 @@ class AyEyeDashboard:
     
     def _on_recording_start(self):
         self.update_status("recording")
-        self.status_bar.setVisible(True)
+        self._show_status_bar()
         self.command_panel.add_log("🎙️", "Listening...", theme.RECORDING.name())
         self.audio_level.setVisible(True)
         self.command_panel.setVisible(True)
@@ -216,7 +236,7 @@ class AyEyeDashboard:
 
     def _on_voice_ignored(self, reason: str):
         self.update_status("idle")
-        self.status_bar.setVisible(True)
+        self._show_status_bar()
         hints = {
             "no_audio": "No audio captured — hold Alt+Z while you speak.",
             "empty_transcript": "No speech detected — speak louder or check the mic.",
@@ -227,7 +247,7 @@ class AyEyeDashboard:
     
     def _on_error(self, reason):
         self.update_status("idle")
-        self.status_bar.setVisible(True)
+        self._show_status_bar()
         self.command_panel.add_log("⚠️", reason[:60], theme.ERROR.name())
     
     def _on_dry_run(self, action_type):
@@ -251,7 +271,7 @@ class AyEyeDashboard:
 
     def _on_suggestion(self, data):
         self.update_status("idle")
-        self.status_bar.setVisible(True)
+        self._show_status_bar()
         message = data.get("message", "")
         confidence = data.get("confidence", 0)
         intent = data.get("intent", "guide")
@@ -277,16 +297,16 @@ class AyEyeDashboard:
 
     def _on_action_done(self, a_type):
         self.update_status("idle")
-        self.status_bar.setVisible(True)
+        self._show_status_bar()
         self.command_panel.add_log("✅", f"{a_type} completed", theme.SUCCESS.name())
     
     def _on_action_abort(self, reason):
-        self.status_bar.setVisible(True)
+        self._show_status_bar()
         self.command_panel.add_log("🚫", reason[:40], theme.WARNING.name())
     
     def _on_emergency(self):
         self.update_status("idle")
-        self.status_bar.setVisible(True)
+        self._show_status_bar()
         self.command_panel.add_log("🛑", "EMERGENCY STOP", theme.ERROR.name())
 
     def _on_toggle_panel(self):
@@ -305,6 +325,23 @@ class AyEyeDashboard:
         self._auto_hide_timer.stop()
         self.command_panel.setVisible(False)
         self.status_bar.setVisible(False)
+
+    def _show_status_bar(self):
+        """Show the IDLE/SYSTEM pill bar — but only when the desktop pet
+        is *not* taking over the status role. The pet's halo + iris already
+        communicate the agent's state at a glance, so showing both at the
+        same time is visual noise.
+        """
+        if not self._pet_active:
+            self.status_bar.setVisible(True)
+
+    def _on_pet_visibility(self, visible: bool):
+        """Pet appeared/disappeared — flip the status pill bar accordingly."""
+        self._pet_active = bool(visible)
+        if self._pet_active:
+            self.status_bar.setVisible(False)
+        else:
+            self.status_bar.setVisible(True)
 
     def on_highlight_request(self, coords):
         if self.overlay and isinstance(coords, dict):

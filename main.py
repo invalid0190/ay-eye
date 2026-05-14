@@ -25,6 +25,7 @@ from core.utils.logger import logger
 from core.engine.event_bus import bus
 from core.ui.dashboard import AyEyeDashboard
 from core.ui.overlay import VisualOverlay
+from core.ui.pet_widget import AyEyePet
 
 class Orchestrator:
     def __init__(self):
@@ -135,7 +136,24 @@ if __name__ == "__main__":
     
     # 3. Initialize Dashboard (Status Bar)
     dashboard = AyEyeDashboard(overlay=overlay)
-    
+
+    # 3.5 Initialize the Desktop Pet — a frameless, always-on-top
+    # companion that mirrors agent state. Click toggles the dashboard
+    # command panel; double-click triggers ghost-typing dictation.
+    pet = AyEyePet()
+    pet.dashboard_toggle_requested.connect(
+        lambda: bus.publish("TOGGLE_COMMAND_PANEL")
+    )
+    pet.ghost_typing_requested.connect(
+        lambda: bus.publish("VOICE_INPUT_RECEIVED", "start ghost typing")
+    )
+    if pet._settings.visible:
+        # Use show_pet() (not raw QWidget.show()) so the
+        # PET_VISIBILITY_CHANGED event fires and the dashboard knows
+        # to hide its IDLE/SYSTEM pill bar. Calling .show() directly
+        # would leave the pill bar visible on top of the pet.
+        pet.show_pet()
+
     # 4. Start the Orchestrator Engine (Background Thread)
     orch = Orchestrator()
     orch.start()

@@ -375,11 +375,100 @@ class CommandPanel(QFrame, DraggableMixin):
         """)
         
         import threading
+        # Words / phrases that summon or dismiss the desktop pet directly,
+        # without ever consulting the LLM. Kept lowercase + tightly scoped
+        # so a real instruction like "pet the cat in this game" never
+        # gets accidentally swallowed.
+        _PET_SHOW_TRIGGERS = {
+            "pet", "/pet", "show pet", "spawn pet", "hatch pet",
+            "wake pet", "wake up pet",
+        }
+        _PET_HIDE_TRIGGERS = {
+            "hide pet", "kill pet", "remove pet", "bye pet",
+            "sleep pet", "stop pet",
+        }
+        _PET_STYLE_LIST_TRIGGERS = {
+            "/pet styles", "pet styles", "/pet style", "pet style",
+        }
+
+        def _emit_log(emoji: str, text: str, color: str) -> None:
+            """Publish a dashboard log entry from the local command path.
+
+            The dashboard subscribes to ``COMMAND_LOG`` and renders each
+            payload as a chat-log row. Using a bus event (instead of
+            calling the panel directly) keeps this module decoupled
+            from the dashboard widget tree.
+            """
+            try:
+                bus.publish("COMMAND_LOG", {
+                    "emoji": emoji, "text": text, "color": color,
+                })
+            except Exception:
+                pass
+
+        def _format_styles_list() -> str:
+            """Build a one-line summary of every registered style."""
+            try:
+                from core.ui import pet_styles
+                pairs = pet_styles.list_descriptions()
+            except Exception:
+                return "Pet styles unavailable."
+            if not pairs:
+                return "No pet styles registered."
+            return "Styles: " + " | ".join(f"{n} — {d}" for n, d in pairs)
+
+        def _try_pet_style_command(lower: str) -> bool:
+            """Handle ``/pet style <name>`` and ``/pet styles``.
+
+            Returns True if the input was a pet-style command (and was
+            consumed); False otherwise so the caller can continue
+            processing.
+            """
+            if lower in _PET_STYLE_LIST_TRIGGERS:
+                _emit_log("🎨", _format_styles_list(), theme.ACCENT_COLOR.name())
+                return True
+            # Match "pet style <name>" or "/pet style <name>" exactly.
+            for prefix in ("/pet style ", "pet style "):
+                if lower.startswith(prefix):
+                    name = lower[len(prefix):].strip()
+                    if not name:
+                        _emit_log("🎨", _format_styles_list(),
+                                  theme.ACCENT_COLOR.name())
+                        return True
+                    try:
+                        from core.ui import pet_styles
+                        valid = pet_styles.has(name)
+                    except Exception:
+                        valid = False
+                    if not valid:
+                        _emit_log("⚠️",
+                                  f"Unknown pet style '{name}'. {_format_styles_list()}",
+                                  theme.WARNING.name())
+                        return True
+                    bus.publish("PET_STYLE_REQUESTED", {"name": name})
+                    bus.publish("PET_SHOW_REQUESTED")  # ensure pet is visible
+                    _emit_log("🎨", f"Pet style → {name}",
+                              theme.SUCCESS.name())
+                    return True
+            return False
+
         def _submit_text():
             text = (self.text_input.text() or "").strip()
             if not text:
                 return
             self.text_input.clear()
+
+            # Local pet commands — handled in-process, never sent to the LLM.
+            lower = text.lower().rstrip(".!?")
+            if _try_pet_style_command(lower):
+                return
+            if lower in _PET_SHOW_TRIGGERS:
+                bus.publish("PET_SHOW_REQUESTED")
+                return
+            if lower in _PET_HIDE_TRIGGERS:
+                bus.publish("PET_HIDE_REQUESTED")
+                return
+
             # IMPORTANT: don't block the Qt UI thread; Brain does heavy work.
             threading.Thread(
                 target=lambda: bus.publish("VOICE_INPUT_RECEIVED", text),
